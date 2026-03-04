@@ -313,9 +313,51 @@
     });
 </script>
 
+    <style>
+        /* 1. Forza la trasparenza e rimuove i bordi sia nel Tema Scuro che in quello Chiaro */
+        html body header, 
+        html body.light-theme header {
+            position: absolute !important;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: transparent !important;
+            background-color: transparent !important;
+            border-bottom: transparent !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            z-index: 50;
+        }
+
+        /* Stessa cosa per il box in basso che contiene la barra di input */
+        html body .input-area, 
+        html body.light-theme .input-area {
+            position: absolute !important;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: transparent !important;
+            background-color: transparent !important;
+            border-top: transparent !important;
+            box-shadow: none !important;
+            z-index: 50; /* Mantiene la barra sopra i messaggi che scorrono */
+        }
+
+        /* 2. Diamo aria in cima alla chat per non far nascondere i primi messaggi sotto il logo */
+        html body #chat-box {
+            padding-top: calc(80px + env(safe-area-inset-top)) !important;
+        }
+    </style>
+    ```
+
+Così facendo, la barra dove digiti rimarrà visibile, ma lo "zoccolo" largo tutto lo schermo sparirà del tutto, permettendo ai messaggi di scorrere come un fiume dietro al logo e dietro al testo! Fammi sapere se l'effetto è fluido come te lo aspettavi.
+
+    
     
 </body>
 </html>
+
 
 
 
