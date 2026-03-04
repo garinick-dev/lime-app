@@ -344,27 +344,22 @@
             display: none !important;
         }
 
-        /* 3. Via i bordi, dentro le Ombre (Box-Shadow) */
+        /* 3. Nessun bordo e nessuna ombra: stile minimale, piatto e veloce */
         html body .user-msg, 
-        html body .bot-msg {
-            border: none !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important; 
-        }
-
         html body.light-theme .user-msg,
+        html body .bot-msg, 
         html body.light-theme .bot-msg {
             border: none !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important; 
+            box-shadow: none !important; 
         }
 
         /* 4. Riposizionamento Mascotte: Appoggiata fisicamente e Allineata a sinistra */
         html body .input-wrapper {
-            position: relative !important; /* Diventa la "base" per la mascotte */
+            position: relative !important; /* Diventa la base per la mascotte */
         }
         
         html body #lime-app-mascot.lime-floating-container {
             position: absolute !important;
-            /* GRAZIE AL TAGLIO DELLA VIEWBOX, ORA POSSIAMO USARE UN ANCORAGGIO PULITO */
             bottom: 100% !important; 
             left: -32px !important;  
             transform-origin: bottom left !important;
@@ -385,14 +380,14 @@
                 }
 
                 // ==========================================
-                // CHIRURGIA SULLA VIEWBOX: TAGLIO DELLA STRISCIA INFERIORE
+                // CHIRURGIA SULLA VIEWBOX: TAGLIO DI ALTRI 2 PIXEL
                 // ==========================================
                 const mascotSvg = document.querySelector('#lime-app-mascot svg');
                 if (mascotSvg) {
-                    // Tagliamo i 20 pixel di vuoto dal fondo (da 250 a 230)
-                    mascotSvg.setAttribute('viewBox', '0 0 200 230');
-                    // Riproporzioniamo l'altezza fisica dell'elemento per mantenere l'aspetto (da 225 a 207)
-                    mascotSvg.setAttribute('height', '207');
+                    // Rifiliamo altri 2 pixel di vuoto dal fondo (da 230 a 228)
+                    mascotSvg.setAttribute('viewBox', '0 0 200 228');
+                    // Riproporzioniamo leggermente l'altezza per mantenere la geometria perfetta
+                    mascotSvg.setAttribute('height', '205');
                 }
             }
             
@@ -403,10 +398,11 @@
     </script>
     ```
 
-Fai la prova e dimmi: preferisci l'ancoraggio con la `viewBox` tagliata? La tua logica ha funzionato!
-   
+Fai un test e verifica l'appoggio. Se l'allineamento e il minimalismo ora sono perfetti, quale dettaglio visivo o funzionale vuoi aggredire con la prossima patch?
+  
 </body>
 </html>
+
 
 
 
