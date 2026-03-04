@@ -383,7 +383,9 @@
     // ==========================================
     const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6d2xkZW5zYWdscGF3bndwanhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODkwODgsImV4cCI6MjA4NzU2NTA4OH0.TDasZe_1WZx1zkManNmgTCZA4NZyeHScVaCzK-xdJwk";
-    const D_KEY = "app-MHCeeAJoGc5W3ncacveWPVsb";
+    
+    // LA CHIAVE DIFY NON È PIÙ QUI - Sei protetto.
+    const EDGE_FUNCTION_URL = `${S_URL}/functions/v1/dify-proxy`;
     const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
@@ -400,6 +402,15 @@
     const INJECT_END = `[--- FINE DOC ---]`;
 
     window.addEventListener('load', () => { if(window.marked) marked.use({ breaks: true, gfm: true }); });
+
+    // FIX CHIAVE: Invia il token utente e il parametro apikey fondamentale per Supabase
+    async function getAuthHeaders() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        return { 
+            'Authorization': `Bearer ${session?.access_token}`,
+            'apikey': S_KEY 
+        };
+    }
 
     const DOM = {
         chatBox: document.getElementById('chat-box'),
@@ -546,8 +557,8 @@
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         try {
-            const res = await fetch(`https://api.dify.ai/v1/messages?conversation_id=${id}&user=${userId}`, { 
-                headers: { 'Authorization': `Bearer ${D_KEY}` },
+            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}`, { 
+                headers: await getAuthHeaders(),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -650,7 +661,7 @@
     async function sendWavToDify(audioFile) {
         const formData = new FormData(); formData.append('file', audioFile); formData.append('user', userId);
         try {
-            const res = await fetch('https://api.dify.ai/v1/audio-to-text', { method: 'POST', headers: { 'Authorization': `Bearer ${D_KEY}` }, body: formData });
+            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/audio-to-text`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
             const data = await res.json();
             if (res.ok && data.text) { DOM.inputField.style.color = 'inherit'; DOM.inputField.value = data.text; resetInputUI(false); DOM.sendBtn.disabled = false; sendMessage(); } else { resetInputUI(); }
         } catch (e) { resetInputUI(); }
@@ -709,7 +720,7 @@
             try {
                 if (currentFile.type.startsWith('image/')) {
                     isImage = true; const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId);
-                    const uploadRes = await fetch('https://api.dify.ai/v1/files/upload', { method: 'POST', headers: { 'Authorization': `Bearer ${D_KEY}` }, body: formData });
+                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
                     filePayload.push({ type: 'image', transfer_method: 'local_file', upload_file_id: (await uploadRes.json()).id });
                 } else extractedText = await extractTextFromFile(currentFile);
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`;
@@ -723,7 +734,7 @@
         DOM.chatBox.appendChild(createMessageNode('user', displayHtml, null, true)); scrollToBottom(true);
         DOM.inputField.value = ""; clearAttachment();
         
-        DOM.inputField.focus(); // Mantiene la tastiera aperta su mobile
+        DOM.inputField.focus(); 
 
         const botWrapper = createMessageNode('bot', "...", null);
         const botDiv = botWrapper.querySelector('.bot-msg'); DOM.chatBox.appendChild(botWrapper);
@@ -734,7 +745,8 @@
             const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: reqMode, conversation_id: currentConversationId };
             if (filePayload.length > 0) Object.assign(reqBody, { files: filePayload });
 
-            const res = await fetch('https://api.dify.ai/v1/chat-messages', { method: 'POST', headers: { 'Authorization': `Bearer ${D_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) });
+            const authHeaders = await getAuthHeaders();
+            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) });
 
             if (reqMode === "blocking") {
                 if (window.setMascotThinking) window.setMascotThinking(false); 
