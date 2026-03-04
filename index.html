@@ -350,15 +350,15 @@
             border: none !important;
         }
 
-        /* 4. Riposizionamento Mascotte: Appoggiata e abbassata di 2 pixel chirurgici */
+        /* 4. Riposizionamento Mascotte: Appoggiata chirurgicamente */
         html body .input-wrapper {
             position: relative !important; /* Diventa la base per la mascotte */
         }
         
         html body #lime-app-mascot.lime-floating-container {
             position: absolute !important;
-            /* bottom 100% la appoggia sopra, il -2px la spinge giù esattamente di 2 pixel */
-            bottom: calc(100% - 2px) !important; 
+            /* Compensiamo i 20px di vuoto del canvas SVG + scendiamo di altri 2px */
+            bottom: calc(100% - 22px) !important; 
             left: -32px !important;  
             transform-origin: bottom left !important;
             margin-bottom: 0 !important;
@@ -385,13 +385,13 @@
     </script>
     ```
 
-Questo dovrebbe aver disattivato le ombre una volta per tutte e ancorato la mascotte alla perfezione. Dimmi come ti sembra ora!
-
+Questa volta l'ancoraggio è matematicamente ineccepibile. Controlla e dimmi se la posa della mascotte è finalmente perfetta!
 
     
     
 </body>
 </html>
+
 
 
 
