@@ -314,45 +314,77 @@
 </script>
 
     <style>
-        /* 1. Forza la trasparenza e rimuove i bordi sia nel Tema Scuro che in quello Chiaro */
+        /* 1. Header e Input Area Fluttuanti e Trasparenti */
         html body header, 
         html body.light-theme header {
             position: absolute !important;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: transparent !important;
-            background-color: transparent !important;
-            border-bottom: transparent !important;
-            box-shadow: none !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
+            top: 0; left: 0; width: 100%;
+            background: transparent !important; background-color: transparent !important;
+            border-bottom: transparent !important; box-shadow: none !important;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
             z-index: 50;
         }
 
-        /* Stessa cosa per il box in basso che contiene la barra di input */
         html body .input-area, 
         html body.light-theme .input-area {
             position: absolute !important;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: transparent !important;
-            background-color: transparent !important;
-            border-top: transparent !important;
-            box-shadow: none !important;
-            z-index: 50; /* Mantiene la barra sopra i messaggi che scorrono */
+            bottom: 0; left: 0; width: 100%;
+            background: transparent !important; background-color: transparent !important;
+            border-top: transparent !important; box-shadow: none !important;
+            z-index: 50;
         }
 
-        /* 2. Diamo aria in cima alla chat per non far nascondere i primi messaggi sotto il logo */
+        /* Diamo aria in cima per i messaggi che scorrono sotto l'header */
         html body #chat-box {
             padding-top: calc(80px + env(safe-area-inset-top)) !important;
         }
+
+        /* 2. Nascondi Orario Messaggi Bot */
+        html body .bot-msg .msg-time-inside {
+            display: none !important;
+        }
+
+        /* 3. Outline/Bordo Nero fisso su tutte le Bubble (Chiaro e Scuro) */
+        html body .user-msg, 
+        html body.light-theme .user-msg,
+        html body .bot-msg, 
+        html body.light-theme .bot-msg {
+            border: 1.5px solid #000000 !important;
+        }
+
+        /* 4. Riposizionamento Mascotte: Appoggiata e Allineata a sinistra */
+        html body .input-wrapper {
+            position: relative !important; /* Diventa la "base" per la mascotte */
+        }
+        
+        html body #lime-app-mascot.lime-floating-container {
+            position: absolute !important;
+            bottom: 100% !important; /* Si appoggia esattamente sul bordo superiore della prompt bar */
+            left: -10px !important;  /* Offset chirurgico per compensare il bordo invisibile dell'SVG */
+            transform-origin: bottom left !important;
+            margin-bottom: 2px; /* Un piccolissimo respiro visivo */
+        }
     </style>
+
+    <script>
+        (function(){
+            // Spostiamo fisicamente il codice della mascotte dentro la prompt bar per ancorarla indissolubilmente
+            function ancoraggioMascotte() {
+                const mascot = document.getElementById('lime-app-mascot');
+                const promptBar = document.querySelector('.input-wrapper');
+                if (mascot && promptBar && mascot.parentNode !== promptBar) {
+                    promptBar.appendChild(mascot);
+                }
+            }
+            
+            // Eseguiamo l'ancoraggio istantaneamente e confermiamo al termine del caricamento
+            ancoraggioMascotte();
+            window.addEventListener('load', ancoraggioMascotte);
+        })();
+    </script>
     ```
 
-Così facendo, la barra dove digiti rimarrà visibile, ma lo "zoccolo" largo tutto lo schermo sparirà del tutto, permettendo ai messaggi di scorrere come un fiume dietro al logo e dietro al testo! Fammi sapere se l'effetto è fluido come te lo aspettavi.
-
+Vai online e dai un'occhiata: adesso il bot è muto sull'orario, le bolle hanno un contorno deciso che le fa risaltare e la mascotte è seduta fiera sulla tua barra di input. Funziona tutto a dovere?
     
     
 </body>
