@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>LIME 🍋 - Pro Edition</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+
+    </head>
+<body>
+
+    <script>
+    // ==========================================
+    // 1. COSTANTI E SICUREZZA (MODIFICATO)
+    // ==========================================
+    const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
+    const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6d2xkZW5zYWdscGF3bndwanhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODkwODgsImV4cCI6MjA4NzU2NTA4OH0.TDasZe_1WZx1zkManNmgTCZA4NZyeHScVaCzK-xdJwk";
+    const supabaseClient = supabase.createClient(S_URL, S_KEY);
+
+    // CHIAVE DIFY RIMOSSA. Le chiamate ora passano dalla tua Edge Function sicura.
+    const EDGE_FUNCTION_URL = `${S_URL}/functions/v1/dify-proxy`;
+
+    let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
+    let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
+    let globalStream = null;
+
+    const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
+    const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
+
+    window.addEventListener('load', () => { if(window.marked) marked.use({ breaks: true, gfm: true }); });
+
+    // Helper per ottenere il token Supabase da inviare all'Edge Function
+    async function getAuthHeaders() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        return { 'Authorization': `Bearer ${session?.access_token}` };
+    }
+
+    const DOM = {
+        chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'),
+        sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'),
+        backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'),
+        greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'),
+        inputArea: document.querySelector('.input-area')
+    };
+    
+    let scrollTimeout;
+    DOM.chatBox.addEventListener('scroll', () => { if (!scrollTimeout) { scrollTimeout = requestAnimationFrame(() => { isUserScrolling = (DOM.chatBox.scrollHeight - DOM.chatBox.scrollTop) > (DOM.chatBox.clientHeight + 100); scrollTimeout = null; }); } }, { passive: true });
+
+    DOM.chatBox.addEventListener('click', (e) => { const copyBtn = e.target.closest('.copy-btn'); if (copyBtn) { const pre = copyBtn.closest('pre'); if(pre) { navigator.clipboard.writeText(pre.querySelector('code').innerText); copyBtn.innerText = 'Copiato!'; setTimeout(() => copyBtn.innerText = 'Copia', 2000); } } });
+
+    let inputDebounce;
+    DOM.inputField.addEventListener('input', () => { clearTimeout(inputDebounce); inputDebounce = setTimeout(() => { if (DOM.inputField.value.trim().length > 0 && window.setGreetingVisible) window.setGreetingVisible(false); }, 150); });
+
+    // [BLOCCO 2. AUTENTICAZIONE E UTENTE RIMANE IDENTICO]
+
+    // ==========================================
+    // 3. GESTIONE CHAT E STORICO (MODIFICATO XSS E FETCH)
+    // ==========================================
+    async function loadHistory() { const { data } = await supabaseClient.from('conversations').select('*').order('created_at', { ascending: false }); allChats = data || []; chatPage = 1; renderHistoryList(); }
+
+    function handleChatClick(id) { /* IDENTICO A LIME13 */ }
+
+    function renderHistoryList() {
+        DOM.historyList.innerHTML = ""; const fragment = document.createDocumentFragment(); const toShow = allChats.slice(0, chatPage * CHATS_PER_PAGE);
+        toShow.forEach(chat => {
+            const div = document.createElement('div'); div.className = `history-item ${chat.dify_id === currentConversationId ? 'active-chat' : ''}`; div.id = `chat-${chat.dify_id}`; div.onclick = () => handleChatClick(chat.dify_id);
+            // SANITIZZAZIONE TITOLO (XSS)
+            const safeTitle = DOMPurify.sanitize(chat.title || "Nuova conversazione", { ALLOWED_TAGS: [] });
+            div.innerHTML = `<div class="chat-title">${safeTitle}</div>
+                             <div class="chat-actions">
+                               <button class="action-btn" onclick="event.stopPropagation(); renameChat('${chat.dify_id}', '${chat.title}')">✏️</button>
+                               <button class="action-btn" style="color:#ff4444" onclick="event.stopPropagation(); deleteChat('${chat.dify_id}')">🗑️</button>
+                             </div>`;
+            fragment.appendChild(div);
+        });
+        if (allChats.length > chatPage * CHATS_PER_PAGE) { const btn = document.createElement('button'); btn.className = "load-more-btn"; btn.innerText = "Carica chat precedenti"; btn.onclick = () => { chatPage++; renderHistoryList(); }; fragment.appendChild(btn); }
+        DOM.historyList.appendChild(fragment);
+    }
+
+    async function renameChat(id, old) { /* IDENTICO */ }
+    async function deleteChat(id) { /* IDENTICO */ }
+    function startNewChat() { /* IDENTICO */ }
+
+    async function loadChat(id) {
+        currentConversationId = id; if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar();
+        if (chatCache[id]) { renderMessages(chatCache[id]); return; }
+        DOM.chatBox.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Recupero messaggi...</div>`;
+        const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        try {
+            // FETCH TRAMITE PROXY
+            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}`, { 
+                headers: await getAuthHeaders(),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId); const result = await res.json();
+            if (result.data && result.data.length > 0) { const sorted = result.data.sort((a, b) => a.created_at - b.created_at); chatCache[id] = sorted; renderMessages(sorted); } else startNewChat();
+        } catch (e) { clearTimeout(timeoutId); DOM.chatBox.innerHTML = `<div style="color:#ff4444; text-align:center; width:100%;">Impossibile recuperare la chat. Riprova.</div>`; }
+    }
+
+    function renderMessages(messages) { /* IDENTICO */ }
+
+    // [BLOCCO 4. GESTIONE ALLEGATI RIMANE IDENTICO]
+
+    // ==========================================
+    // 5. GESTIONE AUDIO MICROFONO (MODIFICATO FETCH)
+    // ==========================================
+    // [encodeToWAV e toggleRecording RIMANGONO IDENTICI]
+
+    async function sendWavToDify(audioFile) {
+        const formData = new FormData(); formData.append('file', audioFile); formData.append('user', userId);
+        try {
+            // FETCH TRAMITE PROXY
+            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/audio-to-text`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
+            const data = await res.json();
+            if (res.ok && data.text) { DOM.inputField.style.color = 'inherit'; DOM.inputField.value = data.text; resetInputUI(false); DOM.sendBtn.disabled = false; sendMessage(); } else { resetInputUI(); }
+        } catch (e) { resetInputUI(); }
+    }
+
+    function resetInputUI(clearText = true) { /* IDENTICO */ }
+    function formatTime(unixTimestamp) { /* IDENTICO */ }
+    function formatDateSeparator(unixTimestamp) { /* IDENTICO */ }
+    function createDateSeparatorNode(ds) { /* IDENTICO */ }
+    
+    function createMessageNode(role, text, timestamp = null, isHtml = false) {
+        const wrapper = document.createElement('div'); wrapper.className = `msg-wrapper ${role === 'user' ? 'user-wrapper' : 'bot-wrapper'}`;
+        const div = document.createElement('div'); div.className = `msg ${role === 'user' ? 'user-msg' : 'bot-msg'}`;
+        if (role === 'bot') { 
+            // SANITIZZAZIONE MARKDOWN (XSS)
+            div.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(text || "...")) : DOMPurify.sanitize(text); 
+            div.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
+        } else { if (isHtml) div.innerHTML = text; else div.textContent = text; }
+        const bottomBar = document.createElement('div'); bottomBar.className = 'msg-bottom-bar'; bottomBar.style.justifyContent = 'flex-end'; bottomBar.insertAdjacentHTML('beforeend', `<span class="msg-time-inside">${formatTime(timestamp)}</span>`);
+        div.appendChild(bottomBar); wrapper.appendChild(div); return wrapper;
+    }
+
+    // ==========================================
+    // 6. INVIO MESSAGGI E SINCRONIZZAZIONE (MODIFICATO FETCH E XSS)
+    // ==========================================
+    async function sendMessage() {
+        if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
+        let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
+        isGenerating = true; if (window.setGreetingVisible) window.setGreetingVisible(false); if (window.setMascotThinking) window.setMascotThinking(true); 
+        DOM.sendBtn.disabled = true; 
+        const exs = DOM.chatBox.querySelectorAll('.date-separator-text'); if (exs.length === 0 || exs[exs.length - 1].innerText !== "Oggi") DOM.chatBox.appendChild(createDateSeparatorNode("Oggi"));
+
+        let filePayload = [], extractedText = null, isImage = false; 
+        let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
+
+        if (currentFile) {
+            document.getElementById('attachment-label').innerText = "Elaborazione...";
+            try {
+                if (currentFile.type.startsWith('image/')) {
+                    isImage = true; const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId);
+                    // UPLOAD TRAMITE PROXY
+                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
+                    filePayload.push({ type: 'image', transfer_method: 'local_file', upload_file_id: (await uploadRes.json()).id });
+                } else extractedText = await extractTextFromFile(currentFile);
+                displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`;
+            } catch (e) { alert("Errore file"); isGenerating = false; DOM.sendBtn.disabled = false; if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; }
+        }
+
+        let finalQuery = query || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
+        if (extractedText) finalQuery = `${hiddenFileTag}${INJECT_START}\n${extractedText}\n${INJECT_END}\n${finalQuery}`; else if (currentFile) finalQuery = `${hiddenFileTag}${finalQuery}`;
+
+        DOM.chatBox.appendChild(createMessageNode('user', displayHtml, null, true)); scrollToBottom(true);
+        DOM.inputField.value = ""; clearAttachment(); DOM.inputField.focus(); 
+
+        const botWrapper = createMessageNode('bot', "...", null); const botDiv = botWrapper.querySelector('.bot-msg'); DOM.chatBox.appendChild(botWrapper);
+        let fullAnswer = "", renderQueued = false;
+
+        try {
+            const reqMode = isImage ? "blocking" : "streaming";
+            const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: reqMode, conversation_id: currentConversationId };
+            if (filePayload.length > 0) Object.assign(reqBody, { files: filePayload });
+
+            // MESSAGGIO TRAMITE PROXY
+            const authHeaders = await getAuthHeaders();
+            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { 
+                method: 'POST', 
+                headers: { ...authHeaders, 'Content-Type': 'application/json' }, 
+                body: JSON.stringify(reqBody) 
+            });
+
+            if (reqMode === "blocking") {
+                if (window.setMascotThinking) window.setMascotThinking(false); const data = await res.json(); fullAnswer = data.answer || "";
+                const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
+                // SANITIZZAZIONE
+                botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(fullAnswer)) : DOMPurify.sanitize(fullAnswer); 
+                botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom();
+                if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: query.substring(0, 35) || "Nuova Chat" }]); loadHistory(); }
+                if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)});
+            } else {
+                const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = "", firstChunk = true;
+                while (true) {
+                    const { done, value } = await reader.read(); if (done) break;
+                    if (firstChunk) { firstChunk = false; if (window.setMascotThinking) window.setMascotThinking(false); }
+                    buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n\n'); buffer = lines.pop(); 
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.substring(6));
+                                if (data.event === 'message') {
+                                    fullAnswer += data.answer;
+                                    if (!renderQueued) {
+                                        renderQueued = true;
+                                        requestAnimationFrame(() => {
+                                            const bottomBar = botDiv.querySelector('.msg-bottom-bar');
+                                            // SANITIZZAZIONE
+                                            botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(fullAnswer)) : DOMPurify.sanitize(fullAnswer); if(bottomBar) botDiv.appendChild(bottomBar);
+                                            scrollToBottom(); renderQueued = false;
+                                        });
+                                    }
+                                } else if (data.event === 'message_end') {
+                                    botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>'));
+                                    if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: query.substring(0, 35) || "Nuova Chat" }]); loadHistory(); }
+                                    if(currentConversationId) { if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); }
+                                }
+                            } catch (e) {}
+                        }
+                    }
+                }
+            }
+            const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
+        } catch (e) { const bottomBar = botDiv.querySelector('.msg-bottom-bar'); botDiv.innerHTML = `⚠️ Errore LIME.`; if(bottomBar) botDiv.appendChild(bottomBar); } 
+        finally { isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; scrollToBottom(true); }
+    }
+
+    function scrollToBottom(force = false) { /* IDENTICO */ }
+    function toggleSidebar() { /* IDENTICO */ }
+    DOM.inputField.addEventListener('keypress', e => { /* IDENTICO */ });
+
+
+
+
+
+
+    // ==========================================
+    // 7. LOGICA CLOUD SETTINGS (SUPABASE STORAGE) E PULIZIA
+    // ==========================================
+    function applyChatBackground(imageUrl) {
+        if (DOM.chatBox) { if (imageUrl) { DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(${imageUrl})`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed'; } else DOM.chatBox.style.backgroundImage = 'none'; }
+    }
+
+    async function applyTheme(themeName) { 
+        if (themeName === 'light') { document.body.classList.add('light-theme'); document.getElementById('theme-light-radio').checked = true; } else { document.body.classList.remove('light-theme'); document.getElementById('theme-dark-radio').checked = true; } 
+    }
+    
+    async function handleThemeChange(themeName) { 
+        if (!userId) return; 
+        applyTheme(themeName); 
+        await supabaseClient.auth.updateUser({ data: { theme: themeName } });
+    }
+
+    function updateColorCirclesUI(hex) { document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('active')); const activeCircle = document.querySelector(`.color-circle[data-color="${hex}"]`); if (activeCircle) activeCircle.classList.add('active'); }
+    
+    async function handleColorChange(hex) { 
+        if (!userId) return; 
+        document.documentElement.style.setProperty('--accent', hex); document.documentElement.style.setProperty('--lime-accent', hex); 
+        updateColorCirclesUI(hex); 
+        await supabaseClient.auth.updateUser({ data: { color: hex } });
+    }
+
+    function updateProfileUI(user) {
+        const avatarDivs = [document.getElementById('user-initial'), document.getElementById('settings-user-avatar')], nameSpans = [document.getElementById('user-display-name'), document.getElementById('settings-user-name')];
+        if (user && user.email) {
+            const fullName = user.user_metadata?.full_name || user.email.split('@')[0], initial = fullName.charAt(0).toUpperCase();
+            nameSpans.forEach(span => span.innerText = fullName);
+            
+            const savedTheme = user.user_metadata?.theme || 'dark';
+            const savedColor = user.user_metadata?.color || '#c0f22c';
+            const savedPfp = user.user_metadata?.pfp;
+            const savedBg = user.user_metadata?.bg;
+
+            avatarDivs.forEach(div => { if (savedPfp) { div.style.backgroundImage = `url(${savedPfp})`; div.innerText = ''; } else { div.style.backgroundImage = 'none'; div.innerText = initial; } });
+            
+            applyChatBackground(savedBg); 
+            applyTheme(savedTheme); 
+            document.documentElement.style.setProperty('--accent', savedColor); 
+            document.documentElement.style.setProperty('--lime-accent', savedColor); 
+            updateColorCirclesUI(savedColor);
+        } else {
+            nameSpans.forEach(span => span.innerText = ""); avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; });
+            applyChatBackground(null); applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#c0f22c'); document.documentElement.style.setProperty('--lime-accent', '#c0f22c'); updateColorCirclesUI('#c0f22c');
+        }
+    }
+
+    async function uploadToSupabaseStorage(file, pathPrefix) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`;
+        const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true });
+        if (error) { alert("Errore caricamento immagine."); return null; }
+        const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName);
+        return publicUrl;
+    }
+
+    // Funzione dedicata alla pulizia del vecchio file
+    async function deleteOldSupabaseFile(oldUrl) {
+        if (!oldUrl) return;
+        try {
+            const bucketMarker = '/lime-assets/';
+            const index = oldUrl.indexOf(bucketMarker);
+            if (index !== -1) {
+                const filePath = oldUrl.substring(index + bucketMarker.length);
+                await supabaseClient.storage.from('lime-assets').remove([filePath]);
+            }
+        } catch (e) { console.error("Errore rimozione vecchio file", e); }
+    }
+
+    async function handlePfpUpload(event) {
+        if (!userId) return; const file = event.target.files[0];
+        if (file) { 
+            const reader = new FileReader(); reader.onload = function(e) { [document.getElementById('user-initial'), document.getElementById('settings-user-avatar')].forEach(div => { div.style.backgroundImage = `url(${e.target.result})`; div.innerText = ''; }); }; reader.readAsDataURL(file); 
+            
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const oldUrl = user?.user_metadata?.pfp;
+            
+            const publicUrl = await uploadToSupabaseStorage(file, `pfp/${userId}`);
+            if (publicUrl) {
+                await supabaseClient.auth.updateUser({ data: { pfp: publicUrl } });
+                if (oldUrl) await deleteOldSupabaseFile(oldUrl); // Pulizia
+            }
+        }
+    }
+
+    async function handleBgUpload(event) {
+        if (!userId) return; const file = event.target.files[0];
+        if (file) { 
+            const reader = new FileReader(); reader.onload = function(e) { applyChatBackground(e.target.result); }; reader.readAsDataURL(file); 
+            
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const oldUrl = user?.user_metadata?.bg;
+
+            const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`);
+            if (publicUrl) {
+                await supabaseClient.auth.updateUser({ data: { bg: publicUrl } });
+                if (oldUrl) await deleteOldSupabaseFile(oldUrl); // Pulizia
+            }
+        }
+    }
+
+    // ==========================================
+    // 8. GREETING & MASCOT LOGIC (OTTIMIZZATO)
+    // ==========================================
+    function initLimeExtras() {
+        const bodyM = document.getElementById('lime-body-main'), eyesM = document.querySelectorAll('.lime-eye');
+        let isThinking = false;
+
+        window.setGreetingVisible = (visible) => {
+            if (!DOM.greetingBox) return; DOM.greetingBox.style.opacity = visible ? '1' : '0'; DOM.greetingBox.style.visibility = visible ? 'visible' : 'hidden';
+        };
+
+        if(DOM.chatBox && DOM.chatBox.innerHTML.trim() === "") window.setGreetingVisible(true);
+
+        const sendTrigger = (code) => {
+            if (!DOM.inputField) return; DOM.inputField.value = code; DOM.inputField.dispatchEvent(new Event('input', { bubbles: true }));
+            const e = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 };
+            DOM.inputField.dispatchEvent(new KeyboardEvent('keydown', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keypress', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keyup', e));
+        };
+
+        window.setMascotThinking = (state) => { isThinking = state; eyesM.forEach(e => state ? e.classList.add('eyes-closed') : e.classList.remove('eyes-closed')); };
+
+        function syncFloatingUI() {
+            if (!DOM.chatBox) return; const rect = DOM.chatBox.getBoundingClientRect();
+            if (DOM.greetingBox) { DOM.greetingBox.style.width = rect.width + "px"; DOM.greetingBox.style.left = rect.left + "px"; }
+            if (DOM.mascotContainer && DOM.inputArea) {
+                const rI = DOM.inputArea.getBoundingClientRect(); DOM.mascotContainer.style.left = (rect.left + 5) + "px"; DOM.mascotContainer.style.bottom = (window.innerHeight - rI.top - 22) + "px";
+            }
+        }
+        
+        syncFloatingUI();
+        const resizeObserver = new ResizeObserver(() => requestAnimationFrame(syncFloatingUI));
+        resizeObserver.observe(document.body); if (DOM.inputArea) resizeObserver.observe(DOM.inputArea);
+        window.addEventListener('resize', () => requestAnimationFrame(syncFloatingUI), { passive: true });
+
+        if (DOM.chatBox) {
+            new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach((node) => {
+                            if (node.nodeType === 1) { 
+                                const t = node.innerText || "";
+                                if (t.includes('@1') || t.includes('@2') || t.includes('@3') || t.includes('@4')) node.classList.add('ghost-hidden');
+                            }
+                        });
+                    }
+                });
+            }).observe(DOM.chatBox, { childList: true, subtree: true });
+        }
+
+        function playBody() { if (isThinking) return setTimeout(playBody, 1000); const r = Math.random() * 100, a = r < 60 ? 'anim-squeeze' : r < 90 ? 'anim-roll' : 'anim-jump'; bodyM.classList.add(a); bodyM.addEventListener('animationend', () => { bodyM.classList.remove(a); setTimeout(playBody, Math.random() * 4000 + 3000); }, { once: true }); }
+        function playBlink() { if (!isThinking) { eyesM.forEach(e => e.classList.add('anim-blink')); setTimeout(() => eyesM.forEach(e => e.classList.remove('anim-blink')), 150); } setTimeout(playBlink, Math.random() * 5000 + 2000); }
+        function look() { if (isThinking) return setTimeout(look, 1000); const dirs = [{x:0,y:0},{x:0,y:-4},{x:0,y:4},{x:4,y:0},{x:-4,y:0},{x:3,y:-3},{x:-3,y:-3},{x:3,y:3},{x:-3,y:3}]; const d = dirs[Math.floor(Math.random() * dirs.length)]; eyesM.forEach(e => { e.style.setProperty('--lx', d.x+'px'); e.style.setProperty('--ly', d.y+'px'); e.style.transform = `translate(${d.x}px, ${d.y}px)`; }); setTimeout(look, Math.random() * 3000 + 2000); }
+        setTimeout(playBody, 2000); setTimeout(playBlink, 2500); setTimeout(look, 3000);
+
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('lime-chip')) { sendTrigger(e.target.getAttribute('data-trigger')); window.setGreetingVisible(false); }
+            if (e.target.innerText && e.target.innerText.includes('Nuova chat')) window.setGreetingVisible(true);
+            if (e.target.closest('.history-item')) window.setGreetingVisible(false);
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Enter') window.setGreetingVisible(false); });
+    }
+
+    // ==========================================
+    // 9. INIZIALIZZAZIONE GLOBALE
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', async () => {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden');
+            updateProfileUI(session.user); loadHistory();
+        }
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden');
+                updateProfileUI(session.user); loadHistory();
+            } else {
+                userId = null; document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); updateProfileUI(null);
+            }
+        });
+        initLimeExtras();
+    });
+</script>
+
+</body>
+</html>
