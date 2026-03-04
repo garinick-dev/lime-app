@@ -369,33 +369,8 @@
         }
     </style>
 
-    <script>
-        (function(){
-            function ancoraggioMascotte() {
-                const mascotContainer = document.getElementById('lime-app-mascot');
-                const promptBar = document.querySelector('.input-wrapper');
-                
-                if (mascotContainer && promptBar && mascotContainer.parentNode !== promptBar) {
-                    promptBar.appendChild(mascotContainer);
-                }
-
-                // Tagliamo il vuoto interno dell'SVG (da 250 a 228) e lasciamo che il CSS adatti l'altezza
-                const mascotSvg = document.querySelector('#lime-app-mascot svg');
-                if (mascotSvg) {
-                    mascotSvg.setAttribute('viewBox', '0 0 200 228');
-                    mascotSvg.removeAttribute('height'); // Rimuove l'ancora fissa
-                }
-            }
-            
-            // Eseguiamo l'ancoraggio nativamente
-            ancoraggioMascotte();
-            window.addEventListener('load', ancoraggioMascotte);
-        })();
-    </script>
-
-
     <style>
-        /* Disintegra chirurgicamente il contenitore in alto a destra per un look minimale */
+        /* 1. Disintegra chirurgicamente il contenitore in alto a destra */
         html body .top-right-actions {
             display: none !important;
             visibility: hidden !important;
@@ -405,15 +380,69 @@
             height: 0 !important;
             overflow: hidden !important;
         }
+
+        /* 2. Nascondiamo il pulsante per cambiare foto e l'input nella sidebar */
+        html body #sidebar-bottom .setting-item button[onclick*="pfp-input"],
+        html body #pfp-input {
+            display: none !important;
+            pointer-events: none !important;
+        }
+
+        /* 3. Forziamo l'avatar della sidebar a mostrare solo l'iniziale (niente immagini) */
+        html body #settings-user-avatar {
+            background-image: none !important;
+            background-color: var(--accent) !important; 
+        }
     </style>
+
+    <script>
+        (function(){
+            // Avvolgiamo la funzione originale per correggere l'avatar della sidebar
+            if (typeof window.updateProfileUI === 'function') {
+                const originalUpdateProfileUI = window.updateProfileUI;
+                
+                window.updateProfileUI = function(user) {
+                    // Facciamo fare al motore il suo lavoro originale
+                    originalUpdateProfileUI(user);
+                    
+                    // Subito dopo, interveniamo per forzare l'iniziale testuale sulla sidebar
+                    if (user && user.email) {
+                        const fullName = user.user_metadata?.full_name || user.email.split('@')[0];
+                        const initial = fullName.charAt(0).toUpperCase();
+                        const sidebarAvatar = document.getElementById('settings-user-avatar');
+                        
+                        if (sidebarAvatar) {
+                            sidebarAvatar.style.setProperty('background-image', 'none', 'important');
+                            sidebarAvatar.innerText = initial;
+                        }
+                    }
+                };
+            }
+
+            // Meccanismo di sicurezza: applichiamo la correzione istantaneamente al caricamento
+            function enforceSidebarInitial() {
+                const sidebarAvatar = document.getElementById('settings-user-avatar');
+                const userNameSpan = document.getElementById('settings-user-name');
+                
+                if (sidebarAvatar && userNameSpan && userNameSpan.innerText && userNameSpan.innerText !== "Nome Utente") {
+                    sidebarAvatar.style.setProperty('background-image', 'none', 'important');
+                    sidebarAvatar.innerText = userNameSpan.innerText.charAt(0).toUpperCase();
+                }
+            }
+
+            enforceSidebarInitial();
+            window.addEventListener('load', enforceSidebarInitial);
+        })();
+    </script>
     ```
 
-Questo farà sparire immediatamente la pillola, il nome e l'avatar. Salva, ricarica e dimmi se ora l'angolo in alto a destra è perfettamente pulito e libero da distrazioni!
+Ora hai un unico blocco che governa perfettamente il minimalismo del profilo su tutta l'applicazione. Quale sarà la nostra prossima mossa?
 
     
     
 </body>
 </html>
+
 
 
 
