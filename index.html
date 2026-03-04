@@ -313,8 +313,86 @@
     });
 </script>
 
+    <style>
+        /* 1. Header e Input Area Fluttuanti e Trasparenti */
+        html body header, 
+        html body.light-theme header {
+            position: absolute !important;
+            top: 0; left: 0; width: 100%;
+            background: transparent !important; background-color: transparent !important;
+            border-bottom: transparent !important; box-shadow: none !important;
+            backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+            z-index: 50;
+        }
+
+        html body .input-area, 
+        html body.light-theme .input-area {
+            position: absolute !important;
+            bottom: 0; left: 0; width: 100%;
+            background: transparent !important; background-color: transparent !important;
+            border-top: transparent !important; box-shadow: none !important;
+            z-index: 50;
+        }
+
+        /* Diamo aria in cima per i messaggi che scorrono sotto l'header */
+        html body #chat-box {
+            padding-top: calc(80px + env(safe-area-inset-top)) !important;
+        }
+
+        /* 2. Nascondi Orario Messaggi Bot */
+        html body .bot-msg .msg-time-inside {
+            display: none !important;
+        }
+
+        /* 3. Rimozione TOTALE Ombre e Bordi da TUTTI i messaggi colpendo la classe radice */
+        html body .msg {
+            box-shadow: none !important;
+            border: none !important;
+        }
+
+        /* 4. Riposizionamento Mascotte: Appoggiata e abbassata di 2 pixel chirurgici */
+        html body .input-wrapper {
+            position: relative !important; /* Diventa la base per la mascotte */
+        }
+        
+        html body #lime-app-mascot.lime-floating-container {
+            position: absolute !important;
+            /* bottom 100% la appoggia sopra, il -2px la spinge giù esattamente di 2 pixel */
+            bottom: calc(100% - 2px) !important; 
+            left: -32px !important;  
+            transform-origin: bottom left !important;
+            margin-bottom: 0 !important;
+            pointer-events: none; 
+        }
+    </style>
+
+    <script>
+        (function(){
+            // Spostiamo fisicamente il codice della mascotte dentro la prompt bar per ancorarla
+            function ancoraggioMascotte() {
+                const mascotContainer = document.getElementById('lime-app-mascot');
+                const promptBar = document.querySelector('.input-wrapper');
+                
+                if (mascotContainer && promptBar && mascotContainer.parentNode !== promptBar) {
+                    promptBar.appendChild(mascotContainer);
+                }
+            }
+            
+            // Eseguiamo l'ancoraggio in modo nativo e pulito
+            ancoraggioMascotte();
+            window.addEventListener('load', ancoraggioMascotte);
+        })();
+    </script>
+    ```
+
+Questo dovrebbe aver disattivato le ombre una volta per tutte e ancorato la mascotte alla perfezione. Dimmi come ti sembra ora!
+
+
+    
+    
 </body>
 </html>
+
 
 
 
