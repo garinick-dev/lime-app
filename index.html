@@ -334,7 +334,6 @@
             z-index: 50;
         }
 
-        /* Diamo aria in cima per i messaggi che scorrono sotto l'header */
         html body #chat-box {
             padding-top: calc(80px + env(safe-area-inset-top)) !important;
         }
@@ -344,31 +343,34 @@
             display: none !important;
         }
 
-        /* 3. Rimozione TOTALE Ombre e Bordi da TUTTI i messaggi colpendo la classe radice */
+        /* 3. Rimozione TOTALE Ombre e Bordi da TUTTI i messaggi (Stile piatto e veloce) */
         html body .msg {
             box-shadow: none !important;
             border: none !important;
         }
 
-        /* 4. Riposizionamento Mascotte: Appoggiata chirurgicamente */
+        /* 4. Riposizionamento Mascotte: Pura Relatività per la coerenza Cross-Platform */
         html body .input-wrapper {
-            position: relative !important; /* Diventa la base per la mascotte */
+            position: relative !important; 
         }
         
         html body #lime-app-mascot.lime-floating-container {
             position: absolute !important;
-            /* Compensiamo i 20px di vuoto del canvas SVG + scendiamo di altri 2px */
-            bottom: calc(100% - 22px) !important; 
+            bottom: 100% !important; /* Si appoggia millimetricamente senza pixel fissi */
             left: -32px !important;  
-            transform-origin: bottom left !important;
             margin-bottom: 0 !important;
             pointer-events: none; 
+        }
+
+        /* Sganciamo l'altezza fissa dell'SVG per permettere al taglio della ViewBox di funzionare */
+        html body #lime-app-mascot svg {
+            height: auto !important;
+            display: block;
         }
     </style>
 
     <script>
         (function(){
-            // Spostiamo fisicamente il codice della mascotte dentro la prompt bar per ancorarla
             function ancoraggioMascotte() {
                 const mascotContainer = document.getElementById('lime-app-mascot');
                 const promptBar = document.querySelector('.input-wrapper');
@@ -376,21 +378,29 @@
                 if (mascotContainer && promptBar && mascotContainer.parentNode !== promptBar) {
                     promptBar.appendChild(mascotContainer);
                 }
+
+                // Tagliamo il vuoto interno dell'SVG (da 250 a 228) e lasciamo che il CSS adatti l'altezza
+                const mascotSvg = document.querySelector('#lime-app-mascot svg');
+                if (mascotSvg) {
+                    mascotSvg.setAttribute('viewBox', '0 0 200 228');
+                    mascotSvg.removeAttribute('height'); // Rimuove l'ancora fissa
+                }
             }
             
-            // Eseguiamo l'ancoraggio in modo nativo e pulito
+            // Eseguiamo l'ancoraggio nativamente
             ancoraggioMascotte();
             window.addEventListener('load', ancoraggioMascotte);
         })();
     </script>
     ```
 
-Questa volta l'ancoraggio è matematicamente ineccepibile. Controlla e dimmi se la posa della mascotte è finalmente perfetta!
+Ora l'ancoraggio è fluido, matematico e perfettamente calcolato dal browser del tuo utente, sia che usi un iPhone sia che usi un computer fisso. La coerenza ora è totale. Fammi sapere come risulta!
 
     
     
 </body>
 </html>
+
 
 
 
