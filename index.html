@@ -383,10 +383,8 @@
     // ==========================================
     const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6d2xkZW5zYWdscGF3bndwanhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODkwODgsImV4cCI6MjA4NzU2NTA4OH0.TDasZe_1WZx1zkManNmgTCZA4NZyeHScVaCzK-xdJwk";
+    const D_KEY = "app-MHCeeAJoGc5W3ncacveWPVsb";
     const supabaseClient = supabase.createClient(S_URL, S_KEY);
-    
-    // Sicurezza: L'endpoint Dify punta ora alla Edge Function
-    const EDGE_FUNCTION_URL = `${S_URL}/functions/v1/dify-proxy`;
 
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
@@ -402,15 +400,6 @@
     const INJECT_END = `[--- FINE DOC ---]`;
 
     window.addEventListener('load', () => { if(window.marked) marked.use({ breaks: true, gfm: true }); });
-
-    // Helper per ottenere l'Authorization header di Supabase
-async function getAuthHeaders() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        return { 
-            'Authorization': `Bearer ${session?.access_token}`,
-            'apikey': S_KEY 
-        };
-    }
 
     const DOM = {
         chatBox: document.getElementById('chat-box'),
@@ -515,7 +504,6 @@ async function getAuthHeaders() {
             div.className = `history-item ${chat.dify_id === currentConversationId ? 'active-chat' : ''}`;
             div.id = `chat-${chat.dify_id}`;
             div.onclick = () => handleChatClick(chat.dify_id);
-            // Sanitizzazione XSS
             const safeTitle = DOMPurify.sanitize(chat.title || "Nuova conversazione", { ALLOWED_TAGS: [] });
             div.innerHTML = `<div class="chat-title">${safeTitle}</div>
                              <div class="chat-actions">
@@ -558,9 +546,8 @@ async function getAuthHeaders() {
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         try {
-            // Chiamata all'Edge Function al posto dell'API diretta Dify
-            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}`, { 
-                headers: await getAuthHeaders(),
+            const res = await fetch(`https://api.dify.ai/v1/messages?conversation_id=${id}&user=${userId}`, { 
+                headers: { 'Authorization': `Bearer ${D_KEY}` },
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -663,8 +650,7 @@ async function getAuthHeaders() {
     async function sendWavToDify(audioFile) {
         const formData = new FormData(); formData.append('file', audioFile); formData.append('user', userId);
         try {
-            // Chiamata all'Edge Function
-            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/audio-to-text`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
+            const res = await fetch('https://api.dify.ai/v1/audio-to-text', { method: 'POST', headers: { 'Authorization': `Bearer ${D_KEY}` }, body: formData });
             const data = await res.json();
             if (res.ok && data.text) { DOM.inputField.style.color = 'inherit'; DOM.inputField.value = data.text; resetInputUI(false); DOM.sendBtn.disabled = false; sendMessage(); } else { resetInputUI(); }
         } catch (e) { resetInputUI(); }
@@ -686,8 +672,7 @@ async function getAuthHeaders() {
         const wrapper = document.createElement('div'); wrapper.className = `msg-wrapper ${role === 'user' ? 'user-wrapper' : 'bot-wrapper'}`;
         const div = document.createElement('div'); div.className = `msg ${role === 'user' ? 'user-msg' : 'bot-msg'}`;
         if (role === 'bot') { 
-            // Sanitizzazione XSS con DOMPurify
-            div.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(text || "...")) : DOMPurify.sanitize(text); 
+            div.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(text || "...")) : DOMPurify.sanitize(text || "..."); 
             div.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
         } 
         else { if (isHtml) div.innerHTML = text; else div.textContent = text; }
@@ -724,8 +709,7 @@ async function getAuthHeaders() {
             try {
                 if (currentFile.type.startsWith('image/')) {
                     isImage = true; const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId);
-                    // Chiamata all'Edge Function per l'upload
-                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData });
+                    const uploadRes = await fetch('https://api.dify.ai/v1/files/upload', { method: 'POST', headers: { 'Authorization': `Bearer ${D_KEY}` }, body: formData });
                     filePayload.push({ type: 'image', transfer_method: 'local_file', upload_file_id: (await uploadRes.json()).id });
                 } else extractedText = await extractTextFromFile(currentFile);
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`;
@@ -739,7 +723,7 @@ async function getAuthHeaders() {
         DOM.chatBox.appendChild(createMessageNode('user', displayHtml, null, true)); scrollToBottom(true);
         DOM.inputField.value = ""; clearAttachment();
         
-        DOM.inputField.focus(); 
+        DOM.inputField.focus(); // Mantiene la tastiera aperta su mobile
 
         const botWrapper = createMessageNode('bot', "...", null);
         const botDiv = botWrapper.querySelector('.bot-msg'); DOM.chatBox.appendChild(botWrapper);
@@ -750,15 +734,12 @@ async function getAuthHeaders() {
             const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: reqMode, conversation_id: currentConversationId };
             if (filePayload.length > 0) Object.assign(reqBody, { files: filePayload });
 
-            // Chiamata all'Edge Function per i messaggi
-            const authHeaders = await getAuthHeaders();
-            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) });
+            const res = await fetch('https://api.dify.ai/v1/chat-messages', { method: 'POST', headers: { 'Authorization': `Bearer ${D_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) });
 
             if (reqMode === "blocking") {
                 if (window.setMascotThinking) window.setMascotThinking(false); 
                 const data = await res.json(); fullAnswer = data.answer || "";
                 const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                // Sanitizzazione XSS
                 botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(fullAnswer)) : DOMPurify.sanitize(fullAnswer); 
                 botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom();
                 if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: query.substring(0, 35) || "Nuova Chat" }]); loadHistory(); }
@@ -780,7 +761,6 @@ async function getAuthHeaders() {
                                         renderQueued = true;
                                         requestAnimationFrame(() => {
                                             const bottomBar = botDiv.querySelector('.msg-bottom-bar');
-                                            // Sanitizzazione XSS
                                             botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(fullAnswer)) : DOMPurify.sanitize(fullAnswer); if(bottomBar) botDiv.appendChild(bottomBar);
                                             scrollToBottom(); renderQueued = false;
                                         });
@@ -1000,4 +980,3 @@ async function getAuthHeaders() {
 
 </body>
 </html>
-
