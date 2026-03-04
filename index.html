@@ -348,14 +348,12 @@
         html body .user-msg, 
         html body .bot-msg {
             border: none !important;
-            /* Ombra decisa per il tema scuro per far risaltare bene la bubble */
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important; 
         }
 
         html body.light-theme .user-msg,
         html body.light-theme .bot-msg {
             border: none !important;
-            /* Ombra più morbida e diffusa per il tema chiaro */
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important; 
         }
 
@@ -366,39 +364,50 @@
         
         html body #lime-app-mascot.lime-floating-container {
             position: absolute !important;
-            /* Compensazione chirurgica dello spazio vuoto dell'SVG */
-            bottom: calc(100% - 20px) !important; 
+            /* GRAZIE AL TAGLIO DELLA VIEWBOX, ORA POSSIAMO USARE UN ANCORAGGIO PULITO */
+            bottom: 100% !important; 
             left: -32px !important;  
             transform-origin: bottom left !important;
             margin-bottom: 0 !important;
-            pointer-events: none; /* Impedisce alla mascotte di bloccare eventuali click sottostanti */
+            pointer-events: none; 
         }
     </style>
 
     <script>
         (function(){
-            // Spostiamo fisicamente il codice della mascotte dentro la prompt bar per ancorarla indissolubilmente
-            // Questo comando aggira anche il posizionamento dinamico del vecchio codice JS
+            // Spostiamo fisicamente il codice della mascotte dentro la prompt bar per ancorarla
             function ancoraggioMascotte() {
-                const mascot = document.getElementById('lime-app-mascot');
+                const mascotContainer = document.getElementById('lime-app-mascot');
                 const promptBar = document.querySelector('.input-wrapper');
-                if (mascot && promptBar && mascot.parentNode !== promptBar) {
-                    promptBar.appendChild(mascot);
+                
+                if (mascotContainer && promptBar && mascotContainer.parentNode !== promptBar) {
+                    promptBar.appendChild(mascotContainer);
+                }
+
+                // ==========================================
+                // CHIRURGIA SULLA VIEWBOX: TAGLIO DELLA STRISCIA INFERIORE
+                // ==========================================
+                const mascotSvg = document.querySelector('#lime-app-mascot svg');
+                if (mascotSvg) {
+                    // Tagliamo i 20 pixel di vuoto dal fondo (da 250 a 230)
+                    mascotSvg.setAttribute('viewBox', '0 0 200 230');
+                    // Riproporzioniamo l'altezza fisica dell'elemento per mantenere l'aspetto (da 225 a 207)
+                    mascotSvg.setAttribute('height', '207');
                 }
             }
             
-            // Eseguiamo l'ancoraggio istantaneamente e confermiamo al termine del caricamento
+            // Eseguiamo l'ancoraggio
             ancoraggioMascotte();
             window.addEventListener('load', ancoraggioMascotte);
         })();
     </script>
     ```
 
-Carica la modifica e guarda come i messaggi ora galleggiano dolcemente sullo sfondo, mentre la mascotte è fieramente piantata sulla barra. Siamo pronti per il prossimo ritocco?
-    
-    
+Fai la prova e dimmi: preferisci l'ancoraggio con la `viewBox` tagliata? La tua logica ha funzionato!
+   
 </body>
 </html>
+
 
 
 
