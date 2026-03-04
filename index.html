@@ -369,6 +369,34 @@
         }
     </style>
 
+    <script>
+        (function(){
+            function ancoraggioMascotte() {
+                const mascotContainer = document.getElementById('lime-app-mascot');
+                const promptBar = document.querySelector('.input-wrapper');
+                
+                if (mascotContainer && promptBar && mascotContainer.parentNode !== promptBar) {
+                    promptBar.appendChild(mascotContainer);
+                }
+
+                // Tagliamo il vuoto interno dell'SVG (da 250 a 228) e lasciamo che il CSS adatti l'altezza
+                const mascotSvg = document.querySelector('#lime-app-mascot svg');
+                if (mascotSvg) {
+                    mascotSvg.setAttribute('viewBox', '0 0 200 228');
+                    mascotSvg.removeAttribute('height'); // Rimuove l'ancora fissa
+                }
+            }
+            
+            // Eseguiamo l'ancoraggio nativamente
+            ancoraggioMascotte();
+            window.addEventListener('load', ancoraggioMascotte);
+        })();
+    </script>
+    ```
+
+Ora l'ancoraggio è fluido, matematico e perfettamente calcolato dal browser del tuo utente, sia che usi un iPhone sia che usi un computer fisso. La coerenza ora è totale. Fammi sapere come risulta!
+
+
     <style>
         /* 1. Disintegra chirurgicamente il contenitore in alto a destra */
         html body .top-right-actions {
@@ -442,6 +470,7 @@ Ora hai un unico blocco che governa perfettamente il minimalismo del profilo su 
     
 </body>
 </html>
+
 
 
 
