@@ -392,57 +392,29 @@
             window.addEventListener('load', ancoraggioMascotte);
         })();
     </script>
+
+
     <style>
-        /* Nascondiamo graficamente la pillola, la foto, il nome e qualsiasi contenitore utente nell'header */
-        #user-profile,
-        .user-profile,
-        #profile-menu,
-        .profile-pill,
-        #user-menu,
-        header img.avatar,
-        header .user-name {
+        /* Disintegra chirurgicamente il contenitore in alto a destra per un look minimale */
+        html body .top-right-actions {
             display: none !important;
             visibility: hidden !important;
-            pointer-events: none !important;
             opacity: 0 !important;
+            pointer-events: none !important;
             width: 0 !important;
             height: 0 !important;
             overflow: hidden !important;
         }
     </style>
-
-    <script>
-        (function(){
-            // Intercettiamo la funzione originale del motore per evitare che forzi la riapertura della pillola
-            if (typeof window.updateProfileUI === 'function') {
-                const originalUpdateProfileUI = window.updateProfileUI;
-                window.updateProfileUI = function(user) {
-                    // Eseguiamo la logica originale in background per non rompere il login
-                    originalUpdateProfileUI(user);
-                    
-                    // Subito dopo, forziamo chirurgicamente la scomparsa di tutti i possibili target
-                    const profileElements = document.querySelectorAll('#user-profile, .user-profile, #user-menu, .profile-pill, header img');
-                    profileElements.forEach(el => {
-                        el.style.setProperty('display', 'none', 'important');
-                    });
-                };
-            }
-            
-            // Per sicurezza extra, facciamo una passata al caricamento completo
-            window.addEventListener('load', () => {
-                const profileElements = document.querySelectorAll('#user-profile, .user-profile, #user-menu, .profile-pill, header img');
-                profileElements.forEach(el => el.style.setProperty('display', 'none', 'important'));
-            });
-        })();
-    </script>
     ```
 
-Salva e aggiorna. L'angolo in alto a destra ora dovrebbe essere completamente vuoto e minimale. Qual è il prossimo elemento che vogliamo perfezionare?
+Questo farà sparire immediatamente la pillola, il nome e l'avatar. Salva, ricarica e dimmi se ora l'angolo in alto a destra è perfettamente pulito e libero da distrazioni!
 
     
     
 </body>
 </html>
+
 
 
 
