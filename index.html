@@ -344,31 +344,41 @@
             display: none !important;
         }
 
-        /* 3. Outline/Bordo Nero fisso su tutte le Bubble (Chiaro e Scuro) */
+        /* 3. Via i bordi, dentro le Ombre (Box-Shadow) */
         html body .user-msg, 
-        html body.light-theme .user-msg,
-        html body .bot-msg, 
-        html body.light-theme .bot-msg {
-            border: 1.5px solid #000000 !important;
+        html body .bot-msg {
+            border: none !important;
+            /* Ombra decisa per il tema scuro per far risaltare bene la bubble */
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important; 
         }
 
-        /* 4. Riposizionamento Mascotte: Appoggiata e Allineata a sinistra */
+        html body.light-theme .user-msg,
+        html body.light-theme .bot-msg {
+            border: none !important;
+            /* Ombra più morbida e diffusa per il tema chiaro */
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important; 
+        }
+
+        /* 4. Riposizionamento Mascotte: Appoggiata fisicamente e Allineata a sinistra */
         html body .input-wrapper {
             position: relative !important; /* Diventa la "base" per la mascotte */
         }
         
         html body #lime-app-mascot.lime-floating-container {
             position: absolute !important;
-            bottom: 100% !important; /* Si appoggia esattamente sul bordo superiore della prompt bar */
-            left: -10px !important;  /* Offset chirurgico per compensare il bordo invisibile dell'SVG */
+            /* Compensazione chirurgica dello spazio vuoto dell'SVG */
+            bottom: calc(100% - 20px) !important; 
+            left: -32px !important;  
             transform-origin: bottom left !important;
-            margin-bottom: 2px; /* Un piccolissimo respiro visivo */
+            margin-bottom: 0 !important;
+            pointer-events: none; /* Impedisce alla mascotte di bloccare eventuali click sottostanti */
         }
     </style>
 
     <script>
         (function(){
             // Spostiamo fisicamente il codice della mascotte dentro la prompt bar per ancorarla indissolubilmente
+            // Questo comando aggira anche il posizionamento dinamico del vecchio codice JS
             function ancoraggioMascotte() {
                 const mascot = document.getElementById('lime-app-mascot');
                 const promptBar = document.querySelector('.input-wrapper');
@@ -384,11 +394,12 @@
     </script>
     ```
 
-Vai online e dai un'occhiata: adesso il bot è muto sull'orario, le bolle hanno un contorno deciso che le fa risaltare e la mascotte è seduta fiera sulla tua barra di input. Funziona tutto a dovere?
+Carica la modifica e guarda come i messaggi ora galleggiano dolcemente sullo sfondo, mentre la mascotte è fieramente piantata sulla barra. Siamo pronti per il prossimo ritocco?
     
     
 </body>
 </html>
+
 
 
 
