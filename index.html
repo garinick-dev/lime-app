@@ -660,12 +660,64 @@
 </script>
 
 
+<script>
+    // Sovrascriviamo le funzioni chiedendo direttamente a Supabase la sessione attiva
+    // Questo evita qualsiasi problema con le variabili locali
+    
+    window.handleThemeChange = async function(themeName) {
+        window.applyTheme(themeName); 
+        
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            await supabaseClient.auth.updateUser({ data: { theme: themeName } });
+            await supabaseClient.auth.refreshSession();
+        }
+    };
+
+    window.handleColorChange = async function(hex) {
+        document.documentElement.style.setProperty('--accent', hex);
+        document.documentElement.style.setProperty('--lime-accent', hex);
+        if (window.updateColorCirclesUI) window.updateColorCirclesUI(hex);
+        
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            await supabaseClient.auth.updateUser({ data: { color: hex } });
+            await supabaseClient.auth.refreshSession();
+        }
+    };
+
+    window.handleBgUpload = async function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Anteprima visiva immediata
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (window.applyChatBackground) window.applyChatBackground(e.target.result);
+        };
+        reader.readAsDataURL(file);
+        
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            const oldUrl = session.user.user_metadata?.bg;
+            // Usiamo l'ID utente preso direttamente dalla sessione sicura
+            const publicUrl = await window.uploadToSupabaseStorage(file, `bg/${session.user.id}`);
+            
+            if (publicUrl) {
+                await supabaseClient.auth.updateUser({ data: { bg: publicUrl } });
+                await supabaseClient.auth.refreshSession();
+                if (oldUrl) await window.deleteOldSupabaseFile(oldUrl);
+            }
+        }
+    };
+</script>
 
     
     
     
 </body>
 </html>
+
 
 
 
