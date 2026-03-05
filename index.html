@@ -661,55 +661,110 @@
 
 
 <script>
-    // Sovrascriviamo le funzioni chiedendo direttamente a Supabase la sessione attiva
-    // Questo evita qualsiasi problema con le variabili locali
-    
-    window.handleThemeChange = async function(themeName) {
-        window.applyTheme(themeName); 
-        
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) {
-            await supabaseClient.auth.updateUser({ data: { theme: themeName } });
-            await supabaseClient.auth.refreshSession();
-        }
-    };
+    (function() {
+        let syncChannel = null;
 
-    window.handleColorChange = async function(hex) {
-        document.documentElement.style.setProperty('--accent', hex);
-        document.documentElement.style.setProperty('--lime-accent', hex);
-        if (window.updateColorCirclesUI) window.updateColorCirclesUI(hex);
-        
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) {
-            await supabaseClient.auth.updateUser({ data: { color: hex } });
-            await supabaseClient.auth.refreshSession();
-        }
-    };
-
-    window.handleBgUpload = async function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        // Anteprima visiva immediata
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            if (window.applyChatBackground) window.applyChatBackground(e.target.result);
-        };
-        reader.readAsDataURL(file);
-        
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) {
-            const oldUrl = session.user.user_metadata?.bg;
-            // Usiamo l'ID utente preso direttamente dalla sessione sicura
-            const publicUrl = await window.uploadToSupabaseStorage(file, `bg/${session.user.id}`);
+        // --- 1. IL WALKIE-TALKIE: Sincronizzazione in tempo reale tra dispositivi ---
+        window.initDeviceSync = function(userId) {
+            if (!userId) return;
+            if (syncChannel) supabaseClient.removeChannel(syncChannel);
             
-            if (publicUrl) {
-                await supabaseClient.auth.updateUser({ data: { bg: publicUrl } });
+            // Apriamo un canale di comunicazione privato per l'utente
+            syncChannel = supabaseClient.channel(`user-sync-${userId}`);
+            
+            // Quando riceviamo un segnale da un altro dispositivo...
+            syncChannel.on('broadcast', { event: 'pref-update' }, async (message) => {
+                const data = message.payload;
+                
+                // 1. Aggiorniamo l'interfaccia istantaneamente
+                if (data.theme) window.applyTheme(data.theme);
+                if (data.color) {
+                    document.documentElement.style.setProperty('--accent', data.color);
+                    document.documentElement.style.setProperty('--lime-accent', data.color);
+                    if (window.updateColorCirclesUI) window.updateColorCirclesUI(data.color);
+                }
+                if (data.bg !== undefined && window.applyChatBackground) {
+                    window.applyChatBackground(data.bg);
+                }
+                
+                // 2. Rinfreschiamo il token locale in background
                 await supabaseClient.auth.refreshSession();
-                if (oldUrl) await window.deleteOldSupabaseFile(oldUrl);
+            }).subscribe();
+        };
+
+        // Funzione per trasmettere il segnale agli altri dispositivi
+        function broadcastUpdate(payload) {
+            if (syncChannel) {
+                syncChannel.send({
+                    type: 'broadcast',
+                    event: 'pref-update',
+                    payload: payload
+                });
             }
         }
-    };
+
+        // --- 2. OVERRIDE DELLE FUNZIONI DI SALVATAGGIO ---
+        window.handleThemeChange = async function(themeName) {
+            window.applyTheme(themeName); 
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                broadcastUpdate({ theme: themeName }); // Avvisa gli altri schermi
+                await supabaseClient.auth.updateUser({ data: { theme: themeName } });
+                await supabaseClient.auth.refreshSession();
+            }
+        };
+
+        window.handleColorChange = async function(hex) {
+            document.documentElement.style.setProperty('--accent', hex);
+            document.documentElement.style.setProperty('--lime-accent', hex);
+            if (window.updateColorCirclesUI) window.updateColorCirclesUI(hex);
+            
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                broadcastUpdate({ color: hex }); // Avvisa gli altri schermi
+                await supabaseClient.auth.updateUser({ data: { color: hex } });
+                await supabaseClient.auth.refreshSession();
+            }
+        };
+
+        window.handleBgUpload = async function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (window.applyChatBackground) window.applyChatBackground(e.target.result);
+            };
+            reader.readAsDataURL(file);
+            
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                const oldUrl = session.user.user_metadata?.bg;
+                const publicUrl = await window.uploadToSupabaseStorage(file, `bg/${session.user.id}`);
+                
+                if (publicUrl) {
+                    broadcastUpdate({ bg: publicUrl }); // Avvisa gli altri schermi con la nuova immagine
+                    await supabaseClient.auth.updateUser({ data: { bg: publicUrl } });
+                    await supabaseClient.auth.refreshSession();
+                    if (oldUrl) await window.deleteOldSupabaseFile(oldUrl);
+                }
+            }
+        };
+
+        // --- 3. ATTIVAZIONE ---
+        // Accendiamo la radio non appena l'utente effettua il login
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session && session.user) {
+                window.initDeviceSync(session.user.id);
+            }
+        });
+        
+        // O se è già loggato al caricamento della pagina
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session && session.user) window.initDeviceSync(session.user.id);
+        });
+
+    })();
 </script>
 
     
@@ -717,6 +772,7 @@
     
 </body>
 </html>
+
 
 
 
