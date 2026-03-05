@@ -532,17 +532,29 @@
 
 
 
-
 <style>
-    /* Disabilita lo smooth scroll nativo per non interferire con lo streaming del testo */
+    /* 1. Blocchiamo tutto a livello radice: il browser non può più spingere la pagina */
+    body, html {
+        position: fixed !important;
+        top: 0; left: 0; right: 0; bottom: 0;
+        overflow: hidden !important;
+        height: 100% !important;
+    }
+    
+    #main-container {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+    }
+
+    /* 2. Disabilitiamo lo smooth scroll per un allineamento millimetrico */
     #chat-box {
         scroll-behavior: auto !important; 
     }
     
-    /* Animazione di apparizione coerente con l'origine in basso a sinistra */
+    /* 3. Animazione di apparizione scattante */
     .bot-msg {
         transform-origin: bottom left;
-        animation: botMsgExpand 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        animation: botMsgExpand 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         will-change: transform, opacity;
     }
     
@@ -555,46 +567,90 @@
 <script>
     (function() {
         const mascotSvg = document.querySelector('#lime-app-mascot svg');
-        
-        // Calcola la metà esatta dell'altezza visibile della mascotte
+        const chatBox = document.getElementById('chat-box');
+        const inputArea = document.querySelector('.input-area');
+        const greetingBox = document.getElementById('lime-greeting-box');
+        let lastMsgPadding = -1;
+
+        // --- CALCOLO DELLA LINEA DI BASE MASCOTTE ---
         function getBaseLineY() {
             if (!mascotSvg) return window.innerHeight / 2;
             const rect = mascotSvg.getBoundingClientRect();
             return rect.top + (rect.height / 2);
         }
 
-        // Calcoliamo lo scarto tra il fondo del contenitore e la linea bersaglio
         function syncAnchoring() {
-            const targetY = getBaseLineY();
-            
-            if (DOM.chatBox) {
-                const boxRect = DOM.chatBox.getBoundingClientRect();
-                const requiredPadding = boxRect.bottom - targetY;
+            if (chatBox) {
+                const targetY = getBaseLineY();
+                const boxRect = chatBox.getBoundingClientRect();
+                const requiredPadding = Math.max(0, boxRect.bottom - targetY);
                 
-                if (requiredPadding > 0) {
-                    DOM.chatBox.style.paddingBottom = requiredPadding + 'px';
+                if (Math.abs(requiredPadding - lastMsgPadding) > 1) {
+                    chatBox.style.paddingBottom = requiredPadding + 'px';
+                    lastMsgPadding = requiredPadding;
                 }
             }
-            
             requestAnimationFrame(syncAnchoring);
         }
-        
         syncAnchoring();
 
-        // Ripristiniamo un scrollToBottom pulito e chirurgico
+        // --- IL TRUCCO: L'ILLUSIONE DELL'OVERLAY ---
+        if (window.visualViewport) {
+            function trickKeyboard() {
+                const vvHeight = window.visualViewport.height;
+                const vvOffset = window.visualViewport.offsetTop;
+                const windowHeight = window.innerHeight;
+                
+                // Troviamo lo spazio sottratto dalla tastiera nativa
+                const keyboardHeight = Math.max(0, windowHeight - (vvHeight + vvOffset));
+                
+                // Solleviamo dinamicamente la barra, i suggerimenti E rimpiccioliamo la chat
+                if (inputArea) {
+                    inputArea.style.bottom = keyboardHeight + 'px';
+                }
+                if (greetingBox) {
+                    greetingBox.style.transform = `translateY(-${keyboardHeight}px)`;
+                }
+                if (chatBox) {
+                    // Riducendo il contenitore, lo scroll nativo spinge i messaggi verso l'alto
+                    chatBox.style.marginBottom = keyboardHeight + 'px';
+                }
+                
+                // Neutralizziamo qualsiasi tentativo di scroll nativo
+                window.scrollTo(0, 0);
+            }
+
+            // Ascoltiamo l'OS quando apre la tastiera
+            window.visualViewport.addEventListener('resize', trickKeyboard);
+            window.visualViewport.addEventListener('scroll', trickKeyboard);
+            
+            const inputField = document.getElementById('user-input');
+            if (inputField) {
+                inputField.addEventListener('focus', () => {
+                    setTimeout(() => {
+                        trickKeyboard();
+                        if (chatBox && !window.isUserScrolling) chatBox.scrollTop = chatBox.scrollHeight;
+                    }, 150);
+                });
+            }
+        }
+
+        // --- SCROLL CHIRURGICO ---
         window.scrollToBottom = function(force = false) {
-            if (!DOM.chatBox) return;
-            if (!isUserScrolling || force) {
-                DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
+            if (!chatBox) return;
+            if (!window.isUserScrolling || force) {
+                chatBox.scrollTop = chatBox.scrollHeight;
             }
         };
     })();
 </script>
+
 
     
     
     
 </body>
 </html>
+
 
 
