@@ -533,12 +533,12 @@
 
 
 <style>
-    /* 1. Blocchiamo tutto a livello radice: il browser non può più spingere la pagina */
+    /* 1. Blocchiamo il layout per evitare che l'OS "schiacci" la finestra in modo nativo */
     body, html {
         position: fixed !important;
         top: 0; left: 0; right: 0; bottom: 0;
         overflow: hidden !important;
-        height: 100% !important;
+        /* height verrà impostato via JS ai pixel fisici esatti */
     }
     
     #main-container {
@@ -546,9 +546,10 @@
         top: 0; left: 0; right: 0; bottom: 0;
     }
 
-    /* 2. Disabilitiamo lo smooth scroll per un allineamento millimetrico */
+    /* 2. Disabilitiamo lo smooth scroll e prepariamo la GPU per lo spostamento fluido */
     #chat-box {
         scroll-behavior: auto !important; 
+        will-change: transform; 
     }
     
     /* 3. Animazione di apparizione scattante */
@@ -572,13 +573,35 @@
         const greetingBox = document.getElementById('lime-greeting-box');
         let lastMsgPadding = -1;
 
+        // --- BLOCCO FISICO DEL LAYOUT ---
+        // Congeliamo l'altezza esatta della pagina. La tastiera non potrà più "schiacciare" 
+        // la chat distruggendo le coordinate di scorrimento.
+        let lockedWidth = window.innerWidth;
+        let lockedHeight = window.innerHeight;
+
+        function lockDimensions() {
+            document.body.style.height = lockedHeight + 'px';
+            document.documentElement.style.height = lockedHeight + 'px';
+        }
+        lockDimensions();
+
+        // Aggiorniamo le dimensioni solo se l'utente ruota il dispositivo
+        window.addEventListener('resize', () => {
+            if (window.innerWidth !== lockedWidth) { 
+                lockedWidth = window.innerWidth;
+                lockedHeight = window.innerHeight;
+                lockDimensions();
+            }
+        });
+
         // --- CALCOLO DELLA LINEA DI BASE MASCOTTE ---
         function getBaseLineY() {
-            if (!mascotSvg) return window.innerHeight / 2;
+            if (!mascotSvg) return lockedHeight / 2;
             const rect = mascotSvg.getBoundingClientRect();
             return rect.top + (rect.height / 2);
         }
 
+        // Il padding lavora ora su un contenitore dalle dimensioni inalterabili
         function syncAnchoring() {
             if (chatBox) {
                 const targetY = getBaseLineY();
@@ -594,45 +617,36 @@
         }
         syncAnchoring();
 
-        // --- IL TRUCCO: L'ILLUSIONE DELL'OVERLAY ---
+        // --- MOVIMENTO ALL'UNISONO VIA GPU ---
         if (window.visualViewport) {
             function trickKeyboard() {
                 const vvHeight = window.visualViewport.height;
                 const vvOffset = window.visualViewport.offsetTop;
-                const windowHeight = window.innerHeight;
                 
-                // Troviamo lo spazio sottratto dalla tastiera nativa
-                const keyboardHeight = Math.max(0, windowHeight - (vvHeight + vvOffset));
+                // Usiamo l'altezza bloccata per calcolare l'ingombro reale
+                const keyboardHeight = Math.max(0, lockedHeight - (vvHeight + vvOffset));
                 
-                // Solleviamo dinamicamente la barra, i suggerimenti E rimpiccioliamo la chat
+                const shiftY = `translateY(-${keyboardHeight}px)`;
+                
+                // Solleviamo dinamicamente barra, suggerimenti e chat
                 if (inputArea) {
-                    inputArea.style.bottom = keyboardHeight + 'px';
+                    inputArea.style.transform = `${shiftY} translateZ(0)`;
                 }
                 if (greetingBox) {
-                    greetingBox.style.transform = `translateY(-${keyboardHeight}px)`;
+                    greetingBox.style.transform = shiftY;
                 }
                 if (chatBox) {
-                    // Riducendo il contenitore, lo scroll nativo spinge i messaggi verso l'alto
-                    chatBox.style.marginBottom = keyboardHeight + 'px';
+                    chatBox.style.transform = shiftY;
                 }
                 
-                // Neutralizziamo qualsiasi tentativo di scroll nativo
+                // Neutralizziamo qualsiasi scroll nativo estraneo
                 window.scrollTo(0, 0);
             }
 
-            // Ascoltiamo l'OS quando apre la tastiera
             window.visualViewport.addEventListener('resize', trickKeyboard);
             window.visualViewport.addEventListener('scroll', trickKeyboard);
             
-            const inputField = document.getElementById('user-input');
-            if (inputField) {
-                inputField.addEventListener('focus', () => {
-                    setTimeout(() => {
-                        trickKeyboard();
-                        if (chatBox && !window.isUserScrolling) chatBox.scrollTop = chatBox.scrollHeight;
-                    }, 150);
-                });
-            }
+            // Rimossa la forzatura di scroll quando si tocca l'input per evitare "l'effetto reset"
         }
 
         // --- SCROLL CHIRURGICO ---
@@ -646,11 +660,13 @@
 </script>
 
 
+
     
     
     
 </body>
 </html>
+
 
 
 
