@@ -527,7 +527,74 @@
   }
 })();
 </script>
+
+
+
+
+
+
+<style>
+    /* Disabilita lo smooth scroll nativo per non interferire con lo streaming del testo */
+    #chat-box {
+        scroll-behavior: auto !important; 
+    }
+    
+    /* Animazione di apparizione coerente con l'origine in basso a sinistra */
+    .bot-msg {
+        transform-origin: bottom left;
+        animation: botMsgExpand 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        will-change: transform, opacity;
+    }
+    
+    @keyframes botMsgExpand {
+        from { transform: scale(0.8) translateY(10px); opacity: 0; }
+        to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+</style>
+
+<script>
+    (function() {
+        const mascotSvg = document.querySelector('#lime-app-mascot svg');
+        
+        // Calcola la metà esatta dell'altezza visibile della mascotte
+        function getBaseLineY() {
+            if (!mascotSvg) return window.innerHeight / 2;
+            const rect = mascotSvg.getBoundingClientRect();
+            return rect.top + (rect.height / 2);
+        }
+
+        // Calcoliamo lo scarto tra il fondo del contenitore e la linea bersaglio
+        function syncAnchoring() {
+            const targetY = getBaseLineY();
+            
+            if (DOM.chatBox) {
+                const boxRect = DOM.chatBox.getBoundingClientRect();
+                const requiredPadding = boxRect.bottom - targetY;
+                
+                if (requiredPadding > 0) {
+                    DOM.chatBox.style.paddingBottom = requiredPadding + 'px';
+                }
+            }
+            
+            requestAnimationFrame(syncAnchoring);
+        }
+        
+        syncAnchoring();
+
+        // Ripristiniamo un scrollToBottom pulito e chirurgico
+        window.scrollToBottom = function(force = false) {
+            if (!DOM.chatBox) return;
+            if (!isUserScrolling || force) {
+                DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight;
+            }
+        };
+    })();
+</script>
+
+    
+    
     
 </body>
 </html>
+
 
