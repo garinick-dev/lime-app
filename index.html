@@ -693,32 +693,42 @@
             if (inputArea) inputArea.appendChild(breathArea);
         }
 
-        // Funzione super snella per calcolare il nuovo limite inferiore
+        // Calcolo dinamico del limite inferiore
         function syncBreathAnchoring() {
             const breathArea = document.getElementById('breath-area');
             if (!breathArea) return;
             
-            // Calcoliamo la distanza tra il top della breath-area e il fondo dello schermo
             const breathRect = breathArea.getBoundingClientRect();
             const requiredPadding = window.innerHeight - breathRect.top;
             
-            // Aggiorniamo la variabile CSS in tempo reale
             document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
-            
-            // Manteniamo lo scroll bloccato in basso se l'utente non stava scrollando
-            if (!window.isUserScrolling && window.scrollToBottom) {
-                window.scrollToBottom();
-            }
         }
 
-        // Agganciamo la funzione agli eventi fluidi del viewport (essenziale per mobile/tastiere)
         window.addEventListener('resize', syncBreathAnchoring, { passive: true });
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
             window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
         }
         
-        // Inizializzazione rapida
+        // 3. Osservatore chirurgico: forza l'ancoraggio quando compaiono i tre puntini
+        const chatBox = document.getElementById('chat-box');
+        if (chatBox) {
+            new MutationObserver((mutations) => {
+                let shouldScroll = false;
+                mutations.forEach(m => {
+                    if (m.addedNodes.length > 0) shouldScroll = true;
+                });
+                
+                if (shouldScroll) {
+                    // Aspetta il prossimo frame visivo per sincronizzare padding e scroll
+                    requestAnimationFrame(() => {
+                        syncBreathAnchoring();
+                        if (window.scrollToBottom) window.scrollToBottom(true);
+                    });
+                }
+            }).observe(chatBox, { childList: true }); // childList ascolta solo i nuovi nodi diretti
+        }
+
         requestAnimationFrame(syncBreathAnchoring);
         setTimeout(syncBreathAnchoring, 150);
     })();
@@ -728,4 +738,5 @@
     
 </body>
 </html>
+
 
