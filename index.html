@@ -740,11 +740,29 @@
 </script>
 
 
+<script>
+    (function() {
+        // Cerca il contenitore dei suggerimenti del greeting
+        const suggestionsContainer = document.querySelector('.lime-suggestions');
+        
+        // Assicuriamoci che esista e che l'opzione non sia già stata aggiunta
+        if (suggestionsContainer && !document.querySelector('.lime-chip[data-trigger="@5"]')) {
+            const dummyChip = document.createElement('button');
+            dummyChip.className = 'lime-chip';
+            dummyChip.setAttribute('data-trigger', '@5');
+            dummyChip.innerText = 'opzione fittizia di test';
+            
+            // Inietta il pulsante alla fine della lista
+            suggestionsContainer.appendChild(dummyChip);
+        }
+    })();
+</script>
 
 
     
 </body>
 </html>
+
 
 
 
