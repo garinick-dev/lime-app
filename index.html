@@ -661,6 +661,156 @@
     });
 </script>
 
+
+<style>
+  /* 1. Spegniamo gli occhi originali quando legge */
+  .is-reading .lime-eye {
+      opacity: 0 !important; 
+  }
+
+  /* 2. Il gruppo di lettura (Occhiali + Occhi Finti) */
+  #lime-reading-group {
+      opacity: 0;
+      transform: translateY(-15px);
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      pointer-events: none;
+  }
+  
+  /* 3. Quando inizia a leggere, l'intero blocco SCIVOLA IN BASSO sul naso */
+  .is-reading #lime-reading-group {
+      opacity: 1;
+      transform: translateY(14px); 
+  }
+
+  /* 4. Ritmo asimmetrico: lineare per un controllo assoluto dei tempi */
+  .reading-eye {
+      animation: lime-read-anim-eyes 1.8s linear infinite;
+  }
+
+  @keyframes lime-read-anim-eyes {
+      /* Parte a sinistra e fa una micro-pausa */
+      0%, 5% { transform: translate(-6px, 4px); }
+      
+      /* Corsa VELOCIZZATA da Sinistra verso Destra (impiega solo il 21% del ciclo) */
+      26% { transform: translate(6px, 4px); }
+      
+      /* Micro-pausa a destra per spezzare il ritmo e mettere a fuoco */
+      31% { transform: translate(6px, 4px); }
+      
+      /* Corsa LENTA da Destra verso Sinistra (impiega il 64% del ciclo) */
+      95%, 100% { transform: translate(-6px, 4px); }
+  }
+</style>
+
+<script>
+(function() {
+  const eyesGroup = document.getElementById('lime-eyes-group');
+  const mascotContainer = document.getElementById('lime-app-mascot');
+  
+  // Iniezione del gruppo (Occhiali + Occhi Neri finti)
+  if (eyesGroup && !document.getElementById('lime-reading-group')) {
+      const readingSVG = `
+          <g id="lime-reading-group">
+              <g fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round">
+                  <circle cx="65" cy="175" r="15" />
+                  <circle cx="135" cy="175" r="15" />
+                  <path d="M 80 175 Q 100 165 120 175" />
+              </g>
+              <g>
+                  <circle class="reading-eye" cx="65" cy="175" r="9" fill="#1a1a1a" />
+                  <circle class="reading-eye" cx="135" cy="175" r="9" fill="#1a1a1a" />
+              </g>
+          </g>
+      `;
+      eyesGroup.insertAdjacentHTML('afterend', readingSVG);
+  }
+
+  // Monkey Patching: Attiva/disattiva lo stato
+  if (typeof window.handleFileSelect === 'function') {
+      const originalHandleFileSelect = window.handleFileSelect;
+      window.handleFileSelect = function(e) {
+          originalHandleFileSelect.apply(this, arguments);
+          const fileInput = e.target;
+          if (fileInput && fileInput.files && fileInput.files.length > 0) {
+              if (mascotContainer) mascotContainer.classList.add('is-reading');
+          }
+      };
+  }
+
+  if (typeof window.clearAttachment === 'function') {
+      const originalClearAttachment = window.clearAttachment;
+      window.clearAttachment = function() {
+          originalClearAttachment.apply(this, arguments);
+          if (mascotContainer) mascotContainer.classList.remove('is-reading');
+      };
+  }
+})();
+</script>
+
+<style>
+  /* 1. Gruppo cuffie: nascosto di default */
+  #lime-headphones-group {
+      opacity: 0;
+      /* Parte dal'alto per l'effetto di indossamento */
+      transform: translateY(-20px);
+      transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+  }
+
+  /* 2. Attivazione microfono: entrano e restano immobili (nessuna fluttuazione) */
+  .is-listening #lime-headphones-group {
+      opacity: 1;
+      transform: translateY(0);
+  }
+  
+  /* 3. Occhi aperti e attenti durante l'ascolto */
+  .is-listening .lime-eye {
+      transform: scaleY(1) !important;
+  }
+</style>
+
+<script>
+(function() {
+  const bodyGroup = document.getElementById('lime-body-main');
+  const mascotContainer = document.getElementById('lime-app-mascot');
+  const timerDisplay = document.getElementById('recording-timer');
+  
+  if (bodyGroup && !document.getElementById('lime-headphones-group')) {
+      const headphonesSVG = `
+          <g id="lime-headphones-group">
+              <path d="M 29 159 C 29 74, 171 74, 171 159" fill="none" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round" />
+              
+              <rect x="20" y="154" width="18" height="42" rx="9" fill="#1a1a1a" />
+              
+              <rect x="162" y="154" width="18" height="42" rx="9" fill="#1a1a1a" />
+          </g>
+      `;
+      bodyGroup.insertAdjacentHTML('beforeend', headphonesSVG);
+  }
+
+  // Observer per intercettare l'attivazione del microfono
+  if (timerDisplay && mascotContainer) {
+      const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+              if (mutation.attributeName === 'class') {
+                  if (timerDisplay.classList.contains('hidden')) {
+                      mascotContainer.classList.remove('is-listening');
+                  } else {
+                      mascotContainer.classList.add('is-listening');
+                  }
+              }
+          });
+      });
+      
+      observer.observe(timerDisplay, { attributes: true });
+  }
+})();
+</script>
+
+
+
+
+    
 <style>
     /* 1. Breath-area strutturale al 95% dell'altezza */
     #breath-area {
@@ -746,6 +896,7 @@
     
 </body>
 </html>
+
 
 
 
