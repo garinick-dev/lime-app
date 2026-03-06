@@ -662,7 +662,7 @@
 </script>
 
 <style>
-    /* 1. Breath-area strutturale al 95% dell'altezza dell'area input */
+    /* 1. Breath-area strutturale al 95% */
     #breath-area {
         position: absolute;
         bottom: 100%;
@@ -673,82 +673,85 @@
         z-index: 10;
     }
 
-    /* 2. Sovrascrittura chirurgica degli ancoraggi (Chat, Messaggi Utente e Greeting) */
+    /* 2. Nuovo 'pavimento' per il box della chat */
     #chat-box {
         padding-bottom: var(--breath-padding, 140px) !important;
     }
 
-    /* Forza l'allineamento dei contenitori messaggi alla variabile dinamica */
-    .message-container, .user-message-container {
-        scroll-margin-bottom: var(--breath-padding, 140px);
+    /* 3. Forza l'ancoraggio per TUTTI i tipi di messaggi e il greeting */
+    .message-container, 
+    .user-message-container, 
+    #lime-greeting-box {
+        scroll-snap-align: end;
     }
 
     #lime-greeting-box {
         bottom: var(--breath-padding, 140px) !important;
-        margin-bottom: 15px !important;
+        margin-bottom: 20px !important;
     }
 </style>
 
 <script>
     (function() {
-        // Iniezione sicura della breath-area
         if (!document.getElementById('breath-area')) {
             const breathArea = document.createElement('div');
             breathArea.id = 'breath-area';
-            
             const inputArea = document.querySelector('.input-area');
             if (inputArea) inputArea.appendChild(breathArea);
         }
 
-        // Funzione di sincronizzazione fluida e cross-platform
         function syncBreathAnchoring() {
             const breathArea = document.getElementById('breath-area');
             if (!breathArea) return;
-            
             const breathRect = breathArea.getBoundingClientRect();
             const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            
-            // Calcolo della distanza reale dal fondo
             const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
-            
             document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
         }
 
-        // Gestione eventi viewport per mobile e desktop
+        // Sincronizzazione eventi
         window.addEventListener('resize', syncBreathAnchoring, { passive: true });
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
             window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
         }
-        
-        // Osservatore per ancorare istantaneamente nuovi messaggi (User & Bot)
+
         const chatBox = document.getElementById('chat-box');
-        if (chatBox) {
-            new MutationObserver((mutations) => {
-                let shouldScroll = false;
-                mutations.forEach(m => {
-                    if (m.addedNodes.length > 0) shouldScroll = true;
+        
+        // Funzione di scroll forzato sulla breathbar
+        const forceScrollToBreath = () => {
+            syncBreathAnchoring();
+            if (window.scrollToBottom) {
+                window.scrollToBottom(true);
+            } else if (chatBox) {
+                chatBox.scrollTo({
+                    top: chatBox.scrollHeight,
+                    behavior: 'auto'
                 });
-                
-                if (shouldScroll) {
-                    // Eseguiamo nel prossimo frame per attendere il rendering del DOM
-                    requestAnimationFrame(() => {
-                        syncBreathAnchoring();
-                        if (window.scrollToBottom) {
-                            window.scrollToBottom(true);
-                        } else {
-                            chatBox.scrollTop = chatBox.scrollHeight;
-                        }
-                    });
-                }
-            }).observe(chatBox, { childList: true, subtree: true });
+            }
+        };
+
+        // MutationObserver potenziato per intercettare anche i messaggi utente
+        if (chatBox) {
+            const observer = new MutationObserver(() => {
+                requestAnimationFrame(forceScrollToBreath);
+            });
+            observer.observe(chatBox, { childList: true, subtree: true });
         }
 
-        // Lancio iniziale
+        // Intercettiamo l'invio per assicurarci che lo scroll avvenga subito
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                setTimeout(forceScrollToBreath, 50);
+            }
+        });
+
+        // Inizializzazione
         requestAnimationFrame(syncBreathAnchoring);
-        setTimeout(syncBreathAnchoring, 150);
+        setTimeout(syncBreathAnchoring, 200);
     })();
 </script>
+
 
 
 
@@ -756,6 +759,7 @@
     
 </body>
 </html>
+
 
 
 
