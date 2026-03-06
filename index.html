@@ -692,62 +692,73 @@
 </script>
     
 
-
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js"></script>
 
 <style>
+    /* Contenitore che abbraccia la formula e la nostra barra */
+    .math-container {
+        position: relative;
+        width: 100%;
+        margin: 0.5em 0;
+    }
+    
     .katex-display {
-        font-size: 0.9em; 
-        max-width: 100%;
-        overflow-x: auto !important;
-        overflow-y: hidden !important;
-        padding-bottom: 12px !important;
+        overflow-x: auto;
+        overflow-y: hidden;
+        margin: 0 !important;
+        padding-bottom: 24px !important; /* Spazio sul fondo per ospitare la barra */
+        font-size: 0.9em;
         
-        /* Fallback per Firefox */
-        scrollbar-width: thin !important;
-        scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.05) !important;
+        /* Omicidio della barra di sistema nativa */
+        scrollbar-width: none !important; 
+        -ms-overflow-style: none !important;
     }
-
-    /* --- Binario e Cursore (Chrome/Safari/Edge/iOS) --- */
     .katex-display::-webkit-scrollbar {
-        height: 18px !important; /* Spessore aumentato per far risaltare le frecce */
-        background-color: transparent !important;
+        display: none !important; 
+    }
+
+    /* La nostra barra custom */
+    .math-scrollbar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        pointer-events: none; /* Rende la barra "trasparente" al tocco, l'utente scorre trascinando l'equazione */
     }
     
-    .katex-display::-webkit-scrollbar-track {
-        background-color: rgba(0, 0, 0, 0.06) !important; 
-        border-radius: 8px !important;
+    .math-arrow {
+        width: 18px;
+        height: 18px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: 0.7;
+    }
+    .math-arrow.left { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 18 9 12 15 6'%3E%3C/polyline%3E%3C/svg%3E"); }
+    .math-arrow.right { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'%3E%3C/polyline%3E%3C/svg%3E"); }
+    
+    .math-track {
+        flex-grow: 1;
+        height: 4px;
+        background: rgba(0, 0, 0, 0.08);
+        margin: 0 6px;
+        border-radius: 4px;
+        position: relative;
     }
     
-    .katex-display::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.3) !important;
-        border-radius: 8px !important;
-        border: 4px solid transparent !important; 
-        background-clip: padding-box !important;
-    }
-
-    /* --- FRECCETTE LATERALI (Bottoni) --- */
-    .katex-display::-webkit-scrollbar-button:single-button {
-        display: block !important;
-        width: 24px !important;
-        height: 18px !important;
-        background-color: rgba(0, 0, 0, 0.1) !important; /* Sfondo del bottone visibile */
-        background-size: 12px !important;
-        background-repeat: no-repeat !important;
-        background-position: center !important;
-        border-radius: 4px !important;
-    }
-
-    /* Freccia Sinistra */
-    .katex-display::-webkit-scrollbar-button:single-button:horizontal:decrement {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 18 9 12 15 6'%3E%3C/polyline%3E%3C/svg%3E") !important;
-    }
-
-    /* Freccia Destra */
-    .katex-display::-webkit-scrollbar-button:single-button:horizontal:increment {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    .math-thumb {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.35);
+        border-radius: 4px;
+        transition: left 0.1s linear; /* Movimento fluido e snappy */
     }
 </style>
 
@@ -767,9 +778,60 @@
                 return originalSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, mathConfig));
             };
         }
+
+        // --- Iniettore della barra custom ---
+        function attachCustomScrollbar(el) {
+            // Se è già stata processata o se non c'è bisogno di scorrere, ignoriamo
+            if (el.parentNode.classList.contains('math-container')) return;
+            if (el.scrollWidth <= el.clientWidth + 2) return;
+
+            // 1. Creiamo l'impalcatura
+            const wrapper = document.createElement('div');
+            wrapper.className = 'math-container';
+            el.parentNode.insertBefore(wrapper, el);
+            wrapper.appendChild(el);
+
+            const scrollbar = document.createElement('div');
+            scrollbar.className = 'math-scrollbar';
+            scrollbar.innerHTML = `
+                <div class="math-arrow left"></div>
+                <div class="math-track"><div class="math-thumb"></div></div>
+                <div class="math-arrow right"></div>
+            `;
+            wrapper.appendChild(scrollbar);
+
+            const thumb = scrollbar.querySelector('.math-thumb');
+
+            // 2. Logica di allineamento
+            function updateThumb() {
+                const scrollRatio = el.scrollLeft / el.scrollWidth;
+                const thumbWidthRatio = el.clientWidth / el.scrollWidth;
+                
+                thumb.style.width = (thumbWidthRatio * 100) + '%';
+                thumb.style.left = (scrollRatio * 100) + '%';
+            }
+
+            // Ascoltiamo lo scorrimento e calcoliamo le dimensioni iniziali
+            el.addEventListener('scroll', updateThumb, { passive: true });
+            setTimeout(updateThumb, 50); 
+        }
+
+        // 3. Osservatore che intercetta la matematica appena nata in chat
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (node.classList.contains('katex-display')) attachCustomScrollbar(node);
+                        const mathBlocks = node.querySelectorAll ? node.querySelectorAll('.katex-display') : [];
+                        mathBlocks.forEach(attachCustomScrollbar);
+                    }
+                });
+            });
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
     })();
 </script>
-
 
 
     
@@ -778,6 +840,7 @@
     
 </body>
 </html>
+
 
 
 
