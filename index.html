@@ -701,56 +701,53 @@
     .katex-display {
         font-size: 0.9em; 
         max-width: 100%;
-        overflow-x: auto;
-        overflow-y: hidden;
-        padding-bottom: 8px;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        padding-bottom: 12px !important;
         
         /* Fallback per Firefox */
-        scrollbar-width: auto;
-        scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.08);
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(0, 0, 0, 0.4) rgba(0, 0, 0, 0.05) !important;
     }
 
-    /* Struttura principale del binario (WebKit) */
+    /* --- Binario e Cursore (Chrome/Safari/Edge/iOS) --- */
     .katex-display::-webkit-scrollbar {
-        height: 16px; /* Leggermente più alta per ospitare comodamente le freccette */
-        -webkit-appearance: none;
-        display: block; 
-        background: rgba(0, 0, 0, 0.03);
-        border-radius: 6px;
+        height: 18px !important; /* Spessore aumentato per far risaltare le frecce */
+        background-color: transparent !important;
     }
     
-    /* Il cursore di scorrimento centrale */
+    .katex-display::-webkit-scrollbar-track {
+        background-color: rgba(0, 0, 0, 0.06) !important; 
+        border-radius: 8px !important;
+    }
+    
     .katex-display::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.25);
-        border-radius: 6px;
-        border: 4px solid transparent; /* Crea spazio negativo sopra e sotto il cursore */
-        background-clip: padding-box;
+        background-color: rgba(0, 0, 0, 0.3) !important;
+        border-radius: 8px !important;
+        border: 4px solid transparent !important; 
+        background-clip: padding-box !important;
     }
 
-    /* --- FRECCETTE LATERALI --- */
+    /* --- FRECCETTE LATERALI (Bottoni) --- */
     .katex-display::-webkit-scrollbar-button:single-button {
-        display: block;
-        width: 22px;
-        background-color: transparent;
-        background-size: 10px;
-        background-repeat: no-repeat;
-        background-position: center;
-        border-radius: 6px;
+        display: block !important;
+        width: 24px !important;
+        height: 18px !important;
+        background-color: rgba(0, 0, 0, 0.1) !important; /* Sfondo del bottone visibile */
+        background-size: 12px !important;
+        background-repeat: no-repeat !important;
+        background-position: center !important;
+        border-radius: 4px !important;
     }
 
     /* Freccia Sinistra */
     .katex-display::-webkit-scrollbar-button:single-button:horizontal:decrement {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 18 9 12 15 6'%3E%3C/polyline%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 18 9 12 15 6'%3E%3C/polyline%3E%3C/svg%3E") !important;
     }
 
     /* Freccia Destra */
     .katex-display::-webkit-scrollbar-button:single-button:horizontal:increment {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23444' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'%3E%3C/polyline%3E%3C/svg%3E");
-    }
-    
-    /* Feedback visivo se l'utente clicca le freccette da desktop */
-    .katex-display::-webkit-scrollbar-button:single-button:hover {
-        background-color: rgba(0, 0, 0, 0.06);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'%3E%3C/polyline%3E%3C/svg%3E") !important;
     }
 </style>
 
@@ -774,12 +771,14 @@
 </script>
 
 
+
     
     
     
     
 </body>
 </html>
+
 
 
 
