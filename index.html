@@ -661,14 +661,14 @@
     });
 </script>
 
-<style>
-    /* 1. Breath-area con altezza fissa cross-platform (ispirata all'85% del desktop) */
+    <style>
+    /* 1. Breath-area strutturale al 95% dell'altezza */
     #breath-area {
         position: absolute;
         bottom: 100%;
         left: 0;
         width: 100%;
-        height: 75px; /* Valore fisso per evitare i ricalcoli anomali del mobile */
+        height: 95%; /* Aggiornato al 95% */
         pointer-events: none;
     }
 
@@ -680,6 +680,7 @@
 
 <script>
     (function() {
+        // Iniezione sicura senza duplicati
         if (!document.getElementById('breath-area')) {
             const breathArea = document.createElement('div');
             breathArea.id = 'breath-area';
@@ -688,25 +689,27 @@
             if (inputArea) inputArea.appendChild(breathArea);
         }
 
-        // Calcolo solido e immune alle anomalie delle tastiere mobile
+        // Calcolo fluido e cross-platform dell'ancoraggio
         function syncBreathAnchoring() {
             const breathArea = document.getElementById('breath-area');
             if (!breathArea) return;
             
             const breathRect = breathArea.getBoundingClientRect();
-            // Su mobile usiamo il visualViewport se presente per misurare l'altezza reale
+            // Utilizzo del visualViewport per aggirare le anomalie delle tastiere mobile
             const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
             const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
             
             document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
         }
 
+        // Event listener passivi per prestazioni elevate
         window.addEventListener('resize', syncBreathAnchoring, { passive: true });
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
             window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
         }
         
+        // Osservatore chirurgico per il caricamento dei messaggi (inclusi i tre puntini)
         const chatBox = document.getElementById('chat-box');
         if (chatBox) {
             new MutationObserver((mutations) => {
@@ -724,6 +727,7 @@
             }).observe(chatBox, { childList: true });
         }
 
+        // Inizializzazione rapida all'avvio
         requestAnimationFrame(syncBreathAnchoring);
         setTimeout(syncBreathAnchoring, 150);
     })();
@@ -731,10 +735,10 @@
 
 
 
-
     
 </body>
 </html>
+
 
 
 
