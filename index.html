@@ -704,56 +704,84 @@
         max-width: 100%;
         overflow-x: auto;
         overflow-y: hidden;
-        padding-bottom: 8px; /* Leggermente aumentato per distanziare il binario */
+        padding-bottom: 8px;
         
-        /* Regole per Firefox */
         scrollbar-width: thin;
         scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.04);
+        
+        /* Transizione fluida per l'ingresso e l'uscita della sfumatura */
+        transition: mask-image 0.2s ease, -webkit-mask-image 0.2s ease;
     }
 
-    /* Regole per Chrome, Safari e iOS */
     .katex-display::-webkit-scrollbar {
         height: 5px;
-        -webkit-appearance: none; /* Forza la visibilità su iOS */
+        -webkit-appearance: none;
     }
-    
-    /* Il "binario" sempre visibile che fa da indizio grafico */
     .katex-display::-webkit-scrollbar-track {
         background: rgba(0, 0, 0, 0.04); 
         border-radius: 4px;
     }
-    
-    /* La barra mobile effettiva */
     .katex-display::-webkit-scrollbar-thumb {
         background-color: rgba(0, 0, 0, 0.2);
         border-radius: 4px;
     }
 </style>
 
-
 <script>
     (function() {
+        // --- A. Configurazione Markdown e Sicurezza ---
         if (window.marked && window.markedKatex) {
-            marked.use(window.markedKatex({
-                throwOnError: false
-            }));
+            marked.use(window.markedKatex({ throwOnError: false }));
         }
 
         if (window.DOMPurify) {
             const originalSanitize = window.DOMPurify.sanitize;
-            
             window.DOMPurify.sanitize = function(content, config) {
                 const mathConfig = {
                     ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g'],
                     ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'],
                 };
-                
-                const finalConfig = Object.assign({}, config || {}, mathConfig);
-                return originalSanitize.call(window.DOMPurify, content, finalConfig);
+                return originalSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, mathConfig));
             };
         }
+
+        // --- B. Logica chirurgica per la sfumatura (Fade-out) ---
+        function updateMathMask(el) {
+            // Se c'è del contenuto nascosto a destra...
+            if (el.scrollWidth > el.clientWidth && Math.ceil(el.scrollLeft) < el.scrollWidth - el.clientWidth - 2) {
+                el.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)';
+                el.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)';
+            } else {
+                // Rimuove la sfumatura se siamo arrivati in fondo
+                el.style.webkitMaskImage = 'none';
+                el.style.maskImage = 'none';
+            }
+        }
+
+        // 1. Ascolta lo scroll e aggiorna la sfumatura istantaneamente
+        document.addEventListener('scroll', function(e) {
+            if (e.target && e.target.classList && e.target.classList.contains('katex-display')) {
+                updateMathMask(e.target);
+            }
+        }, true);
+
+        // 2. Applica la sfumatura appena la chat genera una nuova equazione
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (node.classList.contains('katex-display')) updateMathMask(node);
+                        const mathBlocks = node.querySelectorAll ? node.querySelectorAll('.katex-display') : [];
+                        mathBlocks.forEach(updateMathMask);
+                    }
+                });
+            });
+        });
+        
+        observer.observe(document.body, { childList: true, subtree: true });
     })();
 </script>
+
 
 
 
@@ -763,6 +791,7 @@
     
 </body>
 </html>
+
 
 
 
