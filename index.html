@@ -739,63 +739,13 @@
     })();
 </script>
 
-<style>
-    /* 1. Blocchiamo il box: non deve MAI muoversi fisicamente */
-    #chat-box {
-        transform: none !important; 
-        padding-bottom: var(--breath-floor, 140px) !important;
-    }
-
-    /* 2. La tua breath-area al 95% (il nostro "pavimento" invisibile) */
-    #breath-area {
-        position: absolute;
-        bottom: 100%;
-        left: 0;
-        width: 100%;
-        height: 95%;
-        pointer-events: none;
-    }
-</style>
-
-<script>
-    (function() {
-        // Creazione rapida della breath-area
-        if (!document.getElementById('breath-area')) {
-            const b = document.createElement('div');
-            b.id = 'breath-area';
-            const area = document.querySelector('.input-area');
-            if (area) area.appendChild(b);
-        }
-
-        // Sincronizziamo solo lo spazio (padding) senza muovere il box
-        function fixChat() {
-            const b = document.getElementById('breath-area');
-            if (!b) return;
-            const rect = b.getBoundingClientRect();
-            const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            const offset = window.visualViewport ? window.visualViewport.offsetTop : 0;
-            
-            // Calcoliamo lo spazio necessario dal fondo dello schermo alla breath-area
-            const space = Math.max(0, (vh + offset) - rect.top);
-            document.documentElement.style.setProperty('--breath-floor', space + 'px');
-        }
-
-        window.addEventListener('resize', fixChat);
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', fixChat);
-            window.visualViewport.addEventListener('scroll', fixChat);
-        }
-        
-        // Esecuzione immediata
-        requestAnimationFrame(fixChat);
-    })();
-</script>
 
 
 
     
 </body>
 </html>
+
 
 
 
