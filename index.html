@@ -69,8 +69,9 @@
         .msg { max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 1rem; position: relative; border: none !important; box-shadow: none !important; } 
         .user-msg { align-self: flex-end; background: var(--user-bubble); padding: 12px 18px; border-radius: 20px 20px 4px 20px; color: #fff; transform: translateZ(0); } 
         
-        .bot-msg { align-self: flex-start; background: var(--accent) !important; color: #000 !important; padding: 12px 18px; border-radius: 20px 20px 20px 4px; width: auto; transform-origin: center; animation: botMsgExpand 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; will-change: transform, opacity; } 
-@keyframes botMsgExpand { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .bot-msg { align-self: flex-start; background: var(--accent) !important; color: #000 !important; padding: 12px 18px; border-radius: 20px 20px 20px 4px; width: auto; transform-origin: bottom left; animation: botMsgExpand 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; will-change: transform, opacity; } 
+@keyframes botMsgExpand { from { transform: scale(0.8) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
 
 
         
@@ -532,10 +533,11 @@
         lockDimensions();
 
         function getBaseLineY() {
-            if (!mascotSvg) return lockedHeight / 2;
-            const rect = mascotSvg.getBoundingClientRect();
-            return rect.top + (rect.height / 2);
-        }
+    if (!mascotSvg) return lockedHeight / 2;
+    const rect = mascotSvg.getBoundingClientRect();
+    return rect.top - 15; // <-- Ora la chat si ferma 15 pixel sopra la testa della mascotte!
+}
+
 
         function updateAnchoring() {
             if (chatBox) {
@@ -577,11 +579,19 @@
         }
 
         window.scrollToBottom = function(force = false) {
-            if (!chatBox) return;
-            if (!window.isUserScrolling || force) {
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        };
+    if (!chatBox) return;
+    if (!window.isUserScrolling || force) {
+        // Disabilita lo scorrimento fluido per un istante per un posizionamento chirurgico
+        chatBox.style.setProperty('scroll-behavior', 'auto', 'important');
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        // Lo riattiva il millisecondo successivo per mantenere la lettura piacevole
+        requestAnimationFrame(() => {
+            chatBox.style.setProperty('scroll-behavior', 'smooth', 'important');
+        });
+    }
+};
+
     })();
 
     // --- PATCH: Motore Matematico e DOMPurify ---
@@ -665,6 +675,7 @@
 
 </body>
 </html>
+
 
 
 
