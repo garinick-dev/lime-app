@@ -704,32 +704,35 @@
         max-width: 100%;
         overflow-x: auto;
         overflow-y: hidden;
-        padding-bottom: 8px;
+        padding-bottom: 10px; /* Spazio extra per staccare la formula dal binario */
         
         scrollbar-width: thin;
-        scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.04);
+        scrollbar-color: rgba(0, 0, 0, 0.3) rgba(0, 0, 0, 0.08);
         
-        /* Transizione fluida per l'ingresso e l'uscita della sfumatura */
-        transition: mask-image 0.2s ease, -webkit-mask-image 0.2s ease;
+        /* Transizione velocissima per un effetto snappy */
+        transition: mask-image 0.15s ease, -webkit-mask-image 0.15s ease;
     }
 
+    /* Regole WebKit per forzare la visibilità su iOS/Android/Chrome */
     .katex-display::-webkit-scrollbar {
-        height: 5px;
+        height: 6px;
         -webkit-appearance: none;
+        display: block; 
     }
+    
     .katex-display::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.04); 
+        background: rgba(0, 0, 0, 0.08); /* Binario sempre visibile */
         border-radius: 4px;
     }
+    
     .katex-display::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.2);
+        background-color: rgba(0, 0, 0, 0.3); /* Cursore più scuro e marcato */
         border-radius: 4px;
     }
 </style>
 
 <script>
     (function() {
-        // --- A. Configurazione Markdown e Sicurezza ---
         if (window.marked && window.markedKatex) {
             marked.use(window.markedKatex({ throwOnError: false }));
         }
@@ -745,27 +748,47 @@
             };
         }
 
-        // --- B. Logica chirurgica per la sfumatura (Fade-out) ---
+        // --- Logica avanzata per la sfumatura bilaterale ---
         function updateMathMask(el) {
-            // Se c'è del contenuto nascosto a destra...
-            if (el.scrollWidth > el.clientWidth && Math.ceil(el.scrollLeft) < el.scrollWidth - el.clientWidth - 2) {
-                el.style.webkitMaskImage = 'linear-gradient(to right, black 85%, transparent 100%)';
-                el.style.maskImage = 'linear-gradient(to right, black 85%, transparent 100%)';
-            } else {
-                // Rimuove la sfumatura se siamo arrivati in fondo
+            const maxScroll = el.scrollWidth - el.clientWidth;
+            
+            // Se non c'è bisogno di scorrere, niente maschera
+            if (maxScroll <= 0) {
                 el.style.webkitMaskImage = 'none';
                 el.style.maskImage = 'none';
+                return;
             }
+
+            const scrollLeft = Math.ceil(el.scrollLeft);
+            const atStart = scrollLeft <= 2;
+            const atEnd = scrollLeft >= maxScroll - 2;
+            
+            // Ampiezza della sfumatura marcata (30 pixel)
+            const fade = '30px'; 
+            let mask = 'none';
+
+            if (!atStart && !atEnd) {
+                // Sfuma sia a sinistra che a destra
+                mask = `linear-gradient(to right, transparent 0, black ${fade}, black calc(100% - ${fade}), transparent 100%)`;
+            } else if (atStart && !atEnd) {
+                // Sfuma solo a destra
+                mask = `linear-gradient(to right, black calc(100% - ${fade}), transparent 100%)`;
+            } else if (!atStart && atEnd) {
+                // Sfuma solo a sinistra
+                mask = `linear-gradient(to right, transparent 0, black ${fade}, black 100%)`;
+            }
+
+            el.style.webkitMaskImage = mask;
+            el.style.maskImage = mask;
         }
 
-        // 1. Ascolta lo scroll e aggiorna la sfumatura istantaneamente
+        // Listener per l'aggiornamento in tempo reale
         document.addEventListener('scroll', function(e) {
             if (e.target && e.target.classList && e.target.classList.contains('katex-display')) {
                 updateMathMask(e.target);
             }
         }, true);
 
-        // 2. Applica la sfumatura appena la chat genera una nuova equazione
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
@@ -784,13 +807,13 @@
 
 
 
-
     
     
     
     
 </body>
 </html>
+
 
 
 
