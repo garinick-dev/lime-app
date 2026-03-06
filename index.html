@@ -662,7 +662,7 @@
 </script>
 
 <style>
-    /* 1. Breath-area invisibile al 95% */
+    /* 1. Breath-area strutturale al 95% dell'altezza */
     #breath-area {
         position: absolute;
         bottom: 100%;
@@ -670,95 +670,74 @@
         width: 100%;
         height: 95%; 
         pointer-events: none;
-        z-index: 10;
     }
 
-    /* 2. Nuovo pavimento dinamico per la chat e il greeting */
+    /* 2. Sovrascrittura chirurgica degli ancoraggi (Chat e Greeting Box) */
     #chat-box {
         padding-bottom: var(--breath-padding, 140px) !important;
-        scroll-behavior: auto !important; /* Disattiva lo scroll fluido per evitare rimbalzi nell'ancoraggio */
     }
 
     #lime-greeting-box {
         bottom: var(--breath-padding, 140px) !important;
-        margin-bottom: 20px !important;
-    }
-
-    /* Rimuoviamo margini residui che potrebbero spostare l'user message */
-    .msg-wrapper:last-child {
-        margin-bottom: 0 !important;
+        margin-bottom: 15px !important; /* Piccolo respiro visivo dalla linea di base */
     }
 </style>
 
 <script>
     (function() {
-        // Iniezione sicura
+        // Iniezione sicura senza duplicati
         if (!document.getElementById('breath-area')) {
             const breathArea = document.createElement('div');
             breathArea.id = 'breath-area';
+            
             const inputArea = document.querySelector('.input-area');
             if (inputArea) inputArea.appendChild(breathArea);
         }
 
+        // Calcolo fluido e cross-platform dell'ancoraggio
         function syncBreathAnchoring() {
             const breathArea = document.getElementById('breath-area');
             if (!breathArea) return;
-            const breathRect = breathArea.getBoundingClientRect();
-            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
             
-            // Calcolo della distanza reale dalla cima della breathbar al fondo
+            const breathRect = breathArea.getBoundingClientRect();
+            // Utilizzo del visualViewport per aggirare le anomalie delle tastiere mobile
+            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
             const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
+            
+            // Aggiorna la variabile CSS condivisa
             document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
         }
 
-        // Funzione di scroll forzato sulla linea di respiro
-        const forceScrollToBreath = () => {
-            syncBreathAnchoring();
-            const chatBox = document.getElementById('chat-box');
-            if (chatBox) {
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        };
-
-        // Event listener per resize e tastiera mobile
+        // Event listener passivi per prestazioni elevate
         window.addEventListener('resize', syncBreathAnchoring, { passive: true });
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
             window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
         }
-
-        // MutationObserver: intercetta User Message e Bot Message istantaneamente
+        
+        // Osservatore chirurgico per il caricamento dei messaggi
         const chatBox = document.getElementById('chat-box');
         if (chatBox) {
-            const observer = new MutationObserver((mutations) => {
+            new MutationObserver((mutations) => {
                 let shouldScroll = false;
-                mutations.forEach(m => { if (m.addedNodes.length > 0) shouldScroll = true; });
+                mutations.forEach(m => {
+                    if (m.addedNodes.length > 0) shouldScroll = true;
+                });
                 
                 if (shouldScroll) {
-                    // Eseguiamo due cicli di rendering per garantire la precisione millimetrica
                     requestAnimationFrame(() => {
                         syncBreathAnchoring();
-                        setTimeout(forceScrollToBreath, 10);
+                        if (window.scrollToBottom) window.scrollToBottom(true);
                     });
                 }
-            });
-            observer.observe(chatBox, { childList: true, subtree: true });
+            }).observe(chatBox, { childList: true });
         }
 
-        // Override della funzione nativa per evitare conflitti
-        const originalScrollToBottom = window.scrollToBottom;
-        window.scrollToBottom = function(force) {
-            if (force || !window.isUserScrolling) {
-                forceScrollToBreath();
-            }
-        };
-
-        // Inizializzazione
+        // Inizializzazione rapida all'avvio
         requestAnimationFrame(syncBreathAnchoring);
-        setTimeout(syncBreathAnchoring, 200);
+        setTimeout(syncBreathAnchoring, 150);
     })();
 </script>
-
 
 
 
@@ -767,6 +746,7 @@
     
 </body>
 </html>
+
 
 
 
