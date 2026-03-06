@@ -70,10 +70,7 @@
         .user-msg { align-self: flex-end; background: var(--user-bubble); padding: 12px 18px; border-radius: 20px 20px 4px 20px; color: #fff; transform: translateZ(0); } 
         
         .bot-msg { align-self: flex-start; background: var(--accent) !important; color: #000 !important; padding: 12px 18px; border-radius: 20px 20px 20px 4px; width: auto; transform-origin: bottom left; animation: botMsgExpand 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; will-change: transform, opacity; } 
-@keyframes botMsgExpand { from { transform: scale(0.8) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-
-
-
+        @keyframes botMsgExpand { from { transform: scale(0.8) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
         
         .bot-msg p, .bot-msg li, .bot-msg code:not(pre code) { color: #000 !important; } .bot-msg p { margin-top: 0; margin-bottom: 0.5rem; } .bot-msg p:last-child { margin-bottom: 0; } .bot-msg pre { background: #000; padding: 35px 12px 12px 12px; border-radius: 8px; overflow-x: auto; border: 1px solid #333; margin-top: 8px; margin-bottom: 10px; position: relative; } .bot-msg pre code { background: none; padding: 0; color: white !important; } .bot-msg code { font-family: monospace; background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; font-size: 0.9em; } .copy-btn { position: absolute; top: 5px; right: 5px; background: #222; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; } .copy-btn:hover { background: #333; color: var(--accent); } .msg-bottom-bar { display: flex; align-items: center; justify-content: flex-end; margin-top: 6px; width: 100%; } 
         .msg-time-inside { font-size: 0.65rem; opacity: 0.65; line-height: 1; color: inherit; }
@@ -533,11 +530,10 @@
         lockDimensions();
 
         function getBaseLineY() {
-    if (!mascotSvg) return lockedHeight / 2;
-    const rect = mascotSvg.getBoundingClientRect();
-    return rect.top - 15; // <-- Ora la chat si ferma 15 pixel sopra la testa della mascotte!
-}
-
+            if (!mascotSvg) return lockedHeight / 2;
+            const rect = mascotSvg.getBoundingClientRect();
+            return rect.top + (rect.height / 2);
+        }
 
         function updateAnchoring() {
             if (chatBox) {
@@ -579,19 +575,11 @@
         }
 
         window.scrollToBottom = function(force = false) {
-    if (!chatBox) return;
-    if (!window.isUserScrolling || force) {
-        // Disabilita lo scorrimento fluido per un istante per un posizionamento chirurgico
-        chatBox.style.setProperty('scroll-behavior', 'auto', 'important');
-        chatBox.scrollTop = chatBox.scrollHeight;
-        
-        // Lo riattiva il millisecondo successivo per mantenere la lettura piacevole
-        requestAnimationFrame(() => {
-            chatBox.style.setProperty('scroll-behavior', 'smooth', 'important');
-        });
-    }
-};
-
+            if (!chatBox) return;
+            if (!window.isUserScrolling || force) {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        };
     })();
 
     // --- PATCH: Motore Matematico e DOMPurify ---
@@ -675,8 +663,3 @@
 
 </body>
 </html>
-
-
-
-
-
