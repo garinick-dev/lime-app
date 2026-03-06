@@ -661,5 +661,71 @@
     });
 </script>
 
+
+<style>
+    /* 1. Stile della breath-area */
+    #breath-area {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        width: 100%;
+        height: 75%;
+        background-color: rgba(0, 255, 0, 0.2);
+        border: 2px solid green;
+        box-sizing: border-box;
+        pointer-events: none;
+    }
+
+    /* 2. Sovrascrittura chirurgica dell'ancoraggio originale */
+    #chat-box {
+        padding-bottom: var(--breath-padding, 140px) !important;
+    }
+</style>
+
+<script>
+    (function() {
+        // Evitiamo duplicati
+        if (!document.getElementById('breath-area')) {
+            const breathArea = document.createElement('div');
+            breathArea.id = 'breath-area';
+            
+            const inputArea = document.querySelector('.input-area');
+            if (inputArea) inputArea.appendChild(breathArea);
+        }
+
+        // Funzione super snella per calcolare il nuovo limite inferiore
+        function syncBreathAnchoring() {
+            const breathArea = document.getElementById('breath-area');
+            if (!breathArea) return;
+            
+            // Calcoliamo la distanza tra il top della breath-area e il fondo dello schermo
+            const breathRect = breathArea.getBoundingClientRect();
+            const requiredPadding = window.innerHeight - breathRect.top;
+            
+            // Aggiorniamo la variabile CSS in tempo reale
+            document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
+            
+            // Manteniamo lo scroll bloccato in basso se l'utente non stava scrollando
+            if (!window.isUserScrolling && window.scrollToBottom) {
+                window.scrollToBottom();
+            }
+        }
+
+        // Agganciamo la funzione agli eventi fluidi del viewport (essenziale per mobile/tastiere)
+        window.addEventListener('resize', syncBreathAnchoring, { passive: true });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
+            window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
+        }
+        
+        // Inizializzazione rapida
+        requestAnimationFrame(syncBreathAnchoring);
+        setTimeout(syncBreathAnchoring, 150);
+    })();
+</script>
+
+
+    
 </body>
 </html>
+
