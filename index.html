@@ -11,10 +11,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js"></script>
+
     <style>
         :root { --bg-color: #0e0e0e; --sidebar-bg: #151515; --accent: #c0f22c; --text-main: #e3e3e3; --text-muted: #666; --text-light: #aaa; --input-bg: #1e1e1e; --user-bubble: #2b2b2b; --border-color: #222; --sidebar-width: 280px; --chat-max-width: 800px; --bg-main-rgb: 14, 14, 14; --lime-accent: #c0f22c; --lime-bg-chip: #2b2b2b; --lime-chip-color: #e3e3e3; --lime-chip-border: #444; }
-        body, html { margin: 0; padding: 0; height: 100dvh; background: var(--bg-color); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; -webkit-tap-highlight-color: transparent; }
-        #main-container { display: flex; height: 100%; width: 100vw; position: relative; }
+        body, html { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding: 0; height: 100dvh; background: var(--bg-color); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden !important; -webkit-tap-highlight-color: transparent; }
+        #main-container { display: flex; height: 100%; width: 100vw; position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
         ::-webkit-scrollbar { display: none; } * { scrollbar-width: none; -ms-overflow-style: none; box-sizing: border-box; }
         
         body.light-theme { --bg-color: #f0f2f5; --sidebar-bg: #ffffff; --bg-main-rgb: 240, 242, 245; --text-main: #1a1a1a; --text-muted: #666666; --text-light: #444444; --input-bg: #ffffff; --border-color: #d1d5db; --lime-bg-chip: rgba(242, 242, 242, 0.95); --lime-chip-color: #444; --lime-chip-border: rgba(0,0,0,0.05); background-color: var(--bg-color) !important; color: var(--text-main) !important; }
@@ -57,13 +61,18 @@
         header { position: absolute !important; top: 0; left: 0; width: 100%; padding: 15px 20px; padding-top: calc(15px + env(safe-area-inset-top)); display: flex; align-items: center; z-index: 50; flex-shrink: 0; background: transparent !important; background-color: transparent !important; border-bottom: transparent !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; pointer-events: none; }
         .menu-toggle { background: none; border: none; color: var(--text-main); cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; padding: 0; transition: 0.2s; pointer-events: auto; } .header-title { margin-left: 15px; font-size: 1.1rem; letter-spacing: 0.5px; color: var(--text-main); pointer-events: auto; }
         
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px 20px 140px 20px; padding-top: calc(80px + env(safe-area-inset-top)) !important; display: flex; flex-direction: column; gap: 25px; align-items: center; scroll-behavior: smooth; contain: content; } 
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px 20px 140px 20px; padding-top: calc(80px + env(safe-area-inset-top)) !important; display: flex; flex-direction: column; gap: 25px; align-items: center; scroll-behavior: auto !important; contain: content; will-change: transform; } 
+        
         .date-separator { width: 100%; text-align: center; margin: 10px 0 5px 0; position: relative; z-index: 2; } .date-separator-text { background: #1a1a1a; color: #888; font-size: 0.75rem; padding: 5px 14px; border-radius: 12px; display: inline-block; font-weight: 500; letter-spacing: 0.5px; text-transform: capitalize; }
         .msg-wrapper { width: 100%; max-width: var(--chat-max-width); display: flex; flex-direction: column; position: relative; z-index: 2; content-visibility: auto; contain-intrinsic-size: 150px; } 
         
         .msg { max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 1rem; position: relative; border: none !important; box-shadow: none !important; } 
         .user-msg { align-self: flex-end; background: var(--user-bubble); padding: 12px 18px; border-radius: 20px 20px 4px 20px; color: #fff; transform: translateZ(0); } 
-        .bot-msg { align-self: flex-start; background: var(--accent) !important; color: #000 !important; padding: 12px 18px; border-radius: 20px 20px 20px 4px; width: auto; transform: translateZ(0); } .bot-msg p, .bot-msg li, .bot-msg code:not(pre code) { color: #000 !important; } .bot-msg p { margin-top: 0; margin-bottom: 0.5rem; } .bot-msg p:last-child { margin-bottom: 0; } .bot-msg pre { background: #000; padding: 35px 12px 12px 12px; border-radius: 8px; overflow-x: auto; border: 1px solid #333; margin-top: 8px; margin-bottom: 10px; position: relative; } .bot-msg pre code { background: none; padding: 0; color: white !important; } .bot-msg code { font-family: monospace; background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; font-size: 0.9em; } .copy-btn { position: absolute; top: 5px; right: 5px; background: #222; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; } .copy-btn:hover { background: #333; color: var(--accent); } .msg-bottom-bar { display: flex; align-items: center; justify-content: flex-end; margin-top: 6px; width: 100%; } 
+        
+        .bot-msg { align-self: flex-start; background: var(--accent) !important; color: #000 !important; padding: 12px 18px; border-radius: 20px 20px 20px 4px; width: auto; transform-origin: bottom left; animation: botMsgExpand 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; will-change: transform, opacity; } 
+        @keyframes botMsgExpand { from { transform: scale(0.8) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+        
+        .bot-msg p, .bot-msg li, .bot-msg code:not(pre code) { color: #000 !important; } .bot-msg p { margin-top: 0; margin-bottom: 0.5rem; } .bot-msg p:last-child { margin-bottom: 0; } .bot-msg pre { background: #000; padding: 35px 12px 12px 12px; border-radius: 8px; overflow-x: auto; border: 1px solid #333; margin-top: 8px; margin-bottom: 10px; position: relative; } .bot-msg pre code { background: none; padding: 0; color: white !important; } .bot-msg code { font-family: monospace; background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; font-size: 0.9em; } .copy-btn { position: absolute; top: 5px; right: 5px; background: #222; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; transition: 0.2s; } .copy-btn:hover { background: #333; color: var(--accent); } .msg-bottom-bar { display: flex; align-items: center; justify-content: flex-end; margin-top: 6px; width: 100%; } 
         .msg-time-inside { font-size: 0.65rem; opacity: 0.65; line-height: 1; color: inherit; }
         .bot-msg .msg-time-inside { display: none !important; } 
 
@@ -89,6 +98,57 @@
         .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } .anim-squeeze { animation: lime-sq 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); } .anim-roll { animation: lime-ro 1.5s ease-in-out; } .anim-jump { animation: lime-ju 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); } @keyframes lime-sq { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1, 0.85); } } @keyframes lime-ro { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 75% { transform: rotate(-7deg); } } @keyframes lime-ju { 0% { transform: translateY(0); } 50% { transform: translateY(-70px); } 100% { transform: translateY(0); } } .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out; will-change: transform; } .lime-eye.eyes-closed { transform: scaleY(0.1) !important; } .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
         
         @media (max-width: 768px) { #sidebar { position: absolute; height: 100%; width: 85%; max-width: 340px; margin-right: 0; } #sidebar.hidden { transform: translateX(-100%); margin-right: 0; } .sidebar-header { display: flex; align-items: center; justify-content: space-between; } .new-chat-btn { flex: 1; } .mobile-close-sidebar { display: block; } #chat-box { padding-bottom: 120px; } .input-area { padding: 10px 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); } .input-wrapper { padding: 6px 12px 6px 15px; } .msg { max-width: 95%; font-size: 0.95rem; padding: 10px 15px; } #lime-greeting-box { bottom: 90px; } .lime-floating-container { transform: scale(0.85); transform-origin: bottom left; } }
+
+        .katex-display {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+            margin-bottom: 4px !important; 
+            font-size: 0.9em;
+        }
+        .katex-display::-webkit-scrollbar { display: none !important; }
+
+        .math-scrollbar {
+            display: none;
+            align-items: center;
+            width: 100%;
+            height: 18px;
+            margin-top: -2px;
+            margin-bottom: 16px;
+            pointer-events: none;
+        }
+        
+        .math-arrow {
+            width: 14px;
+            height: 14px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.35;
+            flex-shrink: 0;
+        }
+        
+        .math-arrow.left { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='16,5 8,12 16,19'/%3E%3C/svg%3E"); }
+        .math-arrow.right { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='8,5 16,12 8,19'/%3E%3C/svg%3E"); }
+        
+        .math-track {
+            flex-grow: 1;
+            height: 5px;
+            background: rgba(0, 0, 0, 0.08);
+            margin: 0 8px;
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .math-thumb {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -317,7 +377,6 @@
         } catch (e) { const bottomBar = botDiv.querySelector('.msg-bottom-bar'); botDiv.innerHTML = `⚠️ Errore LIME.`; if(bottomBar) botDiv.appendChild(bottomBar); } finally { isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; scrollToBottom(true); }
     }
 
-    function scrollToBottom(force = false) { if (!isUserScrolling || force) DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight; }
     function toggleSidebar() { DOM.sidebar.classList.toggle('hidden'); DOM.backdrop.classList.toggle('active'); }
     DOM.inputField.addEventListener('keypress', e => { if (e.key === 'Enter') { if (isRecording) toggleRecording(); else if (!isGenerating) sendMessage(); } });
 
@@ -362,220 +421,44 @@
         
         function syncFloatingUI() { if (!DOM.chatBox) return; const rect = DOM.chatBox.getBoundingClientRect(); if (DOM.greetingBox) { DOM.greetingBox.style.width = rect.width + "px"; DOM.greetingBox.style.left = rect.left + "px"; } }
         
-        syncFloatingUI(); const resizeObserver = new ResizeObserver(() => requestAnimationFrame(syncFloatingUI)); resizeObserver.observe(document.body); if (DOM.inputArea) resizeObserver.observe(DOM.inputArea); window.addEventListener('resize', () => requestAnimationFrame(syncFloatingUI), { passive: true });
+        syncFloatingUI(); const resizeObserver = new ResizeObserver(() => requestAnimationFrame(syncFloatingUI)); resizeObserver.observe(document.body); if (DOM.inputArea) resizeObserver.observe(DOM.inputArea);
+        
         if (DOM.chatBox) { new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.addedNodes.length > 0) { mutation.addedNodes.forEach((node) => { if (node.nodeType === 1) { const t = node.innerText || ""; if (t.includes('@1') || t.includes('@2') || t.includes('@3') || t.includes('@4')) node.classList.add('ghost-hidden'); } }); } }); }).observe(DOM.chatBox, { childList: true, subtree: true }); }
-        function playBody() { if (isThinking) return setTimeout(playBody, 1000); const r = Math.random() * 100, a = r < 60 ? 'anim-squeeze' : r < 90 ? 'anim-roll' : 'anim-jump'; bodyM.classList.add(a); bodyM.addEventListener('animationend', () => { bodyM.classList.remove(a); setTimeout(playBody, Math.random() * 4000 + 3000); }, { once: true }); }
-        function playBlink() { if (!isThinking) { eyesM.forEach(e => e.classList.add('anim-blink')); setTimeout(() => eyesM.forEach(e => e.classList.remove('anim-blink')), 150); } setTimeout(playBlink, Math.random() * 5000 + 2000); }
-        function look() { if (isThinking) return setTimeout(look, 1000); const dirs = [{x:0,y:0},{x:0,y:-4},{x:0,y:4},{x:4,y:0},{x:-4,y:0},{x:3,y:-3},{x:-3,y:-3},{x:3,y:3},{x:-3,y:3}]; const d = dirs[Math.floor(Math.random() * dirs.length)]; eyesM.forEach(e => { e.style.setProperty('--lx', d.x+'px'); e.style.setProperty('--ly', d.y+'px'); e.style.transform = `translate(${d.x}px, ${d.y}px)`; }); setTimeout(look, Math.random() * 3000 + 2000); }
+        
+        function playBody() { if (document.hidden) return setTimeout(playBody, 2000); if (isThinking) return setTimeout(playBody, 1000); const r = Math.random() * 100, a = r < 60 ? 'anim-squeeze' : r < 90 ? 'anim-roll' : 'anim-jump'; bodyM.classList.add(a); bodyM.addEventListener('animationend', () => { bodyM.classList.remove(a); setTimeout(playBody, Math.random() * 4000 + 3000); }, { once: true }); }
+        function playBlink() { if (document.hidden) return setTimeout(playBlink, 2000); if (!isThinking) { eyesM.forEach(e => e.classList.add('anim-blink')); setTimeout(() => eyesM.forEach(e => e.classList.remove('anim-blink')), 150); } setTimeout(playBlink, Math.random() * 5000 + 2000); }
+        function look() { if (document.hidden) return setTimeout(look, 2000); if (isThinking) return setTimeout(look, 1000); const dirs = [{x:0,y:0},{x:0,y:-4},{x:0,y:4},{x:4,y:0},{x:-4,y:0},{x:3,y:-3},{x:-3,y:-3},{x:3,y:3},{x:-3,y:3}]; const d = dirs[Math.floor(Math.random() * dirs.length)]; eyesM.forEach(e => { e.style.setProperty('--lx', d.x+'px'); e.style.setProperty('--ly', d.y+'px'); e.style.transform = `translate(${d.x}px, ${d.y}px)`; }); setTimeout(look, Math.random() * 3000 + 2000); }
         setTimeout(playBody, 2000); setTimeout(playBlink, 2500); setTimeout(look, 3000);
+        
         document.addEventListener('click', (e) => { if (e.target.classList.contains('lime-chip')) { sendTrigger(e.target.getAttribute('data-trigger')); window.setGreetingVisible(false); } if (e.target.innerText && e.target.innerText.includes('Nuova chat')) window.setGreetingVisible(true); if (e.target.closest('.history-item')) window.setGreetingVisible(false); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Enter') window.setGreetingVisible(false); });
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) { userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); updateProfileUI(session.user); loadHistory(); }
-        supabaseClient.auth.onAuthStateChange((event, session) => { if (session) { userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); updateProfileUI(session.user); loadHistory(); } else { userId = null; document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); updateProfileUI(null); } });
-        initLimeExtras();
-    });
-</script>
+    // --- PATCH: Sincronizzazione Sessione (Silenziosa) ---
+    (function() {
+        async function fetchFreshData() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                const { data: { user }, error } = await supabaseClient.auth.getUser();
+                if (!error && user) {
+                    if (window.updateProfileUI) window.updateProfileUI(user);
+                    await supabaseClient.auth.refreshSession();
+                }
+            }
+        }
+        window.addEventListener('load', fetchFreshData);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') fetchFreshData();
+        });
+    })();
 
-
-
-
-<style>
-  /* 1. Spegniamo gli occhi originali quando legge */
-  .is-reading .lime-eye {
-      opacity: 0 !important; 
-  }
-
-  /* 2. Il gruppo di lettura (Occhiali + Occhi Finti) */
-  #lime-reading-group {
-      opacity: 0;
-      transform: translateY(-15px);
-      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      pointer-events: none;
-  }
-  
-  /* 3. Quando inizia a leggere, l'intero blocco SCIVOLA IN BASSO sul naso */
-  .is-reading #lime-reading-group {
-      opacity: 1;
-      transform: translateY(14px); 
-  }
-
-  /* 4. Ritmo asimmetrico: lineare per un controllo assoluto dei tempi */
-  .reading-eye {
-      animation: lime-read-anim-eyes 1.8s linear infinite;
-  }
-
-  @keyframes lime-read-anim-eyes {
-      /* Parte a sinistra e fa una micro-pausa */
-      0%, 5% { transform: translate(-6px, 4px); }
-      
-      /* Corsa VELOCIZZATA da Sinistra verso Destra (impiega solo il 21% del ciclo) */
-      26% { transform: translate(6px, 4px); }
-      
-      /* Micro-pausa a destra per spezzare il ritmo e mettere a fuoco */
-      31% { transform: translate(6px, 4px); }
-      
-      /* Corsa LENTA da Destra verso Sinistra (impiega il 64% del ciclo) */
-      95%, 100% { transform: translate(-6px, 4px); }
-  }
-</style>
-
-<script>
-(function() {
-  const eyesGroup = document.getElementById('lime-eyes-group');
-  const mascotContainer = document.getElementById('lime-app-mascot');
-  
-  // Iniezione del gruppo (Occhiali + Occhi Neri finti)
-  if (eyesGroup && !document.getElementById('lime-reading-group')) {
-      const readingSVG = `
-          <g id="lime-reading-group">
-              <g fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round">
-                  <circle cx="65" cy="175" r="15" />
-                  <circle cx="135" cy="175" r="15" />
-                  <path d="M 80 175 Q 100 165 120 175" />
-              </g>
-              <g>
-                  <circle class="reading-eye" cx="65" cy="175" r="9" fill="#1a1a1a" />
-                  <circle class="reading-eye" cx="135" cy="175" r="9" fill="#1a1a1a" />
-              </g>
-          </g>
-      `;
-      eyesGroup.insertAdjacentHTML('afterend', readingSVG);
-  }
-
-  // Monkey Patching: Attiva/disattiva lo stato
-  if (typeof window.handleFileSelect === 'function') {
-      const originalHandleFileSelect = window.handleFileSelect;
-      window.handleFileSelect = function(e) {
-          originalHandleFileSelect.apply(this, arguments);
-          const fileInput = e.target;
-          if (fileInput && fileInput.files && fileInput.files.length > 0) {
-              if (mascotContainer) mascotContainer.classList.add('is-reading');
-          }
-      };
-  }
-
-  if (typeof window.clearAttachment === 'function') {
-      const originalClearAttachment = window.clearAttachment;
-      window.clearAttachment = function() {
-          originalClearAttachment.apply(this, arguments);
-          if (mascotContainer) mascotContainer.classList.remove('is-reading');
-      };
-  }
-})();
-</script>
-
-<style>
-  /* 1. Gruppo cuffie: nascosto di default */
-  #lime-headphones-group {
-      opacity: 0;
-      /* Parte dal'alto per l'effetto di indossamento */
-      transform: translateY(-20px);
-      transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      pointer-events: none;
-  }
-
-  /* 2. Attivazione microfono: entrano e restano immobili (nessuna fluttuazione) */
-  .is-listening #lime-headphones-group {
-      opacity: 1;
-      transform: translateY(0);
-  }
-  
-  /* 3. Occhi aperti e attenti durante l'ascolto */
-  .is-listening .lime-eye {
-      transform: scaleY(1) !important;
-  }
-</style>
-
-<script>
-(function() {
-  const bodyGroup = document.getElementById('lime-body-main');
-  const mascotContainer = document.getElementById('lime-app-mascot');
-  const timerDisplay = document.getElementById('recording-timer');
-  
-  if (bodyGroup && !document.getElementById('lime-headphones-group')) {
-      const headphonesSVG = `
-          <g id="lime-headphones-group">
-              <path d="M 29 159 C 29 74, 171 74, 171 159" fill="none" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round" />
-              
-              <rect x="20" y="154" width="18" height="42" rx="9" fill="#1a1a1a" />
-              
-              <rect x="162" y="154" width="18" height="42" rx="9" fill="#1a1a1a" />
-          </g>
-      `;
-      bodyGroup.insertAdjacentHTML('beforeend', headphonesSVG);
-  }
-
-  // Observer per intercettare l'attivazione del microfono
-  if (timerDisplay && mascotContainer) {
-      const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-              if (mutation.attributeName === 'class') {
-                  if (timerDisplay.classList.contains('hidden')) {
-                      mascotContainer.classList.remove('is-listening');
-                  } else {
-                      mascotContainer.classList.add('is-listening');
-                  }
-              }
-          });
-      });
-      
-      observer.observe(timerDisplay, { attributes: true });
-  }
-})();
-</script>
-
-
-
-
-
-<style>
-    /* 1. Blocchiamo il layout per evitare che l'OS "schiacci" la finestra in modo nativo */
-    body, html {
-        position: fixed !important;
-        top: 0; left: 0; right: 0; bottom: 0;
-        overflow: hidden !important;
-        /* height verrà impostato via JS ai pixel fisici esatti */
-    }
-    
-    #main-container {
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-    }
-
-    /* 2. Disabilitiamo lo smooth scroll e prepariamo la GPU per lo spostamento fluido */
-    #chat-box {
-        scroll-behavior: auto !important; 
-        will-change: transform; 
-    }
-    
-    /* 3. Animazione di apparizione scattante */
-    .bot-msg {
-        transform-origin: bottom left;
-        animation: botMsgExpand 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        will-change: transform, opacity;
-    }
-    
-    @keyframes botMsgExpand {
-        from { transform: scale(0.8) translateY(10px); opacity: 0; }
-        to { transform: scale(1) translateY(0); opacity: 1; }
-    }
-</style>
-
-<script>
+    // --- PATCH: Blocco Viewport e Posizionamento Chirugico ---
     (function() {
         const mascotSvg = document.querySelector('#lime-app-mascot svg');
         const chatBox = document.getElementById('chat-box');
         const inputArea = document.querySelector('.input-area');
         const greetingBox = document.getElementById('lime-greeting-box');
         let lastMsgPadding = -1;
-
-        // --- BLOCCO FISICO DEL LAYOUT ---
-        // Congeliamo l'altezza esatta della pagina. La tastiera non potrà più "schiacciare" 
-        // la chat distruggendo le coordinate di scorrimento.
         let lockedWidth = window.innerWidth;
         let lockedHeight = window.innerHeight;
 
@@ -585,71 +468,51 @@
         }
         lockDimensions();
 
-        // Aggiorniamo le dimensioni solo se l'utente ruota il dispositivo
-        window.addEventListener('resize', () => {
-            if (window.innerWidth !== lockedWidth) { 
-                lockedWidth = window.innerWidth;
-                lockedHeight = window.innerHeight;
-                lockDimensions();
-            }
-        });
-
-        // --- CALCOLO DELLA LINEA DI BASE MASCOTTE ---
         function getBaseLineY() {
             if (!mascotSvg) return lockedHeight / 2;
             const rect = mascotSvg.getBoundingClientRect();
             return rect.top + (rect.height / 2);
         }
 
-        // Il padding lavora ora su un contenitore dalle dimensioni inalterabili
-        function syncAnchoring() {
+        function updateAnchoring() {
             if (chatBox) {
                 const targetY = getBaseLineY();
                 const boxRect = chatBox.getBoundingClientRect();
                 const requiredPadding = Math.max(0, boxRect.bottom - targetY);
-                
                 if (Math.abs(requiredPadding - lastMsgPadding) > 1) {
                     chatBox.style.paddingBottom = requiredPadding + 'px';
                     lastMsgPadding = requiredPadding;
                 }
             }
-            requestAnimationFrame(syncAnchoring);
         }
-        syncAnchoring();
+        updateAnchoring();
 
-        // --- MOVIMENTO ALL'UNISONO VIA GPU ---
+        window.addEventListener('resize', () => {
+            if (window.innerWidth !== lockedWidth) { 
+                lockedWidth = window.innerWidth;
+                lockedHeight = window.innerHeight;
+                lockDimensions();
+            }
+            updateAnchoring();
+        }, { passive: true });
+
         if (window.visualViewport) {
             function trickKeyboard() {
                 const vvHeight = window.visualViewport.height;
                 const vvOffset = window.visualViewport.offsetTop;
-                
-                // Usiamo l'altezza bloccata per calcolare l'ingombro reale
                 const keyboardHeight = Math.max(0, lockedHeight - (vvHeight + vvOffset));
-                
                 const shiftY = `translateY(-${keyboardHeight}px)`;
                 
-                // Solleviamo dinamicamente barra, suggerimenti e chat
-                if (inputArea) {
-                    inputArea.style.transform = `${shiftY} translateZ(0)`;
-                }
-                if (greetingBox) {
-                    greetingBox.style.transform = shiftY;
-                }
-                if (chatBox) {
-                    chatBox.style.transform = shiftY;
-                }
-                
-                // Neutralizziamo qualsiasi scroll nativo estraneo
+                if (inputArea) inputArea.style.transform = `${shiftY} translateZ(0)`;
+                if (greetingBox) greetingBox.style.transform = shiftY;
+                if (chatBox) chatBox.style.transform = shiftY;
                 window.scrollTo(0, 0);
+                updateAnchoring(); 
             }
-
             window.visualViewport.addEventListener('resize', trickKeyboard);
             window.visualViewport.addEventListener('scroll', trickKeyboard);
-            
-            // Rimossa la forzatura di scroll quando si tocca l'input per evitare "l'effetto reset"
         }
 
-        // --- SCROLL CHIRURGICO ---
         window.scrollToBottom = function(force = false) {
             if (!chatBox) return;
             if (!window.isUserScrolling || force) {
@@ -657,104 +520,8 @@
             }
         };
     })();
-</script>
 
-<script>
-    (function() {
-        // Funzione per il recupero silenzioso dei dati freschi
-        async function fetchFreshData() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            
-            if (session && session.user) {
-                // getUser() forza la lettura dal server remoto, ignorando la cache locale
-                const { data: { user }, error } = await supabaseClient.auth.getUser();
-                
-                if (!error && user) {
-                    // Riapplichiamo l'interfaccia con i dati freschi
-                    if (window.updateProfileUI) window.updateProfileUI(user);
-                    
-                    // Allineiamo il token locale per la prossima volta
-                    await supabaseClient.auth.refreshSession();
-                }
-            }
-        }
-
-        // 1. Controlla appena la pagina ha finito di caricarsi
-        window.addEventListener('load', fetchFreshData);
-
-        // 2. Controlla quando l'app viene "risvegliata" dal background su mobile
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                fetchFreshData();
-            }
-        });
-    })();
-</script>
-
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js"></script>
-
-    
-<style>
-    .katex-display {
-        overflow-x: auto !important;
-        overflow-y: hidden !important;
-        scrollbar-width: none !important; /* Uccidiamo la barra nativa ovunque */
-        -ms-overflow-style: none !important;
-        margin-bottom: 4px !important; 
-        font-size: 0.9em;
-    }
-    .katex-display::-webkit-scrollbar {
-        display: none !important;
-    }
-
-    /* La nostra UI Infallibile - Iniettata come elemento fratello */
-    .math-scrollbar {
-        display: none; /* Attivata da JS solo se serve */
-        align-items: center;
-        width: 100%;
-        height: 18px;
-        margin-top: -2px; /* La avviciniamo alla base dell'equazione */
-        margin-bottom: 16px; /* Diamo respiro prima del testo successivo */
-        pointer-events: none; /* L'utente scorre trascinando col dito l'equazione, non la barra */
-    }
-    
-    .math-arrow {
-        width: 14px;
-        height: 14px;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        opacity: 0.35; /* MATCH PERFETTO CON IL CURSORE */
-        flex-shrink: 0;
-    }
-    
-    /* Triangoli con angoli smussati (stroke-linejoin='round') */
-    .math-arrow.left { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='16,5 8,12 16,19'/%3E%3C/svg%3E"); }
-    .math-arrow.right { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='8,5 16,12 8,19'/%3E%3C/svg%3E"); }
-    
-    .math-track {
-        flex-grow: 1;
-        height: 5px;
-        background: rgba(0, 0, 0, 0.08);
-        margin: 0 8px;
-        border-radius: 4px;
-        position: relative;
-    }
-    
-    .math-thumb {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.35); /* MATCH PERFETTO CON LE FRECCE */
-        border-radius: 4px;
-    }
-</style>
-
-<script>
+    // --- PATCH: Motore Matematico e DOMPurify ---
     (function() {
         if (window.marked && window.markedKatex) {
             marked.use(window.markedKatex({ throwOnError: false }));
@@ -771,7 +538,6 @@
             };
         }
 
-        // Sincronizza il movimento della finta barra con lo scorrimento reale
         function syncThumb(el, scrollbar) {
             const thumb = scrollbar.querySelector('.math-thumb');
             if (!thumb) return;
@@ -780,22 +546,17 @@
 
             const scrollRatio = el.scrollLeft / scrollableWidth;
             const thumbWidthRatio = el.clientWidth / el.scrollWidth;
-
-            // Fissiamo una larghezza minima del 15% per evitare che il cursore sparisca su equazioni lunghissime
             const thumbPercent = Math.max(15, thumbWidthRatio * 100);
+            
             thumb.style.width = thumbPercent + '%';
             thumb.style.left = `calc(${scrollRatio} * (100% - ${thumbPercent}%))`;
         }
 
-        // Il ResizeObserver guarda la formula crescere in tempo reale e reagisce
         const resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
                 const el = entry.target;
-                
-                // Cerca la nostra barra subito dopo l'equazione
                 let scrollbar = el.nextElementSibling;
                 
-                // Se non c'è, o se il parser l'ha cancellata, la re-iniettiamo
                 if (!scrollbar || !scrollbar.classList.contains('math-scrollbar')) {
                     scrollbar = document.createElement('div');
                     scrollbar.className = 'math-scrollbar';
@@ -805,29 +566,21 @@
                         <div class="math-arrow right"></div>
                     `;
                     el.insertAdjacentElement('afterend', scrollbar);
-                    
-                    // Colleghiamo lo scorrimento
                     el.addEventListener('scroll', () => syncThumb(el, scrollbar), { passive: true });
                 }
 
-                // Decidiamo se accenderla
                 const isOverflowing = el.scrollWidth > el.clientWidth + 2;
                 scrollbar.style.display = isOverflowing ? 'flex' : 'none';
 
-                if (isOverflowing) {
-                    syncThumb(el, scrollbar);
-                }
+                if (isOverflowing) syncThumb(el, scrollbar);
             }
         });
 
-        // Osserva i nuovi messaggi in chat
         const mutationObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === 1) {
-                        if (node.classList.contains('katex-display')) {
-                            resizeObserver.observe(node);
-                        }
+                        if (node.classList.contains('katex-display')) resizeObserver.observe(node);
                         const mathBlocks = node.querySelectorAll ? node.querySelectorAll('.katex-display') : [];
                         mathBlocks.forEach(block => resizeObserver.observe(block));
                     }
@@ -835,30 +588,17 @@
             });
         });
         
-        mutationObserver.observe(document.body, { childList: true, subtree: true });
+        const chatBoxEl = document.getElementById('chat-box');
+        if (chatBoxEl) mutationObserver.observe(chatBoxEl, { childList: true, subtree: true });
     })();
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) { userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); updateProfileUI(session.user); loadHistory(); }
+        supabaseClient.auth.onAuthStateChange((event, session) => { if (session) { userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); updateProfileUI(session.user); loadHistory(); } else { userId = null; document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); updateProfileUI(null); } });
+        initLimeExtras();
+    });
 </script>
-    
-    
-    
-    
+
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
