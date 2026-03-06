@@ -662,7 +662,7 @@
 </script>
 
 <style>
-    /* 1. Breath-area strutturale al 95% */
+    /* 1. Breath-area invisibile al 95% */
     #breath-area {
         position: absolute;
         bottom: 100%;
@@ -673,26 +673,26 @@
         z-index: 10;
     }
 
-    /* 2. Nuovo 'pavimento' per il box della chat */
+    /* 2. Nuovo pavimento dinamico per la chat e il greeting */
     #chat-box {
         padding-bottom: var(--breath-padding, 140px) !important;
-    }
-
-    /* 3. Forza l'ancoraggio per TUTTI i tipi di messaggi e il greeting */
-    .message-container, 
-    .user-message-container, 
-    #lime-greeting-box {
-        scroll-snap-align: end;
+        scroll-behavior: auto !important; /* Disattiva lo scroll fluido per evitare rimbalzi nell'ancoraggio */
     }
 
     #lime-greeting-box {
         bottom: var(--breath-padding, 140px) !important;
         margin-bottom: 20px !important;
     }
+
+    /* Rimuoviamo margini residui che potrebbero spostare l'user message */
+    .msg-wrapper:last-child {
+        margin-bottom: 0 !important;
+    }
 </style>
 
 <script>
     (function() {
+        // Iniezione sicura
         if (!document.getElementById('breath-area')) {
             const breathArea = document.createElement('div');
             breathArea.id = 'breath-area';
@@ -705,46 +705,53 @@
             if (!breathArea) return;
             const breathRect = breathArea.getBoundingClientRect();
             const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            
+            // Calcolo della distanza reale dalla cima della breathbar al fondo
             const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
             document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
         }
 
-        // Sincronizzazione eventi
+        // Funzione di scroll forzato sulla linea di respiro
+        const forceScrollToBreath = () => {
+            syncBreathAnchoring();
+            const chatBox = document.getElementById('chat-box');
+            if (chatBox) {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        };
+
+        // Event listener per resize e tastiera mobile
         window.addEventListener('resize', syncBreathAnchoring, { passive: true });
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
             window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
         }
 
+        // MutationObserver: intercetta User Message e Bot Message istantaneamente
         const chatBox = document.getElementById('chat-box');
-        
-        // Funzione di scroll forzato sulla breathbar
-        const forceScrollToBreath = () => {
-            syncBreathAnchoring();
-            if (window.scrollToBottom) {
-                window.scrollToBottom(true);
-            } else if (chatBox) {
-                chatBox.scrollTo({
-                    top: chatBox.scrollHeight,
-                    behavior: 'auto'
-                });
-            }
-        };
-
-        // MutationObserver potenziato per intercettare anche i messaggi utente
         if (chatBox) {
-            const observer = new MutationObserver(() => {
-                requestAnimationFrame(forceScrollToBreath);
+            const observer = new MutationObserver((mutations) => {
+                let shouldScroll = false;
+                mutations.forEach(m => { if (m.addedNodes.length > 0) shouldScroll = true; });
+                
+                if (shouldScroll) {
+                    // Eseguiamo due cicli di rendering per garantire la precisione millimetrica
+                    requestAnimationFrame(() => {
+                        syncBreathAnchoring();
+                        setTimeout(forceScrollToBreath, 10);
+                    });
+                }
             });
             observer.observe(chatBox, { childList: true, subtree: true });
         }
 
-        // Intercettiamo l'invio per assicurarci che lo scroll avvenga subito
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                setTimeout(forceScrollToBreath, 50);
+        // Override della funzione nativa per evitare conflitti
+        const originalScrollToBottom = window.scrollToBottom;
+        window.scrollToBottom = function(force) {
+            if (force || !window.isUserScrolling) {
+                forceScrollToBreath();
             }
-        });
+        };
 
         // Inizializzazione
         requestAnimationFrame(syncBreathAnchoring);
@@ -756,9 +763,11 @@
 
 
 
+
     
 </body>
 </html>
+
 
 
 
