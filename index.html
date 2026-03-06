@@ -739,6 +739,79 @@
     })();
 </script>
 
+<style>
+    /* 1. Breath-area strutturale (invisibile e al 95%) */
+    #breath-area {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        width: 100%;
+        height: 95%; 
+        pointer-events: none;
+    }
+
+    /* 2. Blocchiamo il box della chat: non deve MAI saltare in alto */
+    #chat-box {
+        transform: none !important; /* Neutralizza il comando del codice originale */
+        padding-bottom: var(--breath-padding, 140px) !important;
+        transition: padding-bottom 0.1s ease-out; /* Rende il movimento dei messaggi fluido */
+    }
+
+    /* 3. Il greeting box e l'input area continuano a seguire la tastiera */
+    #lime-greeting-box {
+        bottom: var(--breath-padding, 140px) !important;
+        margin-bottom: 20px !important;
+    }
+</style>
+
+<script>
+    (function() {
+        // Iniezione sicura della breath-area
+        if (!document.getElementById('breath-area')) {
+            const breathArea = document.createElement('div');
+            breathArea.id = 'breath-area';
+            const inputArea = document.querySelector('.input-area');
+            if (inputArea) inputArea.appendChild(breathArea);
+        }
+
+        function syncMobileBehavior() {
+            const breathArea = document.getElementById('breath-area');
+            const chatBox = document.getElementById('chat-box');
+            if (!breathArea || !chatBox) return;
+
+            const breathRect = breathArea.getBoundingClientRect();
+            // Usiamo il visualViewport per capire dove finisce lo schermo reale sopra la tastiera
+            const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            const vvOffset = window.visualViewport ? window.visualViewport.offsetTop : 0;
+            
+            // Calcoliamo il padding necessario affinché i messaggi si fermino sopra la breath-area
+            // tenendo conto che l'input-area viene spostata dal codice originale
+            const requiredPadding = Math.max(0, (vvHeight + vvOffset) - breathRect.top);
+            
+            document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
+
+            // Se l'utente non sta scrollando, teniamo la chat ancorata al fondo
+            if (!window.isUserScrolling) {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        }
+
+        // Ascoltiamo i cambiamenti del viewport (tastiera che si apre/chiude)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', syncMobileBehavior);
+            window.visualViewport.addEventListener('scroll', syncMobileBehavior);
+        }
+        window.addEventListener('resize', syncMobileBehavior);
+
+        // Forza un ricalcolo immediato all'invio per evitare lag visivi
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') setTimeout(syncMobileBehavior, 30);
+        });
+
+        // Avvio iniziale
+        requestAnimationFrame(syncMobileBehavior);
+    })();
+</script>
 
 
 
@@ -746,6 +819,7 @@
     
 </body>
 </html>
+
 
 
 
