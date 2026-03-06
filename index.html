@@ -704,20 +704,32 @@
         max-width: 100%;
         overflow-x: auto;
         overflow-y: hidden;
-        padding-bottom: 4px; 
+        padding-bottom: 8px; /* Leggermente aumentato per distanziare il binario */
+        
+        /* Regole per Firefox */
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.04);
     }
 
+    /* Regole per Chrome, Safari e iOS */
     .katex-display::-webkit-scrollbar {
-        height: 4px;
+        height: 5px;
+        -webkit-appearance: none; /* Forza la visibilità su iOS */
     }
+    
+    /* Il "binario" sempre visibile che fa da indizio grafico */
     .katex-display::-webkit-scrollbar-track {
-        background: transparent;
+        background: rgba(0, 0, 0, 0.04); 
+        border-radius: 4px;
     }
+    
+    /* La barra mobile effettiva */
     .katex-display::-webkit-scrollbar-thumb {
-        background-color: rgba(0, 0, 0, 0.15);
+        background-color: rgba(0, 0, 0, 0.2);
         border-radius: 4px;
     }
 </style>
+
 
 <script>
     (function() {
@@ -751,6 +763,7 @@
     
 </body>
 </html>
+
 
 
 
