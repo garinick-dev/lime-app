@@ -698,30 +698,44 @@
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js"></script>
 
+<style>
+    .katex-display {
+        font-size: 0.9em; 
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px; 
+    }
+
+    .katex-display::-webkit-scrollbar {
+        height: 4px;
+    }
+    .katex-display::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .katex-display::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.15);
+        border-radius: 4px;
+    }
+</style>
+
 <script>
     (function() {
-        // 2. Diciamo al parser Markdown di usare KaTeX per le formule racchiuse tra $ o $$
-        // L'opzione throwOnError: false garantisce che lo streaming del testo non subisca blocchi o crash
-        // mentre la formula viene generata pezzo per pezzo
         if (window.marked && window.markedKatex) {
             marked.use(window.markedKatex({
                 throwOnError: false
             }));
         }
 
-        // 3. Istruiamo DOMPurify (il filtro di sicurezza del tuo codice) a NON cancellare la matematica.
-        // Sovrascriviamo la funzione nativa in modo "invisibile" per permettere i tag grafici di KaTeX
         if (window.DOMPurify) {
             const originalSanitize = window.DOMPurify.sanitize;
             
             window.DOMPurify.sanitize = function(content, config) {
                 const mathConfig = {
-                    // Whitelist di tutti i tag e gli attributi vettoriali necessari per disegnare le equazioni
                     ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g'],
                     ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'],
                 };
                 
-                // Fondiamo le impostazioni di base con le nostre regole per la matematica
                 const finalConfig = Object.assign({}, config || {}, mathConfig);
                 return originalSanitize.call(window.DOMPurify, content, finalConfig);
             };
@@ -737,6 +751,7 @@
     
 </body>
 </html>
+
 
 
 
