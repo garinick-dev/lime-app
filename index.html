@@ -697,38 +697,27 @@
 <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js"></script>
 
 <style>
-    /* Contenitore che abbraccia la formula e la nostra barra */
-    .math-container {
-        position: relative;
-        width: 100%;
-        margin: 0.5em 0;
-    }
-    
     .katex-display {
-        overflow-x: auto;
-        overflow-y: hidden;
-        margin: 0 !important;
-        padding-bottom: 24px !important; /* Spazio sul fondo per ospitare la barra */
-        font-size: 0.9em;
-        
-        /* Omicidio della barra di sistema nativa */
-        scrollbar-width: none !important; 
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scrollbar-width: none !important; /* Uccidiamo la barra nativa ovunque */
         -ms-overflow-style: none !important;
+        margin-bottom: 4px !important; 
+        font-size: 0.9em;
     }
     .katex-display::-webkit-scrollbar {
-        display: none !important; 
+        display: none !important;
     }
 
-    /* La nostra barra custom */
+    /* La nostra UI Infallibile - Iniettata come elemento fratello */
     .math-scrollbar {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 20px;
-        display: flex;
+        display: none; /* Attivata da JS solo se serve */
         align-items: center;
-        pointer-events: none; /* Rende la barra "trasparente" al tocco, l'utente scorre trascinando l'equazione */
+        width: 100%;
+        height: 18px;
+        margin-top: -2px; /* La avviciniamo alla base dell'equazione */
+        margin-bottom: 16px; /* Diamo respiro prima del testo successivo */
+        pointer-events: none; /* L'utente scorre trascinando col dito l'equazione, non la barra */
     }
     
     .math-arrow {
@@ -737,14 +726,15 @@
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
-        opacity: 0.7;
+        opacity: 0.8;
+        flex-shrink: 0;
     }
     .math-arrow.left { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 18 9 12 15 6'%3E%3C/polyline%3E%3C/svg%3E"); }
     .math-arrow.right { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'%3E%3C/polyline%3E%3C/svg%3E"); }
     
     .math-track {
         flex-grow: 1;
-        height: 4px;
+        height: 5px;
         background: rgba(0, 0, 0, 0.08);
         margin: 0 6px;
         border-radius: 4px;
@@ -758,7 +748,6 @@
         height: 100%;
         background: rgba(0, 0, 0, 0.35);
         border-radius: 4px;
-        transition: left 0.1s linear; /* Movimento fluido e snappy */
     }
 </style>
 
@@ -779,60 +768,73 @@
             };
         }
 
-        // --- Iniettore della barra custom ---
-        function attachCustomScrollbar(el) {
-            // Se è già stata processata o se non c'è bisogno di scorrere, ignoriamo
-            if (el.parentNode.classList.contains('math-container')) return;
-            if (el.scrollWidth <= el.clientWidth + 2) return;
-
-            // 1. Creiamo l'impalcatura
-            const wrapper = document.createElement('div');
-            wrapper.className = 'math-container';
-            el.parentNode.insertBefore(wrapper, el);
-            wrapper.appendChild(el);
-
-            const scrollbar = document.createElement('div');
-            scrollbar.className = 'math-scrollbar';
-            scrollbar.innerHTML = `
-                <div class="math-arrow left"></div>
-                <div class="math-track"><div class="math-thumb"></div></div>
-                <div class="math-arrow right"></div>
-            `;
-            wrapper.appendChild(scrollbar);
-
+        // Sincronizza il movimento della finta barra con lo scorrimento reale
+        function syncThumb(el, scrollbar) {
             const thumb = scrollbar.querySelector('.math-thumb');
+            if (!thumb) return;
+            const scrollableWidth = el.scrollWidth - el.clientWidth;
+            if (scrollableWidth <= 0) return;
 
-            // 2. Logica di allineamento
-            function updateThumb() {
-                const scrollRatio = el.scrollLeft / el.scrollWidth;
-                const thumbWidthRatio = el.clientWidth / el.scrollWidth;
-                
-                thumb.style.width = (thumbWidthRatio * 100) + '%';
-                thumb.style.left = (scrollRatio * 100) + '%';
-            }
+            const scrollRatio = el.scrollLeft / scrollableWidth;
+            const thumbWidthRatio = el.clientWidth / el.scrollWidth;
 
-            // Ascoltiamo lo scorrimento e calcoliamo le dimensioni iniziali
-            el.addEventListener('scroll', updateThumb, { passive: true });
-            setTimeout(updateThumb, 50); 
+            // Fissiamo una larghezza minima del 15% per evitare che il cursore sparisca su equazioni lunghissime
+            const thumbPercent = Math.max(15, thumbWidthRatio * 100);
+            thumb.style.width = thumbPercent + '%';
+            thumb.style.left = `calc(${scrollRatio} * (100% - ${thumbPercent}%))`;
         }
 
-        // 3. Osservatore che intercetta la matematica appena nata in chat
-        const observer = new MutationObserver((mutations) => {
+        // Il ResizeObserver guarda la formula crescere in tempo reale e reagisce
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const el = entry.target;
+                
+                // Cerca la nostra barra subito dopo l'equazione
+                let scrollbar = el.nextElementSibling;
+                
+                // Se non c'è, o se il parser l'ha cancellata, la re-iniettiamo
+                if (!scrollbar || !scrollbar.classList.contains('math-scrollbar')) {
+                    scrollbar = document.createElement('div');
+                    scrollbar.className = 'math-scrollbar';
+                    scrollbar.innerHTML = `
+                        <div class="math-arrow left"></div>
+                        <div class="math-track"><div class="math-thumb"></div></div>
+                        <div class="math-arrow right"></div>
+                    `;
+                    el.insertAdjacentElement('afterend', scrollbar);
+                    
+                    // Colleghiamo lo scorrimento
+                    el.addEventListener('scroll', () => syncThumb(el, scrollbar), { passive: true });
+                }
+
+                // Decidiamo se accenderla
+                const isOverflowing = el.scrollWidth > el.clientWidth + 2;
+                scrollbar.style.display = isOverflowing ? 'flex' : 'none';
+
+                if (isOverflowing) {
+                    syncThumb(el, scrollbar);
+                }
+            }
+        });
+
+        // Osserva i nuovi messaggi in chat
+        const mutationObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === 1) {
-                        if (node.classList.contains('katex-display')) attachCustomScrollbar(node);
+                        if (node.classList.contains('katex-display')) {
+                            resizeObserver.observe(node);
+                        }
                         const mathBlocks = node.querySelectorAll ? node.querySelectorAll('.katex-display') : [];
-                        mathBlocks.forEach(attachCustomScrollbar);
+                        mathBlocks.forEach(block => resizeObserver.observe(block));
                     }
                 });
             });
         });
         
-        observer.observe(document.body, { childList: true, subtree: true });
+        mutationObserver.observe(document.body, { childList: true, subtree: true });
     })();
 </script>
-
 
     
     
@@ -840,6 +842,7 @@
     
 </body>
 </html>
+
 
 
 
