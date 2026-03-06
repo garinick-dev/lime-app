@@ -691,11 +691,6 @@
     })();
 </script>
     
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js"></script>
-
 <style>
     .katex-display {
         overflow-x: auto !important;
@@ -721,22 +716,24 @@
     }
     
     .math-arrow {
-        width: 18px;
-        height: 18px;
+        width: 14px;
+        height: 14px;
         background-size: contain;
         background-repeat: no-repeat;
         background-position: center;
-        opacity: 0.8;
+        opacity: 0.35; /* MATCH PERFETTO CON IL CURSORE */
         flex-shrink: 0;
     }
-    .math-arrow.left { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='15 18 9 12 15 6'%3E%3C/polyline%3E%3C/svg%3E"); }
-    .math-arrow.right { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 18 15 12 9 6'%3E%3C/polyline%3E%3C/svg%3E"); }
+    
+    /* Triangoli con angoli smussati (stroke-linejoin='round') */
+    .math-arrow.left { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='16,5 8,12 16,19'/%3E%3C/svg%3E"); }
+    .math-arrow.right { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='8,5 16,12 8,19'/%3E%3C/svg%3E"); }
     
     .math-track {
         flex-grow: 1;
         height: 5px;
         background: rgba(0, 0, 0, 0.08);
-        margin: 0 6px;
+        margin: 0 8px;
         border-radius: 4px;
         position: relative;
     }
@@ -746,95 +743,10 @@
         top: 0;
         left: 0;
         height: 100%;
-        background: rgba(0, 0, 0, 0.35);
+        background: rgba(0, 0, 0, 0.35); /* MATCH PERFETTO CON LE FRECCE */
         border-radius: 4px;
     }
 </style>
-
-<script>
-    (function() {
-        if (window.marked && window.markedKatex) {
-            marked.use(window.markedKatex({ throwOnError: false }));
-        }
-
-        if (window.DOMPurify) {
-            const originalSanitize = window.DOMPurify.sanitize;
-            window.DOMPurify.sanitize = function(content, config) {
-                const mathConfig = {
-                    ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g'],
-                    ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'],
-                };
-                return originalSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, mathConfig));
-            };
-        }
-
-        // Sincronizza il movimento della finta barra con lo scorrimento reale
-        function syncThumb(el, scrollbar) {
-            const thumb = scrollbar.querySelector('.math-thumb');
-            if (!thumb) return;
-            const scrollableWidth = el.scrollWidth - el.clientWidth;
-            if (scrollableWidth <= 0) return;
-
-            const scrollRatio = el.scrollLeft / scrollableWidth;
-            const thumbWidthRatio = el.clientWidth / el.scrollWidth;
-
-            // Fissiamo una larghezza minima del 15% per evitare che il cursore sparisca su equazioni lunghissime
-            const thumbPercent = Math.max(15, thumbWidthRatio * 100);
-            thumb.style.width = thumbPercent + '%';
-            thumb.style.left = `calc(${scrollRatio} * (100% - ${thumbPercent}%))`;
-        }
-
-        // Il ResizeObserver guarda la formula crescere in tempo reale e reagisce
-        const resizeObserver = new ResizeObserver(entries => {
-            for (let entry of entries) {
-                const el = entry.target;
-                
-                // Cerca la nostra barra subito dopo l'equazione
-                let scrollbar = el.nextElementSibling;
-                
-                // Se non c'è, o se il parser l'ha cancellata, la re-iniettiamo
-                if (!scrollbar || !scrollbar.classList.contains('math-scrollbar')) {
-                    scrollbar = document.createElement('div');
-                    scrollbar.className = 'math-scrollbar';
-                    scrollbar.innerHTML = `
-                        <div class="math-arrow left"></div>
-                        <div class="math-track"><div class="math-thumb"></div></div>
-                        <div class="math-arrow right"></div>
-                    `;
-                    el.insertAdjacentElement('afterend', scrollbar);
-                    
-                    // Colleghiamo lo scorrimento
-                    el.addEventListener('scroll', () => syncThumb(el, scrollbar), { passive: true });
-                }
-
-                // Decidiamo se accenderla
-                const isOverflowing = el.scrollWidth > el.clientWidth + 2;
-                scrollbar.style.display = isOverflowing ? 'flex' : 'none';
-
-                if (isOverflowing) {
-                    syncThumb(el, scrollbar);
-                }
-            }
-        });
-
-        // Osserva i nuovi messaggi in chat
-        const mutationObserver = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) {
-                        if (node.classList.contains('katex-display')) {
-                            resizeObserver.observe(node);
-                        }
-                        const mathBlocks = node.querySelectorAll ? node.querySelectorAll('.katex-display') : [];
-                        mathBlocks.forEach(block => resizeObserver.observe(block));
-                    }
-                });
-            });
-        });
-        
-        mutationObserver.observe(document.body, { childList: true, subtree: true });
-    })();
-</script>
 
     
     
@@ -842,6 +754,7 @@
     
 </body>
 </html>
+
 
 
 
