@@ -662,14 +662,14 @@
 </script>
 
 <style>
-    /* 1. Stile della breath-area (Invisibile e all'85%) */
+    /* 1. Breath-area con altezza fissa cross-platform (ispirata all'85% del desktop) */
     #breath-area {
         position: absolute;
         bottom: 100%;
         left: 0;
         width: 100%;
-        height: 85%;
-        pointer-events: none; /* Impedisce che blocchi i click sulla chat sottostante */
+        height: 75px; /* Valore fisso per evitare i ricalcoli anomali del mobile */
+        pointer-events: none;
     }
 
     /* 2. Sovrascrittura chirurgica dell'ancoraggio originale */
@@ -680,7 +680,6 @@
 
 <script>
     (function() {
-        // Evitiamo duplicati se il codice viene eseguito più volte
         if (!document.getElementById('breath-area')) {
             const breathArea = document.createElement('div');
             breathArea.id = 'breath-area';
@@ -689,27 +688,25 @@
             if (inputArea) inputArea.appendChild(breathArea);
         }
 
-        // Calcolo dinamico e fluido del limite inferiore
+        // Calcolo solido e immune alle anomalie delle tastiere mobile
         function syncBreathAnchoring() {
             const breathArea = document.getElementById('breath-area');
             if (!breathArea) return;
             
             const breathRect = breathArea.getBoundingClientRect();
-            // Calcola la distanza dal top della breath-area al fondo dello schermo
-            const requiredPadding = window.innerHeight - breathRect.top;
+            // Su mobile usiamo il visualViewport se presente per misurare l'altezza reale
+            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
             
-            // Aggiorna la variabile CSS usata dal chat-box
             document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
         }
 
-        // Sincronizzazione con il resize del viewport (incluso l'apertura della tastiera su mobile)
         window.addEventListener('resize', syncBreathAnchoring, { passive: true });
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
             window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
         }
         
-        // Osservatore chirurgico: forza l'ancoraggio all'inserimento di nuovi nodi (es. i tre puntini del bot)
         const chatBox = document.getElementById('chat-box');
         if (chatBox) {
             new MutationObserver((mutations) => {
@@ -719,17 +716,14 @@
                 });
                 
                 if (shouldScroll) {
-                    // Aspetta il prossimo frame visivo per sincronizzare
                     requestAnimationFrame(() => {
                         syncBreathAnchoring();
-                        // Usa la tua funzione nativa per forzare lo scroll
                         if (window.scrollToBottom) window.scrollToBottom(true);
                     });
                 }
             }).observe(chatBox, { childList: true });
         }
 
-        // Inizializzazione immediata
         requestAnimationFrame(syncBreathAnchoring);
         setTimeout(syncBreathAnchoring, 150);
     })();
@@ -741,6 +735,7 @@
     
 </body>
 </html>
+
 
 
 
