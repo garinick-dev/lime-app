@@ -956,14 +956,14 @@
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
-    /* 5. Nuovo Selettore a tendina per il Grado di Istruzione (Sotto Profilo) */
+    /* 5. Selettori a tendina per Profilo (Classe e Istituto) */
     .edu-level-wrapper {
         background: var(--input-bg);
         padding: 8px 12px; 
         border-radius: 12px;
         border: 1px solid var(--border-color);
         margin-top: 10px; 
-        margin-bottom: 15px; 
+        margin-bottom: 5px; 
         display: flex;
         flex-direction: row; 
         align-items: center;
@@ -1011,9 +1011,16 @@
             });
         }
 
-        // --- B. SELETTORE ISTRUZIONE ---
+        // --- B. SELETTORI PROFILO (Istruzione e Istituto) ---
         if (!document.getElementById('edu-level-selector')) {
             const profileBlock = document.querySelector('.user-profile, .profile-info, .user-info, .sidebar-header .name, #user-name');
+            
+            // Wrapper contenitore per raggruppare i selettori
+            const selectorsContainer = document.createElement('div');
+            selectorsContainer.id = 'profile-selectors-container';
+            selectorsContainer.style.marginBottom = '15px';
+
+            // 1. Selettore Classe
             const eduWrapper = document.createElement('div');
             eduWrapper.className = 'edu-level-wrapper';
             eduWrapper.id = 'edu-level-selector';
@@ -1031,19 +1038,38 @@
                 </div>
             `;
             
+            // 2. Selettore Istituto
+            const instWrapper = document.createElement('div');
+            instWrapper.className = 'edu-level-wrapper';
+            instWrapper.id = 'inst-type-selector';
+            instWrapper.innerHTML = `
+                <span class="edu-level-label">Tipo Istituto</span>
+                <div class="edu-select-container">
+                    <select class="edu-select" id="inst-dropdown">
+                        <option value="" disabled selected>Seleziona...</option>
+                        <option value="Liceo">Liceo</option>
+                        <option value="Tecnico">Tecnico</option>
+                        <option value="Professionale">Professionale</option>
+                    </select>
+                </div>
+            `;
+
+            selectorsContainer.appendChild(eduWrapper);
+            selectorsContainer.appendChild(instWrapper);
+
             if (profileBlock && profileBlock.parentNode) {
-                profileBlock.parentNode.insertBefore(eduWrapper, profileBlock.nextSibling);
+                profileBlock.parentNode.insertBefore(selectorsContainer, profileBlock.nextSibling);
             } else {
                 const fallbackContainer = document.querySelector('.settings-panel') || themeOptionsContainer.parentNode;
-                if (fallbackContainer) fallbackContainer.prepend(eduWrapper);
+                if (fallbackContainer) fallbackContainer.prepend(selectorsContainer);
             }
 
-            const dropdown = document.getElementById('edu-dropdown');
+            // Logica Classe
+            const eduDropdown = document.getElementById('edu-dropdown');
             let currentLevel = localStorage.getItem('lime_edu_level');
-            if (currentLevel) dropdown.value = currentLevel;
+            if (currentLevel) eduDropdown.value = currentLevel;
 
-            // Scrittura su Supabase al cambio
-            dropdown.addEventListener('change', async (e) => {
+            eduDropdown.addEventListener('change', async (e) => {
                 const level = e.target.value;
                 localStorage.setItem('lime_edu_level', level); 
                 
@@ -1057,9 +1083,29 @@
                     }
                 }
             });
+
+            // Logica Istituto
+            const instDropdown = document.getElementById('inst-dropdown');
+            let currentInst = localStorage.getItem('lime_inst_type');
+            if (currentInst) instDropdown.value = currentInst;
+
+            instDropdown.addEventListener('change', async (e) => {
+                const inst = e.target.value;
+                localStorage.setItem('lime_inst_type', inst); 
+                
+                if (typeof supabaseClient !== 'undefined') {
+                    try {
+                        await supabaseClient.auth.updateUser({
+                            data: { lime_inst_type: inst }
+                        });
+                    } catch (err) {
+                        console.error("Errore salvataggio istituto su Supabase:", err);
+                    }
+                }
+            });
         }
 
-        // --- C. SINCRONIZZAZIONE DATI (Dalla tua patch) ---
+        // --- C. SINCRONIZZAZIONE DATI ---
         async function fetchFreshData() {
             if (typeof supabaseClient === 'undefined') return;
 
@@ -1073,14 +1119,28 @@
                         // 1. Applica le logiche originali della UI
                         if (window.updateProfileUI) window.updateProfileUI(user);
                         
-                        // 2. Allinea il selettore e il localStorage usando i metadati freschi
-                        if (user.user_metadata && user.user_metadata.lime_edu_level) {
-                            const cloudLevel = user.user_metadata.lime_edu_level;
-                            localStorage.setItem('lime_edu_level', cloudLevel);
-                            
-                            const dropdown = document.getElementById('edu-dropdown');
-                            if (dropdown && dropdown.value !== cloudLevel) {
-                                dropdown.value = cloudLevel;
+                        // 2. Allinea i selettori e il localStorage usando i metadati freschi
+                        if (user.user_metadata) {
+                            // Sincronizzazione Classe
+                            if (user.user_metadata.lime_edu_level) {
+                                const cloudLevel = user.user_metadata.lime_edu_level;
+                                localStorage.setItem('lime_edu_level', cloudLevel);
+                                
+                                const eduDropdown = document.getElementById('edu-dropdown');
+                                if (eduDropdown && eduDropdown.value !== cloudLevel) {
+                                    eduDropdown.value = cloudLevel;
+                                }
+                            }
+
+                            // Sincronizzazione Istituto
+                            if (user.user_metadata.lime_inst_type) {
+                                const cloudInst = user.user_metadata.lime_inst_type;
+                                localStorage.setItem('lime_inst_type', cloudInst);
+                                
+                                const instDropdown = document.getElementById('inst-dropdown');
+                                if (instDropdown && instDropdown.value !== cloudInst) {
+                                    instDropdown.value = cloudInst;
+                                }
                             }
                         }
                         
@@ -1107,10 +1167,17 @@
                 try {
                     let bodyData = JSON.parse(config.body);
                     if (!bodyData.inputs) bodyData.inputs = {};
+                    
                     const eduLevel = localStorage.getItem('lime_edu_level');
+                    const instType = localStorage.getItem('lime_inst_type');
+                    
                     if (eduLevel) {
                         bodyData.inputs['classe_frequentata'] = eduLevel;
                     }
+                    if (instType) {
+                        bodyData.inputs['tipo_istituto'] = instType;
+                    }
+                    
                     config.body = JSON.stringify(bodyData);
                 } catch (e) {}
             }
@@ -1128,6 +1195,7 @@
     
 </body>
 </html>
+
 
 
 
