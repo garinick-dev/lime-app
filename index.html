@@ -900,9 +900,186 @@
 
 
 
+
+
+
+<style>
+    /* 1. Rimozione della scritta "LIME" accanto al menu */
+    .header-title { 
+        display: none !important; 
+    }
+
+    /* 2. Sfondo circolare e dinamico per il pulsante del menu */
+    .menu-toggle {
+        background-color: var(--accent) !important;
+        color: #000 !important; /* Forza il nero sull'icona per garantire contrasto con l'accent */
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50% !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        padding: 0 !important;
+        transition: background-color 0.3s, transform 0.2s !important;
+    }
+    .menu-toggle:active {
+        transform: scale(0.9);
+    }
+    .menu-toggle svg {
+        width: 22px !important;
+        height: 22px !important;
+    }
+
+    /* 3. Nasconde la label "Colore principale" */
+    .setting-item:has(#color-picker) > label { 
+        display: none !important; 
+    }
+
+    /* 4. Stile per il nuovo interruttore Tema (Slide Switch) */
+    .theme-switch-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--input-bg);
+        padding: 12px 15px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 15px;
+        cursor: pointer;
+    }
+    .theme-switch-label { 
+        font-size: 0.9rem; 
+        color: var(--text-main); 
+        font-weight: 600; 
+    }
+    .theme-switch {
+        position: relative;
+        width: 46px; 
+        height: 26px;
+        background-color: var(--text-muted);
+        border-radius: 13px;
+        transition: background-color 0.3s;
+    }
+    .theme-switch::after {
+        content: '';
+        position: absolute;
+        top: 3px; left: 3px;
+        width: 20px; height: 20px;
+        background-color: #fff;
+        border-radius: 50%;
+        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    /* Stato Attivo (Tema Scuro di default) */
+    body:not(.light-theme) .theme-switch { 
+        background-color: var(--accent); 
+    }
+    body:not(.light-theme) .theme-switch::after { 
+        transform: translateX(20px); 
+    }
+</style>
+
+<script>
+    (function() {
+        // --- A. GESTIONE INTERFACCIA (Switch Tema & Pulizia) ---
+        // Rimozione compatibilità label colore per vecchi browser che non supportano :has()
+        const colorPicker = document.getElementById('color-picker');
+        if (colorPicker && colorPicker.previousElementSibling) {
+            colorPicker.previousElementSibling.style.display = 'none';
+        }
+
+        // Sostituzione dei radio button con lo switch
+        const themeOptionsContainer = document.querySelector('.theme-options');
+        if (themeOptionsContainer && !document.getElementById('custom-theme-switch')) {
+            themeOptionsContainer.style.display = 'none'; // Nasconde i vecchi radio
+
+            const switchWrapper = document.createElement('div');
+            switchWrapper.className = 'theme-switch-wrapper';
+            switchWrapper.id = 'custom-theme-switch';
+            
+            switchWrapper.innerHTML = `
+                <span class="theme-switch-label">Tema scuro/chiaro</span>
+                <div class="theme-switch"></div>
+            `;
+
+            themeOptionsContainer.parentNode.insertBefore(switchWrapper, themeOptionsContainer.nextSibling);
+
+            switchWrapper.addEventListener('click', () => {
+                const isLight = document.body.classList.contains('light-theme');
+                if (window.handleThemeChange) window.handleThemeChange(isLight ? 'dark' : 'light');
+            });
+        }
+
+        // --- B. LOGICA CHAT (Limite a 4 e Spostamento in Cima) ---
+        // 1. Riscriviamo la funzione di rendering nativa
+        if (typeof window.renderHistoryList === 'function') {
+            window.renderHistoryList = function() {
+                if (!DOM || !DOM.historyList) return;
+                DOM.historyList.innerHTML = "";
+                const fragment = document.createDocumentFragment();
+                
+                // Limite forzato a 4
+                const CUSTOM_CHATS_PER_PAGE = 4;
+                const toShow = (window.allChats || []).slice(0, (window.chatPage || 1) * CUSTOM_CHATS_PER_PAGE);
+                
+                toShow.forEach(chat => {
+                    const div = document.createElement('div');
+                    div.className = `history-item ${chat.dify_id === window.currentConversationId ? 'active-chat' : ''}`;
+                    div.id = `chat-${chat.dify_id}`;
+                    div.onclick = () => window.handleChatClick && window.handleChatClick(chat.dify_id);
+                    const safeTitle = window.DOMPurify ? DOMPurify.sanitize(chat.title || "Nuova conversazione", { ALLOWED_TAGS: [] }) : chat.title;
+                    div.innerHTML = `<div class="chat-title">${safeTitle}</div><div class="chat-actions"><button class="action-btn" onclick="event.stopPropagation(); window.renameChat('${chat.dify_id}', '${chat.title}')">${window.svgEdit || '✏️'}</button><button class="action-btn" style="color:#ff4444" onclick="event.stopPropagation(); window.deleteChat('${chat.dify_id}')">${window.svgDelete || '🗑️'}</button></div>`;
+                    fragment.appendChild(div);
+                });
+                
+                if ((window.allChats || []).length > (window.chatPage || 1) * CUSTOM_CHATS_PER_PAGE) {
+                    const btn = document.createElement('button');
+                    btn.className = "load-more-btn";
+                    btn.innerText = "Carica chat precedenti";
+                    btn.onclick = () => { window.chatPage++; window.renderHistoryList(); };
+                    fragment.appendChild(btn);
+                }
+                DOM.historyList.appendChild(fragment);
+            };
+
+            // Eseguiamo un primo render per forzare il limite a 4 se i dati sono già caricati
+            if (window.allChats && window.allChats.length > 0) window.renderHistoryList();
+        }
+
+        // 2. Intercettiamo sendMessage per portare in cima la chat corrente
+        const originalSendMessage = window.sendMessage;
+        if (originalSendMessage && !window.limeUiPatched) {
+            window.limeUiPatched = true;
+            window.sendMessage = async function(...args) {
+                // Avvia la logica nativa senza bloccarla
+                const result = await originalSendMessage.apply(this, args);
+                
+                // Cerca la chat corrente nell'array globale e la sposta all'indice 0
+                if (window.currentConversationId && window.allChats) {
+                    const idx = window.allChats.findIndex(c => c.dify_id === window.currentConversationId);
+                    if (idx > 0) {
+                        const chat = window.allChats.splice(idx, 1)[0];
+                        window.allChats.unshift(chat); // Spinge l'elemento in prima posizione
+                        window.chatPage = 1; // Reset della paginazione
+                        window.renderHistoryList(); // Aggiorna graficamente la sidebar
+                    }
+                }
+                return result;
+            };
+        }
+    })();
+</script>
+
+
+
+
+
+
+
     
 </body>
 </html>
+
 
 
 
