@@ -919,18 +919,22 @@
     .menu-toggle:active { transform: scale(0.9); }
     .menu-toggle svg { width: 22px !important; height: 22px !important; }
 
-    /* 3. Nasconde la label "Colore principale" e compatta lo spazio vuoto */
+    /* 3. Nasconde la label "Colore principale" e compatta molto lo spazio */
     .setting-item:has(#color-picker) > label { display: none !important; }
     .setting-item:has(#color-picker) {
         justify-content: center !important;
-        margin-bottom: 10px !important;
+        margin-bottom: 8px !important; /* Spazio ridotto */
     }
 
-    /* 4. Switch Tema scuro/chiaro */
+    /* 4. Switch Tema scuro/chiaro (Layout compatto) */
     .theme-switch-wrapper {
         display: flex; align-items: center; justify-content: space-between;
-        background: var(--input-bg); padding: 12px 15px; border-radius: 12px;
-        border: 1px solid var(--border-color); margin-bottom: 15px; cursor: pointer;
+        background: var(--input-bg); 
+        padding: 8px 12px; /* Spazio interno ridotto */
+        border-radius: 12px;
+        border: 1px solid var(--border-color); 
+        margin-bottom: 8px; /* Spazio esterno ridotto */
+        cursor: pointer;
     }
     .theme-switch-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
     .theme-switch {
@@ -946,42 +950,49 @@
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
-    /* 5. Nuovo Selettore per il Grado di Istruzione */
+    /* 5. Nuovo Selettore a tendina per il Grado di Istruzione (Layout compatto e in linea) */
     .edu-level-wrapper {
         background: var(--input-bg);
-        padding: 12px 15px;
+        padding: 8px 12px; /* Spazio interno ridotto */
         border-radius: 12px;
         border: 1px solid var(--border-color);
-        margin-bottom: 15px;
+        margin-bottom: 8px; /* Spazio esterno ridotto */
         display: flex;
-        flex-direction: column;
-        gap: 10px;
+        flex-direction: row; /* Elementi in linea */
+        align-items: center;
+        justify-content: space-between;
     }
     .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
-    .edu-options {
-        display: flex; justify-content: space-between; gap: 8px;
+    
+    .edu-select-container {
+        position: relative;
     }
-    .edu-btn {
-        flex: 1;
+    /* Freccia personalizzata per il dropdown */
+    .edu-select-container::after {
+        content: '▼';
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.6rem;
+        color: var(--text-main);
+        pointer-events: none;
+    }
+    .edu-select {
+        appearance: none; /* Rimuove lo stile di default del browser */
+        -webkit-appearance: none;
         background-color: var(--bg-color, #fff);
         border: 1px solid var(--border-color);
         color: var(--text-main);
         border-radius: 8px;
-        padding: 8px 0;
+        padding: 6px 30px 6px 12px; /* Spazio extra a destra per la freccia */
         font-weight: bold;
-        font-size: 1rem;
+        font-size: 0.9rem;
         cursor: pointer;
-        transition: all 0.2s ease-out;
+        outline: none;
     }
-    body:not(.light-theme) .edu-btn { background-color: var(--panel-bg); }
-    
-    /* Stato attivo del pulsante selezionato */
-    .edu-btn.active {
-        background-color: var(--accent) !important;
-        color: #000 !important;
-        border-color: var(--accent) !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
+    body:not(.light-theme) .edu-select { background-color: var(--panel-bg); }
+    .edu-select:focus { border-color: var(--accent); }
 </style>
 
 <script>
@@ -992,7 +1003,7 @@
             colorPicker.previousElementSibling.style.display = 'none';
             if (colorPicker.parentElement) {
                 colorPicker.parentElement.style.justifyContent = 'center';
-                colorPicker.parentElement.style.marginBottom = '10px';
+                colorPicker.parentElement.style.marginBottom = '8px';
             }
         }
 
@@ -1010,7 +1021,7 @@
             });
         }
 
-        // --- B. SELETTORE ISTRUZIONE ---
+        // --- B. SELETTORE ISTRUZIONE A TENDINA ---
         if (!document.getElementById('edu-level-selector')) {
             const containerToAppend = document.getElementById('custom-theme-switch') || themeOptionsContainer;
             if (containerToAppend && containerToAppend.parentNode) {
@@ -1019,76 +1030,53 @@
                 eduWrapper.id = 'edu-level-selector';
                 eduWrapper.innerHTML = `
                     <span class="edu-level-label">Classe frequentata</span>
-                    <div class="edu-options">
-                        <button class="edu-btn" data-level="1">1</button>
-                        <button class="edu-btn" data-level="2">2</button>
-                        <button class="edu-btn" data-level="3">3</button>
-                        <button class="edu-btn" data-level="4">4</button>
-                        <button class="edu-btn" data-level="5">5</button>
+                    <div class="edu-select-container">
+                        <select class="edu-select" id="edu-dropdown">
+                            <option value="" disabled selected>Seleziona...</option>
+                            <option value="1">1ª Superiore</option>
+                            <option value="2">2ª Superiore</option>
+                            <option value="3">3ª Superiore</option>
+                            <option value="4">4ª Superiore</option>
+                            <option value="5">5ª Superiore</option>
+                        </select>
                     </div>
                 `;
                 containerToAppend.parentNode.insertBefore(eduWrapper, containerToAppend.nextSibling);
 
-                const buttons = eduWrapper.querySelectorAll('.edu-btn');
-                let currentLevel = localStorage.getItem('lime_edu_level') || null;
+                const dropdown = document.getElementById('edu-dropdown');
+                let currentLevel = localStorage.getItem('lime_edu_level');
                 
-                const updateButtons = () => {
-                    buttons.forEach(btn => {
-                        if (btn.getAttribute('data-level') === currentLevel) {
-                            btn.classList.add('active');
-                        } else {
-                            btn.classList.remove('active');
-                        }
-                    });
-                };
+                // Imposta il valore salvato se esiste
+                if (currentLevel) {
+                    dropdown.value = currentLevel;
+                }
 
-                updateButtons();
-
-                buttons.forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const level = e.target.getAttribute('data-level');
-                        currentLevel = level;
-                        localStorage.setItem('lime_edu_level', level);
-                        updateButtons();
-                    });
+                dropdown.addEventListener('change', (e) => {
+                    const level = e.target.value;
+                    localStorage.setItem('lime_edu_level', level);
                 });
             }
         }
 
         // --- C. INIEZIONE PAYLOAD API (La magia per Dify) ---
-        // Salviamo la funzione originale fetch
         const originalFetch = window.fetch;
-        // Sovrascriviamo fetch per intercettare la chiamata a Dify
         window.fetch = async function() {
             let [resource, config] = arguments;
             
-            // Controlliamo se la chiamata è diretta all'endpoint dei messaggi
             if (typeof resource === 'string' && resource.includes('/chat-messages') && config && config.body) {
                 try {
-                    // Parliamo il corpo della richiesta
                     let bodyData = JSON.parse(config.body);
+                    if (!bodyData.inputs) bodyData.inputs = {};
                     
-                    // Assicuriamoci che l'oggetto inputs esista
-                    if (!bodyData.inputs) {
-                        bodyData.inputs = {};
-                    }
-                    
-                    // Recuperiamo la classe salvata
                     const eduLevel = localStorage.getItem('lime_edu_level');
-                    
-                    // Se l'utente ha selezionato una classe, la iniettiamo
                     if (eduLevel) {
                         bodyData.inputs['classe_frequentata'] = eduLevel;
                     }
-                    
-                    // Rimpacchettiamo i dati
                     config.body = JSON.stringify(bodyData);
                 } catch (e) {
                     console.error("Errore nell'iniezione della variabile Dify:", e);
                 }
             }
-            
-            // Eseguiamo la chiamata originale con il pacchetto modificato
             return originalFetch(resource, config);
         };
     })();
@@ -1106,6 +1094,7 @@
     
 </body>
 </html>
+
 
 
 
