@@ -986,7 +986,7 @@
 
 <script>
     (function() {
-        // --- Fix Spazio vuoto colore (fallback per vecchi browser) ---
+        // --- A. GESTIONE INTERFACCIA ---
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker && colorPicker.previousElementSibling) {
             colorPicker.previousElementSibling.style.display = 'none';
@@ -996,32 +996,27 @@
             }
         }
 
-        // --- Iniezione Switch Tema ---
         const themeOptionsContainer = document.querySelector('.theme-options');
         if (themeOptionsContainer && !document.getElementById('custom-theme-switch')) {
             themeOptionsContainer.style.display = 'none'; 
-            
             const switchWrapper = document.createElement('div');
             switchWrapper.className = 'theme-switch-wrapper';
             switchWrapper.id = 'custom-theme-switch';
             switchWrapper.innerHTML = `<span class="theme-switch-label">Tema scuro/chiaro</span><div class="theme-switch"></div>`;
-            
             themeOptionsContainer.parentNode.insertBefore(switchWrapper, themeOptionsContainer.nextSibling);
-            
             switchWrapper.addEventListener('click', () => {
                 const isLight = document.body.classList.contains('light-theme');
                 if (window.handleThemeChange) window.handleThemeChange(isLight ? 'dark' : 'light');
             });
         }
 
-        // --- Iniezione Selettore Grado di Istruzione ---
+        // --- B. SELETTORE ISTRUZIONE ---
         if (!document.getElementById('edu-level-selector')) {
             const containerToAppend = document.getElementById('custom-theme-switch') || themeOptionsContainer;
             if (containerToAppend && containerToAppend.parentNode) {
                 const eduWrapper = document.createElement('div');
                 eduWrapper.className = 'edu-level-wrapper';
                 eduWrapper.id = 'edu-level-selector';
-                
                 eduWrapper.innerHTML = `
                     <span class="edu-level-label">Classe frequentata</span>
                     <div class="edu-options">
@@ -1032,10 +1027,8 @@
                         <button class="edu-btn" data-level="5">5</button>
                     </div>
                 `;
-                
                 containerToAppend.parentNode.insertBefore(eduWrapper, containerToAppend.nextSibling);
 
-                // Logica di selezione e UI
                 const buttons = eduWrapper.querySelectorAll('.edu-btn');
                 let currentLevel = localStorage.getItem('lime_edu_level') || null;
                 
@@ -1049,21 +1042,55 @@
                     });
                 };
 
-                updateButtons(); // Imposta lo stato iniziale
+                updateButtons();
 
                 buttons.forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const level = e.target.getAttribute('data-level');
                         currentLevel = level;
-                        
                         localStorage.setItem('lime_edu_level', level);
                         updateButtons();
-                        
-                        // NOTA: Inserire qui l'eventuale sync con Supabase
                     });
                 });
             }
         }
+
+        // --- C. INIEZIONE PAYLOAD API (La magia per Dify) ---
+        // Salviamo la funzione originale fetch
+        const originalFetch = window.fetch;
+        // Sovrascriviamo fetch per intercettare la chiamata a Dify
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            
+            // Controlliamo se la chiamata è diretta all'endpoint dei messaggi
+            if (typeof resource === 'string' && resource.includes('/chat-messages') && config && config.body) {
+                try {
+                    // Parliamo il corpo della richiesta
+                    let bodyData = JSON.parse(config.body);
+                    
+                    // Assicuriamoci che l'oggetto inputs esista
+                    if (!bodyData.inputs) {
+                        bodyData.inputs = {};
+                    }
+                    
+                    // Recuperiamo la classe salvata
+                    const eduLevel = localStorage.getItem('lime_edu_level');
+                    
+                    // Se l'utente ha selezionato una classe, la iniettiamo
+                    if (eduLevel) {
+                        bodyData.inputs['classe_frequentata'] = eduLevel;
+                    }
+                    
+                    // Rimpacchettiamo i dati
+                    config.body = JSON.stringify(bodyData);
+                } catch (e) {
+                    console.error("Errore nell'iniezione della variabile Dify:", e);
+                }
+            }
+            
+            // Eseguiamo la chiamata originale con il pacchetto modificato
+            return originalFetch(resource, config);
+        };
     })();
 </script>
 
@@ -1079,6 +1106,7 @@
     
 </body>
 </html>
+
 
 
 
