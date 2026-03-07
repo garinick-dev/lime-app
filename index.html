@@ -922,7 +922,7 @@
     /* 3. Nasconde la label "Colore principale" */
     .setting-item:has(#color-picker) > label { display: none !important; }
 
-    /* 4. Switch Tema */
+    /* 4. Switch Tema scuro/chiaro */
     .theme-switch-wrapper {
         display: flex; align-items: center; justify-content: space-between;
         background: var(--input-bg); padding: 12px 15px; border-radius: 12px;
@@ -941,104 +941,33 @@
     }
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
-
-    /* 5. Limite di 4 chat immediatamente visibili */
-    #history-list:not(.show-all) div.history-item:nth-of-type(n+5) {
-        display: none !important;
-    }
 </style>
 
 <script>
     (function() {
-        // --- A. GESTIONE INTERFACCIA ---
+        // Fallback per nascondere la label colore su browser più vecchi
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker && colorPicker.previousElementSibling) {
             colorPicker.previousElementSibling.style.display = 'none';
         }
 
+        // Iniezione del nuovo switch per il tema
         const themeOptionsContainer = document.querySelector('.theme-options');
         if (themeOptionsContainer && !document.getElementById('custom-theme-switch')) {
-            themeOptionsContainer.style.display = 'none'; 
+            themeOptionsContainer.style.display = 'none'; // Nasconde l'HTML originale
+            
             const switchWrapper = document.createElement('div');
             switchWrapper.className = 'theme-switch-wrapper';
             switchWrapper.id = 'custom-theme-switch';
             switchWrapper.innerHTML = `<span class="theme-switch-label">Tema scuro/chiaro</span><div class="theme-switch"></div>`;
+            
             themeOptionsContainer.parentNode.insertBefore(switchWrapper, themeOptionsContainer.nextSibling);
             
+            // Collega il click alla tua funzione nativa
             switchWrapper.addEventListener('click', () => {
                 const isLight = document.body.classList.contains('light-theme');
                 if (window.handleThemeChange) window.handleThemeChange(isLight ? 'dark' : 'light');
             });
-        }
-
-        // Se l'utente clicca su "Carica chat precedenti", mostriamo le altre
-        document.addEventListener('click', (e) => {
-            if (e.target && e.target.classList.contains('load-more-btn')) {
-                const list = document.getElementById('history-list');
-                if (list) list.classList.add('show-all');
-            }
-        });
-
-        // --- B. LOGICA CHAT (Riordino Dinamico Indipendente) ---
-        const reorderChats = () => {
-            const list = document.getElementById('history-list');
-            if (!list) return;
-            
-            const savedOrderStr = localStorage.getItem('lime_chat_order');
-            if (!savedOrderStr) return;
-            
-            try {
-                const savedOrder = JSON.parse(savedOrderStr);
-                // Spingiamo gli elementi in cima nell'ordine corretto
-                for (let i = savedOrder.length - 1; i >= 0; i--) {
-                    const chatId = savedOrder[i];
-                    const chatEl = document.getElementById('chat-' + chatId);
-                    if (chatEl) list.prepend(chatEl);
-                }
-            } catch (e) {}
-        };
-
-        // Quando il sistema renderizza la lista, applichiamo il nostro ordine
-        const historyList = document.getElementById('history-list');
-        if (historyList) {
-            new MutationObserver((mutations) => {
-                let hasNewItems = false;
-                mutations.forEach(m => {
-                    if (m.addedNodes.length > 0) hasNewItems = true;
-                });
-                if (hasNewItems) {
-                    historyList.classList.remove('show-all'); // Resetta la visuale a 4 elementi
-                    reorderChats();
-                }
-            }).observe(historyList, { childList: true });
-        }
-
-        // Quando viene inserito un messaggio in chat, salviamo l'id e lo portiamo in alto
-        const chatBox = document.getElementById('chat-box');
-        if (chatBox) {
-            new MutationObserver((mutations) => {
-                let messageAdded = false;
-                mutations.forEach(m => {
-                    if (m.addedNodes.length > 0) messageAdded = true;
-                });
-                
-                if (messageAdded && window.currentConversationId) {
-                    let savedOrder = [];
-                    try {
-                        const str = localStorage.getItem('lime_chat_order');
-                        if (str) savedOrder = JSON.parse(str);
-                    } catch (e) {}
-                    
-                    savedOrder = savedOrder.filter(id => id !== window.currentConversationId);
-                    savedOrder.unshift(window.currentConversationId);
-                    
-                    // Manteniamo una memoria pulita (max 50 id)
-                    if (savedOrder.length > 50) savedOrder = savedOrder.slice(0, 50);
-                    
-                    localStorage.setItem('lime_chat_order', JSON.stringify(savedOrder));
-                    reorderChats();
-                }
-            }).observe(chatBox, { childList: true });
         }
     })();
 </script>
@@ -1055,6 +984,7 @@
     
 </body>
 </html>
+
 
 
 
