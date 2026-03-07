@@ -956,7 +956,7 @@
         padding: 8px 12px; 
         border-radius: 12px;
         border: 1px solid var(--border-color);
-        margin-top: 10px; /* Spazio dal nome utente */
+        margin-top: 10px; 
         margin-bottom: 15px; 
         display: flex;
         flex-direction: row; 
@@ -965,31 +965,15 @@
     }
     .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
     
-    .edu-select-container {
-        position: relative;
-    }
+    .edu-select-container { position: relative; }
     .edu-select-container::after {
-        content: '▼';
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 0.6rem;
-        color: var(--text-main);
-        pointer-events: none;
+        content: '▼'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+        font-size: 0.6rem; color: var(--text-main); pointer-events: none;
     }
     .edu-select {
-        appearance: none; 
-        -webkit-appearance: none;
-        background-color: var(--bg-color, #fff);
-        border: 1px solid var(--border-color);
-        color: var(--text-main);
-        border-radius: 8px;
-        padding: 6px 30px 6px 12px; 
-        font-weight: bold;
-        font-size: 0.9rem;
-        cursor: pointer;
-        outline: none;
+        appearance: none; -webkit-appearance: none; background-color: var(--bg-color, #fff);
+        border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px;
+        padding: 6px 30px 6px 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer; outline: none;
     }
     body:not(.light-theme) .edu-select { background-color: var(--panel-bg); }
     .edu-select:focus { border-color: var(--accent); }
@@ -997,7 +981,7 @@
 
 <script>
     (function() {
-        // --- A. GESTIONE INTERFACCIA ---
+        // --- A. GESTIONE INTERFACCIA BASE ---
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker && colorPicker.previousElementSibling) {
             colorPicker.previousElementSibling.style.display = 'none';
@@ -1021,11 +1005,9 @@
             });
         }
 
-        // --- B. SELETTORE ISTRUZIONE A TENDINA (Spostato sotto il Profilo) ---
+        // --- B. SELETTORE ISTRUZIONE E SINCRONIZZAZIONE SUPABASE ---
         if (!document.getElementById('edu-level-selector')) {
-            // Cerchiamo il contenitore del profilo utente (classi comuni)
             const profileBlock = document.querySelector('.user-profile, .profile-info, .user-info, .sidebar-header .name, #user-name');
-            
             const eduWrapper = document.createElement('div');
             eduWrapper.className = 'edu-level-wrapper';
             eduWrapper.id = 'edu-level-selector';
@@ -1044,45 +1026,83 @@
             `;
             
             if (profileBlock && profileBlock.parentNode) {
-                // Lo inseriamo esattamente sotto il blocco del profilo
                 profileBlock.parentNode.insertBefore(eduWrapper, profileBlock.nextSibling);
             } else {
-                // Fallback di sicurezza: se non trova la classe del profilo, lo mette in cima ai setting
                 const fallbackContainer = document.querySelector('.settings-panel') || themeOptionsContainer.parentNode;
                 if (fallbackContainer) fallbackContainer.prepend(eduWrapper);
             }
 
             const dropdown = document.getElementById('edu-dropdown');
             let currentLevel = localStorage.getItem('lime_edu_level');
-            
-            if (currentLevel) {
-                dropdown.value = currentLevel;
-            }
+            if (currentLevel) dropdown.value = currentLevel;
 
-            dropdown.addEventListener('change', (e) => {
+            // Scrittura: Aggiorna memoria locale E invia a Supabase
+            dropdown.addEventListener('change', async (e) => {
                 const level = e.target.value;
-                localStorage.setItem('lime_edu_level', level);
+                localStorage.setItem('lime_edu_level', level); // Aggiornamento istantaneo UI
+                
+                if (window.supabaseClient) {
+                    try {
+                        // Salviamo il dato nei metadati dell'utente
+                        await window.supabaseClient.auth.updateUser({
+                            data: { lime_edu_level: level }
+                        });
+                    } catch (err) {
+                        console.error("Errore salvataggio classe su Supabase:", err);
+                    }
+                }
             });
         }
+
+        // Lettura: La tua logica di recupero dati "freschi" all'avvio/risveglio
+        async function fetchFreshData() {
+            if (!window.supabaseClient) return;
+            try {
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                if (session && session.user) {
+                    const { data: { user }, error } = await window.supabaseClient.auth.getUser();
+                    
+                    if (!error && user) {
+                        // Aggiorna vecchie UI se necessario
+                        if (window.updateProfileUI) window.updateProfileUI(user);
+                        await window.supabaseClient.auth.refreshSession();
+
+                        // Controlla se c'è un dato cloud per la classe e allinea l'interfaccia
+                        if (user.user_metadata && user.user_metadata.lime_edu_level) {
+                            const cloudLevel = user.user_metadata.lime_edu_level;
+                            localStorage.setItem('lime_edu_level', cloudLevel);
+                            
+                            const dropdown = document.getElementById('edu-dropdown');
+                            if (dropdown && dropdown.value !== cloudLevel) {
+                                dropdown.value = cloudLevel;
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Errore fetch dati Supabase:", err);
+            }
+        }
+
+        window.addEventListener('load', fetchFreshData);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') fetchFreshData();
+        });
 
         // --- C. INIEZIONE PAYLOAD API (La magia per Dify) ---
         const originalFetch = window.fetch;
         window.fetch = async function() {
             let [resource, config] = arguments;
-            
             if (typeof resource === 'string' && resource.includes('/chat-messages') && config && config.body) {
                 try {
                     let bodyData = JSON.parse(config.body);
                     if (!bodyData.inputs) bodyData.inputs = {};
-                    
                     const eduLevel = localStorage.getItem('lime_edu_level');
                     if (eduLevel) {
                         bodyData.inputs['classe_frequentata'] = eduLevel;
                     }
                     config.body = JSON.stringify(bodyData);
-                } catch (e) {
-                    console.error("Errore nell'iniezione della variabile Dify:", e);
-                }
+                } catch (e) {}
             }
             return originalFetch(resource, config);
         };
@@ -1101,6 +1121,7 @@
     
 </body>
 </html>
+
 
 
 
