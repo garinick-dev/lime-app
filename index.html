@@ -831,6 +831,13 @@
         bottom: var(--breath-padding, 140px) !important;
         margin-bottom: 15px !important; /* Piccolo respiro visivo dalla linea di base */
     }
+
+    /* 3. Spaziatore flessibile per forzare il layout dal basso verso l'alto */
+    #chat-box::before {
+        content: "";
+        flex: 1 1 auto;
+        min-height: 0;
+    }
 </style>
 
 <script>
@@ -896,6 +903,7 @@
     
 </body>
 </html>
+
 
 
 
