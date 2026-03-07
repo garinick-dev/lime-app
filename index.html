@@ -919,8 +919,12 @@
     .menu-toggle:active { transform: scale(0.9); }
     .menu-toggle svg { width: 22px !important; height: 22px !important; }
 
-    /* 3. Nasconde la label "Colore principale" */
+    /* 3. Nasconde la label "Colore principale" e compatta lo spazio vuoto */
     .setting-item:has(#color-picker) > label { display: none !important; }
+    .setting-item:has(#color-picker) {
+        justify-content: center !important; /* Centra il selettore */
+        margin-bottom: 10px !important; /* Riduce lo spazio verticale */
+    }
 
     /* 4. Switch Tema scuro/chiaro */
     .theme-switch-wrapper {
@@ -941,20 +945,61 @@
     }
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
+
+    /* 5. Nuovo Selettore per il Grado di Istruzione */
+    .edu-level-wrapper {
+        background: var(--input-bg);
+        padding: 12px 15px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
+    .edu-options {
+        display: flex; justify-content: space-between; gap: 8px;
+    }
+    .edu-btn {
+        flex: 1;
+        background-color: var(--bg-color, #fff);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        border-radius: 8px;
+        padding: 8px 0;
+        font-weight: bold;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease-out;
+    }
+    body:not(.light-theme) .edu-btn { background-color: var(--panel-bg); }
+    
+    /* Stato attivo del pulsante selezionato */
+    .edu-btn.active {
+        background-color: var(--accent) !important;
+        color: #000 !important;
+        border-color: var(--accent) !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
 </style>
 
 <script>
     (function() {
-        // Fallback per nascondere la label colore su browser più vecchi
+        // --- Fix Spazio vuoto colore (fallback per vecchi browser) ---
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker && colorPicker.previousElementSibling) {
             colorPicker.previousElementSibling.style.display = 'none';
+            if (colorPicker.parentElement) {
+                colorPicker.parentElement.style.justifyContent = 'center';
+                colorPicker.parentElement.style.marginBottom = '10px';
+            }
         }
 
-        // Iniezione del nuovo switch per il tema
+        // --- Iniezione Switch Tema ---
         const themeOptionsContainer = document.querySelector('.theme-options');
         if (themeOptionsContainer && !document.getElementById('custom-theme-switch')) {
-            themeOptionsContainer.style.display = 'none'; // Nasconde l'HTML originale
+            themeOptionsContainer.style.display = 'none'; 
             
             const switchWrapper = document.createElement('div');
             switchWrapper.className = 'theme-switch-wrapper';
@@ -963,11 +1008,64 @@
             
             themeOptionsContainer.parentNode.insertBefore(switchWrapper, themeOptionsContainer.nextSibling);
             
-            // Collega il click alla tua funzione nativa
             switchWrapper.addEventListener('click', () => {
                 const isLight = document.body.classList.contains('light-theme');
                 if (window.handleThemeChange) window.handleThemeChange(isLight ? 'dark' : 'light');
             });
+        }
+
+        // --- Iniezione Selettore Grado di Istruzione ---
+        if (!document.getElementById('edu-level-selector')) {
+            // Lo inseriamo subito dopo lo switch del tema
+            const containerToAppend = document.getElementById('custom-theme-switch') || themeOptionsContainer;
+            if (containerToAppend && containerToAppend.parentNode) {
+                const eduWrapper = document.createElement('div');
+                eduWrapper.className = 'edu-level-wrapper';
+                eduWrapper.id = 'edu-level-selector';
+                
+                eduWrapper.innerHTML = `
+                    <span class="edu-level-label">Classe frequentata</span>
+                    <div class="edu-options">
+                        <button class="edu-btn" data-level="1">1</button>
+                        <button class="edu-btn" data-level="2">2</button>
+                        <button class="edu-btn" data-level="3">3</button>
+                        <button class="edu-btn" data-level="4">4</button>
+                        <button class="edu-btn" data-level="5">5</button>
+                    </div>
+                `;
+                
+                containerToAppend.parentNode.insertBefore(eduWrapper, containerToAppend.nextSibling);
+
+                // Logica di selezione e UI
+                const buttons = eduWrapper.querySelectorAll('.edu-btn');
+                let currentLevel = localStorage.getItem('lime_edu_level') || null;
+                
+                const updateButtons = () => {
+                    buttons.forEach(btn => {
+                        if (btn.getAttribute('data-level') === currentLevel) {
+                            btn.classList.add('active');
+                        } else {
+                            btn.classList.remove('active');
+                        }
+                    });
+                };
+
+                updateButtons(); // Imposta lo stato iniziale
+
+                buttons.forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const level = e.target.getAttribute('data-level');
+                        currentLevel = level;
+                        
+                        // Salva in locale per mantenere la selezione al ricaricamento
+                        localStorage.setItem('lime_edu_level', level);
+                        updateButtons();
+                        
+                        // NOTA: Qui potrai inserire la funzione di salvataggio verso Supabase
+                        // Esempio: if(window.saveToSupabase) window.saveToSupabase({ classe: level });
+                    });
+                });
+            }
         }
     })();
 </script>
@@ -984,6 +1082,7 @@
     
 </body>
 </html>
+
 
 
 
