@@ -956,32 +956,33 @@
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
-    /* 5. Selettori a tendina Profilo (Classe e Istituto - Layout a griglia come da mockup) */
+    /* 5. Selettori a tendina per Profilo (Classe e Istituto) */
     .edu-level-wrapper {
         background: var(--input-bg);
-        padding: 6px 10px 6px 12px; 
-        border-radius: 10px;
+        padding: 8px 12px; 
+        border-radius: 12px;
         border: 1px solid var(--border-color);
+        margin-top: 10px; 
+        margin-bottom: 5px; 
         display: flex;
         flex-direction: row; 
         align-items: center;
         justify-content: space-between;
     }
-    .edu-level-label { font-size: 0.85rem; color: var(--text-main); font-weight: 600; white-space: nowrap; }
+    .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
     
-    .edu-select-container { position: relative; display: flex; align-items: center; }
+    .edu-select-container { position: relative; }
     .edu-select-container::after {
-        content: '▼'; position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
+        content: '▼'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
         font-size: 0.6rem; color: var(--text-main); pointer-events: none;
     }
     .edu-select {
-        appearance: none; -webkit-appearance: none; background: transparent;
-        border: none; color: var(--text-main);
-        padding: 0 16px 0 10px; font-weight: bold; font-size: 0.85rem; cursor: pointer; outline: none;
-        text-align: right;
+        appearance: none; -webkit-appearance: none; background-color: var(--bg-color, #fff);
+        border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px;
+        padding: 6px 30px 6px 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer; outline: none;
     }
-    body:not(.light-theme) .edu-select option { background-color: var(--sidebar-bg); }
-    .edu-select:focus { color: var(--accent); }
+    body:not(.light-theme) .edu-select { background-color: var(--panel-bg); }
+    .edu-select:focus { border-color: var(--accent); }
 </style>
 
 <script>
@@ -1010,113 +1011,98 @@
             });
         }
 
-        // --- B. SELETTORI PROFILO E RE-LAYOUT ---
-        if (!document.getElementById('profile-selectors-container')) {
-            const avatar = document.getElementById('settings-user-avatar');
-            const userName = document.getElementById('settings-user-name');
+        // --- B. SELETTORI PROFILO (Istruzione e Istituto) ---
+        if (!document.getElementById('edu-level-selector')) {
+            const profileBlock = document.querySelector('.user-profile, .profile-info, .user-info, .sidebar-header .name, #user-name');
             
-            if (avatar && userName && avatar.parentElement) {
-                const profileFlex = avatar.parentElement;
-                
-                // Imposta il layout del contenitore genitore (due colonne principali)
-                profileFlex.style.alignItems = 'center';
-                profileFlex.style.gap = '16px';
-                
-                // Ingrandisce l'avatar come da mockup
-                avatar.style.width = '64px';
-                avatar.style.height = '64px';
-                avatar.style.fontSize = '1.6rem';
-                avatar.style.flexShrink = '0';
-                
-                // Crea la colonna destra per contenere Nome Utente + Selettori
-                const rightCol = document.createElement('div');
-                rightCol.style.display = 'flex';
-                rightCol.style.flexDirection = 'column';
-                rightCol.style.gap = '6px';
-                rightCol.style.flexGrow = '1';
-                rightCol.style.minWidth = '0';
-                
-                // Sposta e stila il nome utente dentro la colonna destra
-                userName.style.fontSize = '1rem';
-                userName.style.fontWeight = '600';
-                userName.style.marginBottom = '2px';
-                rightCol.appendChild(userName);
-                
-                // Contenitore per impilare i due selettori
-                const selectorsContainer = document.createElement('div');
-                selectorsContainer.id = 'profile-selectors-container';
-                selectorsContainer.style.display = 'flex';
-                selectorsContainer.style.flexDirection = 'column';
-                selectorsContainer.style.gap = '6px';
+            // Wrapper contenitore per raggruppare i selettori
+            const selectorsContainer = document.createElement('div');
+            selectorsContainer.id = 'profile-selectors-container';
+            selectorsContainer.style.marginBottom = '15px';
 
-                // 1. Selettore Classe
-                const eduWrapper = document.createElement('div');
-                eduWrapper.className = 'edu-level-wrapper';
-                eduWrapper.innerHTML = `
-                    <span class="edu-level-label">Classe</span>
-                    <div class="edu-select-container">
-                        <select class="edu-select" id="edu-dropdown">
-                            <option value="" disabled selected>Seleziona...</option>
-                            <option value="1">1ª Superiore</option>
-                            <option value="2">2ª Superiore</option>
-                            <option value="3">3ª Superiore</option>
-                            <option value="4">4ª Superiore</option>
-                            <option value="5">5ª Superiore</option>
-                        </select>
-                    </div>
-                `;
-                
-                // 2. Selettore Istituto
-                const instWrapper = document.createElement('div');
-                instWrapper.className = 'edu-level-wrapper';
-                instWrapper.innerHTML = `
-                    <span class="edu-level-label">Istituto</span>
-                    <div class="edu-select-container">
-                        <select class="edu-select" id="inst-dropdown">
-                            <option value="" disabled selected>Seleziona...</option>
-                            <option value="Liceo">Liceo</option>
-                            <option value="Tecnico">Tecnico</option>
-                            <option value="Professionale">Professionale</option>
-                        </select>
-                    </div>
-                `;
+            // 1. Selettore Classe
+            const eduWrapper = document.createElement('div');
+            eduWrapper.className = 'edu-level-wrapper';
+            eduWrapper.id = 'edu-level-selector';
+            eduWrapper.innerHTML = `
+                <span class="edu-level-label">Classe frequentata</span>
+                <div class="edu-select-container">
+                    <select class="edu-select" id="edu-dropdown">
+                        <option value="" disabled selected>Seleziona...</option>
+                        <option value="1">1ª Superiore</option>
+                        <option value="2">2ª Superiore</option>
+                        <option value="3">3ª Superiore</option>
+                        <option value="4">4ª Superiore</option>
+                        <option value="5">5ª Superiore</option>
+                    </select>
+                </div>
+            `;
+            
+            // 2. Selettore Istituto
+            const instWrapper = document.createElement('div');
+            instWrapper.className = 'edu-level-wrapper';
+            instWrapper.id = 'inst-type-selector';
+            instWrapper.innerHTML = `
+                <span class="edu-level-label">Tipo Istituto</span>
+                <div class="edu-select-container">
+                    <select class="edu-select" id="inst-dropdown">
+                        <option value="" disabled selected>Seleziona...</option>
+                        <option value="Liceo">Liceo</option>
+                        <option value="Tecnico">Tecnico</option>
+                        <option value="Professionale">Professionale</option>
+                    </select>
+                </div>
+            `;
 
-                selectorsContainer.appendChild(eduWrapper);
-                selectorsContainer.appendChild(instWrapper);
-                rightCol.appendChild(selectorsContainer);
-                
-                // Inserisce la nuova struttura di destra nel contenitore flessibile principale
-                profileFlex.appendChild(rightCol);
+            selectorsContainer.appendChild(eduWrapper);
+            selectorsContainer.appendChild(instWrapper);
 
-                // --- Logiche di salvataggio (invariate) ---
-                const eduDropdown = document.getElementById('edu-dropdown');
-                let currentLevel = localStorage.getItem('lime_edu_level');
-                if (currentLevel) eduDropdown.value = currentLevel;
-
-                eduDropdown.addEventListener('change', async (e) => {
-                    const level = e.target.value;
-                    localStorage.setItem('lime_edu_level', level); 
-                    if (typeof supabaseClient !== 'undefined') {
-                        try {
-                            await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } });
-                        } catch (err) { console.error("Errore salvataggio classe:", err); }
-                    }
-                });
-
-                const instDropdown = document.getElementById('inst-dropdown');
-                let currentInst = localStorage.getItem('lime_inst_type');
-                if (currentInst) instDropdown.value = currentInst;
-
-                instDropdown.addEventListener('change', async (e) => {
-                    const inst = e.target.value;
-                    localStorage.setItem('lime_inst_type', inst); 
-                    if (typeof supabaseClient !== 'undefined') {
-                        try {
-                            await supabaseClient.auth.updateUser({ data: { lime_inst_type: inst } });
-                        } catch (err) { console.error("Errore salvataggio istituto:", err); }
-                    }
-                });
+            if (profileBlock && profileBlock.parentNode) {
+                profileBlock.parentNode.insertBefore(selectorsContainer, profileBlock.nextSibling);
+            } else {
+                const fallbackContainer = document.querySelector('.settings-panel') || themeOptionsContainer.parentNode;
+                if (fallbackContainer) fallbackContainer.prepend(selectorsContainer);
             }
+
+            // Logica Classe
+            const eduDropdown = document.getElementById('edu-dropdown');
+            let currentLevel = localStorage.getItem('lime_edu_level');
+            if (currentLevel) eduDropdown.value = currentLevel;
+
+            eduDropdown.addEventListener('change', async (e) => {
+                const level = e.target.value;
+                localStorage.setItem('lime_edu_level', level); 
+                
+                if (typeof supabaseClient !== 'undefined') {
+                    try {
+                        await supabaseClient.auth.updateUser({
+                            data: { lime_edu_level: level }
+                        });
+                    } catch (err) {
+                        console.error("Errore salvataggio classe su Supabase:", err);
+                    }
+                }
+            });
+
+            // Logica Istituto
+            const instDropdown = document.getElementById('inst-dropdown');
+            let currentInst = localStorage.getItem('lime_inst_type');
+            if (currentInst) instDropdown.value = currentInst;
+
+            instDropdown.addEventListener('change', async (e) => {
+                const inst = e.target.value;
+                localStorage.setItem('lime_inst_type', inst); 
+                
+                if (typeof supabaseClient !== 'undefined') {
+                    try {
+                        await supabaseClient.auth.updateUser({
+                            data: { lime_inst_type: inst }
+                        });
+                    } catch (err) {
+                        console.error("Errore salvataggio istituto su Supabase:", err);
+                    }
+                }
+            });
         }
 
         // --- C. SINCRONIZZAZIONE DATI ---
@@ -1130,36 +1116,50 @@
                     const { data: { user }, error } = await supabaseClient.auth.getUser();
                     
                     if (!error && user) {
+                        // 1. Applica le logiche originali della UI
                         if (window.updateProfileUI) window.updateProfileUI(user);
                         
+                        // 2. Allinea i selettori e il localStorage usando i metadati freschi
                         if (user.user_metadata) {
+                            // Sincronizzazione Classe
                             if (user.user_metadata.lime_edu_level) {
                                 const cloudLevel = user.user_metadata.lime_edu_level;
                                 localStorage.setItem('lime_edu_level', cloudLevel);
+                                
                                 const eduDropdown = document.getElementById('edu-dropdown');
-                                if (eduDropdown && eduDropdown.value !== cloudLevel) eduDropdown.value = cloudLevel;
+                                if (eduDropdown && eduDropdown.value !== cloudLevel) {
+                                    eduDropdown.value = cloudLevel;
+                                }
                             }
 
+                            // Sincronizzazione Istituto
                             if (user.user_metadata.lime_inst_type) {
                                 const cloudInst = user.user_metadata.lime_inst_type;
                                 localStorage.setItem('lime_inst_type', cloudInst);
+                                
                                 const instDropdown = document.getElementById('inst-dropdown');
-                                if (instDropdown && instDropdown.value !== cloudInst) instDropdown.value = cloudInst;
+                                if (instDropdown && instDropdown.value !== cloudInst) {
+                                    instDropdown.value = cloudInst;
+                                }
                             }
                         }
                         
                         await supabaseClient.auth.refreshSession();
                     }
                 }
-            } catch (error) {}
+            } catch (error) {
+                console.error("Errore recupero sessione fresca:", error);
+            }
         }
 
         window.addEventListener('load', fetchFreshData);
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') fetchFreshData();
+            if (document.visibilityState === 'visible') {
+                fetchFreshData();
+            }
         });
 
-        // --- D. INIEZIONE PAYLOAD API ---
+        // --- D. INIEZIONE PAYLOAD API (La magia per Dify) ---
         const originalFetch = window.fetch;
         window.fetch = async function() {
             let [resource, config] = arguments;
@@ -1171,8 +1171,12 @@
                     const eduLevel = localStorage.getItem('lime_edu_level');
                     const instType = localStorage.getItem('lime_inst_type');
                     
-                    if (eduLevel) bodyData.inputs['classe_frequentata'] = eduLevel;
-                    if (instType) bodyData.inputs['tipo_istituto'] = instType;
+                    if (eduLevel) {
+                        bodyData.inputs['classe_frequentata'] = eduLevel;
+                    }
+                    if (instType) {
+                        bodyData.inputs['tipo_istituto'] = instType;
+                    }
                     
                     config.body = JSON.stringify(bodyData);
                 } catch (e) {}
@@ -1191,6 +1195,7 @@
     
 </body>
 </html>
+
 
 
 
