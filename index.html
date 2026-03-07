@@ -810,6 +810,101 @@
 
 
 
+
+<style>
+    /* 1. Breath-area strutturale al 95% dell'altezza */
+    #breath-area {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        width: 100%;
+        height: 95%; 
+        pointer-events: none;
+    }
+
+    /* 2. Sovrascrittura chirurgica degli ancoraggi (Chat e Greeting Box) */
+    #chat-box {
+        padding-bottom: var(--breath-padding, 140px) !important;
+    }
+
+    #lime-greeting-box {
+        bottom: var(--breath-padding, 140px) !important;
+        margin-bottom: 15px !important; /* Piccolo respiro visivo dalla linea di base */
+    }
+
+    /* 3. Spaziatore flessibile per forzare il layout dal basso verso l'alto */
+    #chat-box::before {
+        content: "";
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+</style>
+
+<script>
+    (function() {
+        // Iniezione sicura senza duplicati
+        if (!document.getElementById('breath-area')) {
+            const breathArea = document.createElement('div');
+            breathArea.id = 'breath-area';
+            
+            const inputArea = document.querySelector('.input-area');
+            if (inputArea) inputArea.appendChild(breathArea);
+        }
+
+        // Calcolo fluido e cross-platform dell'ancoraggio
+        function syncBreathAnchoring() {
+            const breathArea = document.getElementById('breath-area');
+            if (!breathArea) return;
+            
+            const breathRect = breathArea.getBoundingClientRect();
+            // Utilizzo del visualViewport per aggirare le anomalie delle tastiere mobile
+            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
+            
+            // Aggiorna la variabile CSS condivisa
+            document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
+        }
+
+        // Event listener passivi per prestazioni elevate
+        window.addEventListener('resize', syncBreathAnchoring, { passive: true });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
+            window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
+        }
+        
+        // Osservatore chirurgico per il caricamento dei messaggi
+        const chatBox = document.getElementById('chat-box');
+        if (chatBox) {
+            new MutationObserver((mutations) => {
+                let shouldScroll = false;
+                mutations.forEach(m => {
+                    if (m.addedNodes.length > 0) shouldScroll = true;
+                });
+                
+                if (shouldScroll) {
+                    requestAnimationFrame(() => {
+                        syncBreathAnchoring();
+                        if (window.scrollToBottom) window.scrollToBottom(true);
+                    });
+                }
+            }).observe(chatBox, { childList: true });
+        }
+
+        // Inizializzazione rapida all'avvio
+        requestAnimationFrame(syncBreathAnchoring);
+        setTimeout(syncBreathAnchoring, 150);
+    })();
+</script>
+
+
+    
+
+
+
+
+
+    
+
     
 <style>
     /* 1. Rimozione della scritta "LIME" accanto al menu */
@@ -1037,6 +1132,7 @@
     
 </body>
 </html>
+
 
 
 
