@@ -923,17 +923,17 @@
     .setting-item:has(#color-picker) > label { display: none !important; }
     .setting-item:has(#color-picker) {
         justify-content: center !important;
-        margin-bottom: 8px !important; /* Spazio ridotto */
+        margin-bottom: 8px !important;
     }
 
     /* 4. Switch Tema scuro/chiaro (Layout compatto) */
     .theme-switch-wrapper {
         display: flex; align-items: center; justify-content: space-between;
         background: var(--input-bg); 
-        padding: 8px 12px; /* Spazio interno ridotto */
+        padding: 8px 12px;
         border-radius: 12px;
         border: 1px solid var(--border-color); 
-        margin-bottom: 8px; /* Spazio esterno ridotto */
+        margin-bottom: 8px; 
         cursor: pointer;
     }
     .theme-switch-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
@@ -950,15 +950,16 @@
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
-    /* 5. Nuovo Selettore a tendina per il Grado di Istruzione (Layout compatto e in linea) */
+    /* 5. Nuovo Selettore a tendina per il Grado di Istruzione (Layout compatto) */
     .edu-level-wrapper {
         background: var(--input-bg);
-        padding: 8px 12px; /* Spazio interno ridotto */
+        padding: 8px 12px; 
         border-radius: 12px;
         border: 1px solid var(--border-color);
-        margin-bottom: 8px; /* Spazio esterno ridotto */
+        margin-top: 10px; /* Spazio dal nome utente */
+        margin-bottom: 15px; 
         display: flex;
-        flex-direction: row; /* Elementi in linea */
+        flex-direction: row; 
         align-items: center;
         justify-content: space-between;
     }
@@ -967,7 +968,6 @@
     .edu-select-container {
         position: relative;
     }
-    /* Freccia personalizzata per il dropdown */
     .edu-select-container::after {
         content: '▼';
         position: absolute;
@@ -979,13 +979,13 @@
         pointer-events: none;
     }
     .edu-select {
-        appearance: none; /* Rimuove lo stile di default del browser */
+        appearance: none; 
         -webkit-appearance: none;
         background-color: var(--bg-color, #fff);
         border: 1px solid var(--border-color);
         color: var(--text-main);
         border-radius: 8px;
-        padding: 6px 30px 6px 12px; /* Spazio extra a destra per la freccia */
+        padding: 6px 30px 6px 12px; 
         font-weight: bold;
         font-size: 0.9rem;
         cursor: pointer;
@@ -1021,41 +1021,48 @@
             });
         }
 
-        // --- B. SELETTORE ISTRUZIONE A TENDINA ---
+        // --- B. SELETTORE ISTRUZIONE A TENDINA (Spostato sotto il Profilo) ---
         if (!document.getElementById('edu-level-selector')) {
-            const containerToAppend = document.getElementById('custom-theme-switch') || themeOptionsContainer;
-            if (containerToAppend && containerToAppend.parentNode) {
-                const eduWrapper = document.createElement('div');
-                eduWrapper.className = 'edu-level-wrapper';
-                eduWrapper.id = 'edu-level-selector';
-                eduWrapper.innerHTML = `
-                    <span class="edu-level-label">Classe frequentata</span>
-                    <div class="edu-select-container">
-                        <select class="edu-select" id="edu-dropdown">
-                            <option value="" disabled selected>Seleziona...</option>
-                            <option value="1">1ª Superiore</option>
-                            <option value="2">2ª Superiore</option>
-                            <option value="3">3ª Superiore</option>
-                            <option value="4">4ª Superiore</option>
-                            <option value="5">5ª Superiore</option>
-                        </select>
-                    </div>
-                `;
-                containerToAppend.parentNode.insertBefore(eduWrapper, containerToAppend.nextSibling);
-
-                const dropdown = document.getElementById('edu-dropdown');
-                let currentLevel = localStorage.getItem('lime_edu_level');
-                
-                // Imposta il valore salvato se esiste
-                if (currentLevel) {
-                    dropdown.value = currentLevel;
-                }
-
-                dropdown.addEventListener('change', (e) => {
-                    const level = e.target.value;
-                    localStorage.setItem('lime_edu_level', level);
-                });
+            // Cerchiamo il contenitore del profilo utente (classi comuni)
+            const profileBlock = document.querySelector('.user-profile, .profile-info, .user-info, .sidebar-header .name, #user-name');
+            
+            const eduWrapper = document.createElement('div');
+            eduWrapper.className = 'edu-level-wrapper';
+            eduWrapper.id = 'edu-level-selector';
+            eduWrapper.innerHTML = `
+                <span class="edu-level-label">Classe frequentata</span>
+                <div class="edu-select-container">
+                    <select class="edu-select" id="edu-dropdown">
+                        <option value="" disabled selected>Seleziona...</option>
+                        <option value="1">1ª Superiore</option>
+                        <option value="2">2ª Superiore</option>
+                        <option value="3">3ª Superiore</option>
+                        <option value="4">4ª Superiore</option>
+                        <option value="5">5ª Superiore</option>
+                    </select>
+                </div>
+            `;
+            
+            if (profileBlock && profileBlock.parentNode) {
+                // Lo inseriamo esattamente sotto il blocco del profilo
+                profileBlock.parentNode.insertBefore(eduWrapper, profileBlock.nextSibling);
+            } else {
+                // Fallback di sicurezza: se non trova la classe del profilo, lo mette in cima ai setting
+                const fallbackContainer = document.querySelector('.settings-panel') || themeOptionsContainer.parentNode;
+                if (fallbackContainer) fallbackContainer.prepend(eduWrapper);
             }
+
+            const dropdown = document.getElementById('edu-dropdown');
+            let currentLevel = localStorage.getItem('lime_edu_level');
+            
+            if (currentLevel) {
+                dropdown.value = currentLevel;
+            }
+
+            dropdown.addEventListener('change', (e) => {
+                const level = e.target.value;
+                localStorage.setItem('lime_edu_level', level);
+            });
         }
 
         // --- C. INIEZIONE PAYLOAD API (La magia per Dify) ---
@@ -1094,6 +1101,7 @@
     
 </body>
 </html>
+
 
 
 
