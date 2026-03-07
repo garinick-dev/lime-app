@@ -919,7 +919,7 @@
     .menu-toggle:active { transform: scale(0.9); }
     .menu-toggle svg { width: 22px !important; height: 22px !important; }
 
-    /* 3. Nasconde la label "Colore principale" e compatta molto lo spazio */
+    /* 3. Nasconde la label "Colore principale" e compatta lo spazio */
     .setting-item:has(#color-picker) > label { display: none !important; }
     .setting-item:has(#color-picker) {
         justify-content: center !important;
@@ -950,7 +950,7 @@
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
-    /* 5. Nuovo Selettore a tendina per il Grado di Istruzione (Layout compatto) */
+    /* 5. Nuovo Selettore a tendina per il Grado di Istruzione (Sotto Profilo) */
     .edu-level-wrapper {
         background: var(--input-bg);
         padding: 8px 12px; 
@@ -1005,7 +1005,7 @@
             });
         }
 
-        // --- B. SELETTORE ISTRUZIONE E SINCRONIZZAZIONE SUPABASE ---
+        // --- B. SELETTORE ISTRUZIONE ---
         if (!document.getElementById('edu-level-selector')) {
             const profileBlock = document.querySelector('.user-profile, .profile-info, .user-info, .sidebar-header .name, #user-name');
             const eduWrapper = document.createElement('div');
@@ -1036,15 +1036,14 @@
             let currentLevel = localStorage.getItem('lime_edu_level');
             if (currentLevel) dropdown.value = currentLevel;
 
-            // Scrittura: Aggiorna memoria locale E invia a Supabase
+            // Scrittura su Supabase al cambio
             dropdown.addEventListener('change', async (e) => {
                 const level = e.target.value;
-                localStorage.setItem('lime_edu_level', level); // Aggiornamento istantaneo UI
+                localStorage.setItem('lime_edu_level', level); 
                 
-                if (window.supabaseClient) {
+                if (typeof supabaseClient !== 'undefined') {
                     try {
-                        // Salviamo il dato nei metadati dell'utente
-                        await window.supabaseClient.auth.updateUser({
+                        await supabaseClient.auth.updateUser({
                             data: { lime_edu_level: level }
                         });
                     } catch (err) {
@@ -1054,20 +1053,21 @@
             });
         }
 
-        // Lettura: La tua logica di recupero dati "freschi" all'avvio/risveglio
+        // --- C. SINCRONIZZAZIONE DATI (Dalla tua patch) ---
         async function fetchFreshData() {
-            if (!window.supabaseClient) return;
+            if (typeof supabaseClient === 'undefined') return;
+
             try {
-                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                
                 if (session && session.user) {
-                    const { data: { user }, error } = await window.supabaseClient.auth.getUser();
+                    const { data: { user }, error } = await supabaseClient.auth.getUser();
                     
                     if (!error && user) {
-                        // Aggiorna vecchie UI se necessario
+                        // 1. Applica le logiche originali della UI
                         if (window.updateProfileUI) window.updateProfileUI(user);
-                        await window.supabaseClient.auth.refreshSession();
-
-                        // Controlla se c'è un dato cloud per la classe e allinea l'interfaccia
+                        
+                        // 2. Allinea il selettore e il localStorage usando i metadati freschi
                         if (user.user_metadata && user.user_metadata.lime_edu_level) {
                             const cloudLevel = user.user_metadata.lime_edu_level;
                             localStorage.setItem('lime_edu_level', cloudLevel);
@@ -1077,19 +1077,23 @@
                                 dropdown.value = cloudLevel;
                             }
                         }
+                        
+                        await supabaseClient.auth.refreshSession();
                     }
                 }
-            } catch (err) {
-                console.error("Errore fetch dati Supabase:", err);
+            } catch (error) {
+                console.error("Errore recupero sessione fresca:", error);
             }
         }
 
         window.addEventListener('load', fetchFreshData);
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') fetchFreshData();
+            if (document.visibilityState === 'visible') {
+                fetchFreshData();
+            }
         });
 
-        // --- C. INIEZIONE PAYLOAD API (La magia per Dify) ---
+        // --- D. INIEZIONE PAYLOAD API (La magia per Dify) ---
         const originalFetch = window.fetch;
         window.fetch = async function() {
             let [resource, config] = arguments;
@@ -1121,6 +1125,7 @@
     
 </body>
 </html>
+
 
 
 
