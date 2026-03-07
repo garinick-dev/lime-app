@@ -777,22 +777,28 @@
 
 <script>
     (function() {
-        // Controlliamo periodicamente (in modo super leggero) se l'utente è loggato e l'interfaccia è visibile
-        const checkAppReady = setInterval(() => {
-            const mainContainer = document.getElementById('main-container');
-            
-            if (mainContainer && !mainContainer.classList.contains('hidden')) {
-                // L'app è pronta. Se non c'è una chat attiva, forziamo lo stato "Nuova Chat"
-                if (typeof startNewChat === 'function' && !currentConversationId) {
+        const originalOnAuthStateChange = supabaseClient.auth.onAuthStateChange;
+        
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            // Esegui la logica originale di autenticazione
+            if (session) {
+                userId = session.user.id;
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('main-container').classList.remove('hidden');
+                updateProfileUI(session.user);
+                loadHistory();
+
+                // LOGICA PATCH: Se non c'è una chat attiva, mostra subito il greeting
+                if (!currentConversationId && typeof startNewChat === 'function') {
                     startNewChat();
                 }
-                // Puliamo il timer una volta eseguito
-                clearInterval(checkAppReady);
+            } else {
+                userId = null;
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('main-container').classList.add('hidden');
+                updateProfileUI(null);
             }
-        }, 150);
-
-        // Fallback di sicurezza: interrompe il controllo dopo 5 secondi per evitare loop infiniti
-        setTimeout(() => clearInterval(checkAppReady), 5000);
+        });
     })();
 </script>
 
@@ -803,4 +809,5 @@
     
 </body>
 </html>
+
 
