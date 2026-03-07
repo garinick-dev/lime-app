@@ -27,7 +27,7 @@
         body.light-theme .input-wrapper, body.light-theme .new-chat-btn, body.light-theme .setting-action-btn { background-color: var(--input-bg) !important; color: var(--text-main) !important; border-color: var(--border-color) !important; }
         body.light-theme .history-item { color: var(--text-main) !important; } body.light-theme .history-item:hover { background-color: #f0f2f5 !important; }
         body.light-theme .active-chat { background-color: #e5e5ea !important; color: #1a1a1a !important; border-left-color: var(--accent) !important; } body.light-theme .active-chat * { color: #1a1a1a !important; }
-        body.light-theme .menu-toggle, body.light-theme .header-title { color: var(--text-main) !important; } body.light-theme .menu-toggle svg, body.light-theme .menu-toggle path { stroke: #1a1a1a !important; fill: #1a1a1a !important; color: #1a1a1a !important; }
+        body.light-theme .menu-toggle { color: var(--text-main) !important; } body.light-theme .menu-toggle svg, body.light-theme .menu-toggle path { stroke: #1a1a1a !important; fill: #1a1a1a !important; color: #1a1a1a !important; }
         body.light-theme .user-msg { background-color: #e5e5ea !important; color: var(--text-main) !important; } body.light-theme .date-separator-text { background-color: var(--sidebar-bg) !important; color: var(--text-muted) !important; border: 1px solid var(--border-color); }
         
         #auth-section { position: fixed; inset: 0; background: var(--bg-color); z-index: 30000; display: flex; justify-content: center; align-items: center; }
@@ -47,8 +47,26 @@
         
         #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: env(safe-area-inset-bottom); }
         .setting-item { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; } .setting-item label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; } .setting-action-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.9rem; transition: background 0.2s; } .setting-action-btn:hover { background: var(--border-color); }
-        .theme-options { display: flex; flex-direction: column; gap: 12px; margin-top: 5px; } .theme-option { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; color: var(--text-main); } .theme-option input { display: none; } .radio-circle { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-muted); display: flex; align-items: center; justify-content: center; transition: 0.2s; } .theme-option input:checked + .radio-circle { border-color: var(--accent); } .theme-option input:checked + .radio-circle::after { content: ""; width: 10px; height: 10px; background: var(--accent); border-radius: 50%; }
-        .color-picker-container { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px; justify-content: flex-start; } .color-circle { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); } .color-circle:hover { transform: scale(1.15); } .color-circle.active { border-color: var(--text-main); transform: scale(1.1); }
+        
+        .theme-switch-wrapper { display: flex; align-items: center; justify-content: space-between; background: var(--input-bg); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 8px; cursor: pointer; }
+        .theme-switch-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
+        .theme-switch { position: relative; width: 46px; height: 26px; background-color: var(--text-muted); border-radius: 13px; transition: 0.3s; }
+        .theme-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background-color: #fff; border-radius: 50%; transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        body:not(.light-theme) .theme-switch { background-color: var(--accent); }
+        body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
+
+        .edu-level-wrapper { background: var(--input-bg); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 10px; margin-bottom: 5px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+        .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
+        .edu-select-container { position: relative; }
+        .edu-select-container::after { content: '▼'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-main); pointer-events: none; }
+        .edu-select { appearance: none; -webkit-appearance: none; background-color: var(--bg-color, #fff); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; padding: 6px 30px 6px 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer; outline: none; }
+        body:not(.light-theme) .edu-select { background-color: var(--input-bg); }
+        .edu-select:focus { border-color: var(--accent); }
+
+        .setting-item:has(#color-picker) > label { display: none !important; }
+        .setting-item:has(#color-picker) { justify-content: center !important; margin-bottom: 8px !important; }
+        .color-picker-container { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px; justify-content: center; } .color-circle { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); } .color-circle:hover { transform: scale(1.15); } .color-circle.active { border-color: var(--text-main); transform: scale(1.1); }
+        
         .logout-btn { background: #ff4444; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: auto; transition: 0.2s; width: 100%; flex-shrink: 0;} .logout-btn:hover { background: #cc0000; } .hidden-file-input { display: none; }
         
         #settings-user-avatar { background-image: none !important; background-color: var(--accent) !important; }
@@ -58,10 +76,14 @@
         
         #content { flex: 1; display: flex; flex-direction: column; position: relative; height: 100%; min-width: 0; }
         
-        header { position: absolute !important; top: 0; left: 0; width: 100%; padding: 15px 20px; padding-top: calc(15px + env(safe-area-inset-top)); display: flex; align-items: center; z-index: 50; flex-shrink: 0; background: transparent !important; background-color: transparent !important; border-bottom: transparent !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; pointer-events: none; }
-        .menu-toggle { background: none; border: none; color: var(--text-main); cursor: pointer; font-size: 1.5rem; display: flex; align-items: center; padding: 0; transition: 0.2s; pointer-events: auto; } .header-title { margin-left: 15px; font-size: 1.1rem; letter-spacing: 0.5px; color: var(--text-main); pointer-events: auto; }
+        header { position: absolute !important; top: 0; left: 0; width: 100%; padding: 15px 20px; padding-top: calc(15px + env(safe-area-inset-top)); display: flex; align-items: center; z-index: 50; flex-shrink: 0; background: transparent !important; background-color: transparent !important; border-bottom: transparent !important; box-shadow: none !important; pointer-events: none; }
+        .menu-toggle { background-color: var(--accent) !important; color: #000 !important; width: 44px !important; height: 44px !important; border-radius: 50% !important; justify-content: center !important; align-items: center !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; padding: 0 !important; transition: background-color 0.3s, transform 0.2s !important; cursor: pointer; display: flex; pointer-events: auto; } 
+        .menu-toggle:active { transform: scale(0.9); }
+        .menu-toggle svg { width: 22px !important; height: 22px !important; }
+        .header-title { display: none !important; }
         
-        #chat-box { flex: 1; overflow-y: auto; padding: 20px 20px 140px 20px; padding-top: calc(80px + env(safe-area-inset-top)) !important; display: flex; flex-direction: column; gap: 25px; align-items: center; scroll-behavior: smooth !important; contain: content; will-change: transform; } 
+        #chat-box { flex: 1; overflow-y: auto; padding: 20px 20px var(--breath-padding, 140px) 20px !important; padding-top: calc(80px + env(safe-area-inset-top)) !important; display: flex; flex-direction: column; gap: 25px; align-items: center; scroll-behavior: smooth !important; contain: content; will-change: transform; } 
+        #chat-box::before { content: ""; flex: 1 1 auto; min-height: 0; }
         
         .date-separator { width: 100%; text-align: center; margin: 10px 0 5px 0; position: relative; z-index: 2; } .date-separator-text { background: #1a1a1a; color: #888; font-size: 0.75rem; padding: 5px 14px; border-radius: 12px; display: inline-block; font-weight: 500; letter-spacing: 0.5px; text-transform: capitalize; }
         .msg-wrapper { width: 100%; max-width: var(--chat-max-width); display: flex; flex-direction: column; position: relative; z-index: 2; } 
@@ -79,6 +101,8 @@
         .typing-container { width: 100%; max-width: var(--chat-max-width); display: flex; align-items: center; } 
         
         .input-area { position: absolute !important; bottom: 0; left: 0; width: 100%; background: transparent !important; background-color: transparent !important; border-top: transparent !important; box-shadow: none !important; z-index: 50; padding: 15px 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; flex-shrink: 0; transform: translateZ(0); } 
+        #breath-area { position: absolute; bottom: 100%; left: 0; width: 100%; height: 95%; pointer-events: none; }
+        
         .input-wrapper { position: relative !important; width: 100%; max-width: var(--chat-max-width); background: var(--input-bg); border-radius: 30px; display: flex; padding: 8px 12px 8px 20px; align-items: center; border: 1px solid var(--border-color); box-shadow: 0 5px 20px rgba(0,0,0,0.5); transition: border-color 0.2s; pointer-events: auto; } .input-wrapper:focus-within { border-color: #555; }
         #user-input { flex: 1; min-width: 0; background: none; border: none; color: var(--text-main); padding: 10px 0; outline: none; font-size: 16px; } 
         
@@ -91,64 +115,23 @@
         #recording-timer { color: #ff4444; font-weight: 500; font-size: 0.95rem; margin-right: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0;}
         .action-btn svg, #attach-btn svg, #mic-btn svg, #send-btn svg { transition: color 0.2s ease, filter 0.2s ease; }
 
-        #lime-greeting-box { position: fixed; bottom: 110px; display: flex; flex-direction: column; align-items: center; z-index: 1000; pointer-events: none; font-family: inherit; transition: opacity 0.2s ease, visibility 0.2s; will-change: left, width; } .lime-container-inner { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; padding: 0 20px; } .lime-bubble { align-self: flex-start; background-color: var(--lime-accent); color: #000; padding: 12px 20px; border-radius: 18px 18px 18px 4px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.08); pointer-events: auto; transition: background-color 0.3s ease; } .lime-suggestions { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: auto; } .lime-chip { background-color: var(--lime-bg-chip); border: 1px solid var(--lime-chip-border); padding: 10px 16px; border-radius: 18px 18px 4px 18px; font-size: 0.9em; color: var(--lime-chip-color); cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s ease; transform: translateZ(0); } body:not(.light-theme) .lime-chip:hover { background-color: #3a3a3a; transform: translateX(-3px); } body.light-theme .lime-chip:hover { background-color: #ffffff; transform: translateX(-3px); } .ghost-hidden { display: none !important; }
+        #lime-greeting-box { position: fixed; bottom: var(--breath-padding, 140px) !important; margin-bottom: 15px !important; display: flex; flex-direction: column; align-items: center; z-index: 1000; pointer-events: none; font-family: inherit; transition: opacity 0.2s ease, visibility 0.2s; will-change: left, width; } .lime-container-inner { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; padding: 0 20px; } .lime-bubble { align-self: flex-start; background-color: var(--lime-accent); color: #000; padding: 12px 20px; border-radius: 18px 18px 18px 4px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.08); pointer-events: auto; transition: background-color 0.3s ease; } .lime-suggestions { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: auto; } .lime-chip { background-color: var(--lime-bg-chip); border: 1px solid var(--lime-chip-border); padding: 10px 16px; border-radius: 18px 18px 4px 18px; font-size: 0.9em; color: var(--lime-chip-color); cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s ease; transform: translateZ(0); } body:not(.light-theme) .lime-chip:hover { background-color: #3a3a3a; transform: translateX(-3px); } body.light-theme .lime-chip:hover { background-color: #ffffff; transform: translateX(-3px); } .ghost-hidden { display: none !important; }
         
         #lime-app-mascot.lime-floating-container { position: absolute !important; bottom: 100% !important; left: -32px !important; margin-bottom: 0 !important; pointer-events: none; z-index: 9999; transition: left 0.15s ease-out, bottom 0.15s ease-out; will-change: left, bottom; } 
         #lime-app-mascot svg { height: auto !important; display: block; }
-        .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } .anim-squeeze { animation: lime-sq 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); } .anim-roll { animation: lime-ro 1.5s ease-in-out; } .anim-jump { animation: lime-ju 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); } @keyframes lime-sq { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1, 0.85); } } @keyframes lime-ro { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 75% { transform: rotate(-7deg); } } @keyframes lime-ju { 0% { transform: translateY(0); } 50% { transform: translateY(-70px); } 100% { transform: translateY(0); } } .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out; will-change: transform; } .lime-eye.eyes-closed { transform: scaleY(0.1) !important; } .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
+        .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } 
+        .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out; will-change: transform; } .lime-eye.eyes-closed { transform: scaleY(0.1) !important; } .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
         
-        @media (max-width: 768px) { #sidebar { position: absolute; height: 100%; width: 85%; max-width: 340px; margin-right: 0; } #sidebar.hidden { transform: translateX(-100%); margin-right: 0; } .sidebar-header { display: flex; align-items: center; justify-content: space-between; } .new-chat-btn { flex: 1; } .mobile-close-sidebar { display: block; } #chat-box { padding-bottom: 120px; } .input-area { padding: 10px 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); } .input-wrapper { padding: 6px 12px 6px 15px; } .msg { max-width: 95%; font-size: 0.95rem; padding: 10px 15px; } #lime-greeting-box { bottom: 90px; } .lime-floating-container { transform: scale(0.85); transform-origin: bottom left; } }
+        @media (max-width: 768px) { #sidebar { position: absolute; height: 100%; width: 85%; max-width: 340px; margin-right: 0; } #sidebar.hidden { transform: translateX(-100%); margin-right: 0; } .sidebar-header { display: flex; align-items: center; justify-content: space-between; } .new-chat-btn { flex: 1; } .mobile-close-sidebar { display: block; } .input-area { padding: 10px 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); } .input-wrapper { padding: 6px 12px 6px 15px; } .msg { max-width: 95%; font-size: 0.95rem; padding: 10px 15px; } .lime-floating-container { transform: scale(0.85); transform-origin: bottom left; } }
 
-        .katex-display {
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            scrollbar-width: none !important;
-            -ms-overflow-style: none !important;
-            margin-bottom: 4px !important; 
-            font-size: 0.9em;
-        }
+        .katex-display { overflow-x: auto !important; overflow-y: hidden !important; scrollbar-width: none !important; -ms-overflow-style: none !important; margin-bottom: 4px !important; font-size: 0.9em; }
         .katex-display::-webkit-scrollbar { display: none !important; }
-
-        .math-scrollbar {
-            display: none;
-            align-items: center;
-            width: 100%;
-            height: 18px;
-            margin-top: -2px;
-            margin-bottom: 16px;
-            pointer-events: none;
-        }
-        
-        .math-arrow {
-            width: 14px;
-            height: 14px;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            opacity: 0.35;
-            flex-shrink: 0;
-        }
-        
+        .math-scrollbar { display: none; align-items: center; width: 100%; height: 18px; margin-top: -2px; margin-bottom: 16px; pointer-events: none; }
+        .math-arrow { width: 14px; height: 14px; background-size: contain; background-repeat: no-repeat; background-position: center; opacity: 0.35; flex-shrink: 0; }
         .math-arrow.left { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='16,5 8,12 16,19'/%3E%3C/svg%3E"); }
         .math-arrow.right { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='8,5 16,12 8,19'/%3E%3C/svg%3E"); }
-        
-        .math-track {
-            flex-grow: 1;
-            height: 5px;
-            background: rgba(0, 0, 0, 0.08);
-            margin: 0 8px;
-            border-radius: 4px;
-            position: relative;
-        }
-        
-        .math-thumb {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.35);
-            border-radius: 4px;
-        }
+        .math-track { flex-grow: 1; height: 5px; background: rgba(0, 0, 0, 0.08); margin: 0 8px; border-radius: 4px; position: relative; }
+        .math-thumb { position: absolute; top: 0; left: 0; height: 100%; background: rgba(0, 0, 0, 0.35); border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -181,9 +164,36 @@
             <div id="sidebar-bottom">
                 <div class="setting-item">
                     <label>Profilo</label>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div id="settings-user-avatar" class="user-avatar" style="width: 45px; height: 45px; font-size: 1.1rem;">?</div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <div id="settings-user-avatar" class="user-avatar">?</div>
                         <span id="settings-user-name" style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Nome Utente</span>
+                    </div>
+                    
+                    <div id="profile-selectors-container">
+                        <div class="edu-level-wrapper" id="edu-level-selector">
+                            <span class="edu-level-label">Classe frequentata</span>
+                            <div class="edu-select-container">
+                                <select class="edu-select" id="edu-dropdown">
+                                    <option value="" disabled selected>Seleziona...</option>
+                                    <option value="1">1ª Superiore</option>
+                                    <option value="2">2ª Superiore</option>
+                                    <option value="3">3ª Superiore</option>
+                                    <option value="4">4ª Superiore</option>
+                                    <option value="5">5ª Superiore</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="edu-level-wrapper" id="inst-type-selector">
+                            <span class="edu-level-label">Tipo Istituto</span>
+                            <div class="edu-select-container">
+                                <select class="edu-select" id="inst-dropdown">
+                                    <option value="" disabled selected>Seleziona...</option>
+                                    <option value="Liceo">Liceo</option>
+                                    <option value="Tecnico">Tecnico</option>
+                                    <option value="Professionale">Professionale</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -192,15 +202,9 @@
                     <button class="setting-action-btn" onclick="document.getElementById('bg-input').click()">Cambia sfondo chat</button>
                     <input type="file" id="bg-input" class="hidden-file-input" accept="image/*" onchange="handleBgUpload(event)">
                     
-                    <div class="theme-options">
-                        <label class="theme-option" onclick="handleThemeChange('dark')">
-                            <input type="radio" name="theme-selector" id="theme-dark-radio" checked>
-                            <span class="radio-circle"></span> Tema scuro
-                        </label>
-                        <label class="theme-option" onclick="handleThemeChange('light')">
-                            <input type="radio" name="theme-selector" id="theme-light-radio">
-                            <span class="radio-circle"></span> Tema chiaro
-                        </label>
+                    <div class="theme-switch-wrapper" id="custom-theme-switch" onclick="toggleThemeSwitch()">
+                        <span class="theme-switch-label">Tema scuro/chiaro</span>
+                        <div class="theme-switch" id="theme-switch-indicator"></div>
                     </div>
                 </div>
 
@@ -223,7 +227,7 @@
         <div id="content">
             <header>
                 <button class="menu-toggle" onclick="toggleSidebar()">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width: 24px; height: 24px;"><path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <strong class="header-title">LIME</strong>
             </header>
@@ -231,6 +235,7 @@
             <div id="chat-box"></div>
             
             <div class="input-area">
+                <div id="breath-area"></div>
                 <div class="input-wrapper">
                     
                     <div id="lime-app-mascot" class="lime-floating-container">
@@ -288,6 +293,24 @@
     </div>
 
 <script>
+    let globalEduLevel = localStorage.getItem('lime_edu_level');
+    let globalInstType = localStorage.getItem('lime_inst_type');
+
+    const originalFetch = window.fetch;
+    window.fetch = async function() {
+        let [resource, config] = arguments;
+        if (typeof resource === 'string' && resource.includes('/chat-messages') && config && config.body) {
+            try {
+                let bodyData = JSON.parse(config.body);
+                if (!bodyData.inputs) bodyData.inputs = {};
+                if (globalEduLevel) bodyData.inputs['classe_frequentata'] = globalEduLevel;
+                if (globalInstType) bodyData.inputs['tipo_istituto'] = globalInstType;
+                config.body = JSON.stringify(bodyData);
+            } catch (e) {}
+        }
+        return originalFetch(resource, config);
+    };
+
     const svgEdit = `<svg viewBox="0 0 40 40" style="width: 16px; height: 16px;"><path fill="currentColor" d="M 32.5 4.5 C 31 3, 28.5 3, 27 4.5 L 6 25.5 V 34 H 14.5 L 35.5 13 C 37 11.5 37 9, 35.5 7.5 L 32.5 4.5 Z M 12.5 30 H 10 V 27.5 L 26 11.5 L 28.5 14 L 12.5 30 Z" /></svg>`;
     const svgDelete = `<svg viewBox="0 0 40 40" style="width: 16px; height: 16px;"><path fill="currentColor" d="M 10 10 H 30 V 34 C 30 35.1 29.1 36 28 36 H 12 C 10.9 36 10 35.1 10 34 V 10 Z" /><path d="M 8 10 H 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 10 V 6 C 16 4.9 16.9 4 18 4 H 22 C 23.1 4 24 4.9 24 6 V 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 16 V 30 M 24 16 V 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
     const svgAttach = `<svg viewBox="0 0 40 40" style="width: 20px; height: 20px;"><path d="M 15 14 V 25 A 5 5 0 0 0 25 25 V 10 A 8 8 0 0 0 9 10 V 27 A 11 11 0 0 0 31 27 V 14" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -301,24 +324,16 @@
     const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
-    let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
-    let globalStream = null;
-
+    let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0, globalStream = null;
     const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
     const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
 
-    window.addEventListener('load', () => { if(window.marked) marked.use({ breaks: true, gfm: true }); });
+    const DOM = { chatBox: null, inputField: null, sendBtn: null, sidebar: null, backdrop: null, historyList: null, greetingBox: null, mascotContainer: null, inputArea: null };
 
     async function getAuthHeaders() {
         const { data: { session } } = await supabaseClient.auth.getSession();
         return { 'Authorization': `Bearer ${session?.access_token}` };
     }
-
-    const DOM = { chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area') };
-    
-    let scrollTimeout; DOM.chatBox.addEventListener('scroll', () => { if (!scrollTimeout) { scrollTimeout = requestAnimationFrame(() => { isUserScrolling = (DOM.chatBox.scrollHeight - DOM.chatBox.scrollTop) > (DOM.chatBox.clientHeight + 100); scrollTimeout = null; }); } }, { passive: true });
-    DOM.chatBox.addEventListener('click', (e) => { const copyBtn = e.target.closest('.copy-btn'); if (copyBtn) { const pre = copyBtn.closest('pre'); if(pre) { navigator.clipboard.writeText(pre.querySelector('code').innerText); copyBtn.innerText = 'Copiato!'; setTimeout(() => copyBtn.innerText = 'Copia', 2000); } } });
-    let inputDebounce; DOM.inputField.addEventListener('input', () => { clearTimeout(inputDebounce); inputDebounce = setTimeout(() => { if (DOM.inputField.value.trim().length > 0 && window.setGreetingVisible) window.setGreetingVisible(false); }, 150); });
 
     function toggleAuthMode() { authMode = authMode === 'login' ? 'signup' : 'login'; document.getElementById('signup-extra').classList.toggle('hidden'); document.getElementById('auth-btn').innerText = authMode === 'login' ? 'Accedi' : 'Registrati'; document.getElementById('auth-toggle-text').innerText = authMode === 'login' ? 'Nuovo utente? Registrati' : 'Hai già un account? Accedi'; }
     async function handleAuth() { const u = document.getElementById('username').value.trim().toLowerCase(), p = document.getElementById('password').value; if (!u || !p) return alert("Inserisci username e password"); if (authMode === 'signup' && p !== document.getElementById('confirm-password').value) return alert("Le password non coincidono"); const email = `${u}@lime.local`; if (authMode === 'signup') { const { error } = await supabaseClient.auth.signUp({ email, password: p }); if (error) return alert("Errore: " + error.message); alert("Account creato!"); toggleAuthMode(); } else { const { error } = await supabaseClient.auth.signInWithPassword({ email, password: p }); if (error) return alert("Credenziali errate"); } }
@@ -378,9 +393,7 @@
                 if (window.setMascotThinking) window.setMascotThinking(false); 
                 const data = await res.json(); fullAnswer = data.answer || ""; 
                 const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                
                 let safeMathText = fullAnswer.replace(/\\\[/g, '$$$$').replace(/\\\]/g, '$$$$').replace(/\\\(/g, '$').replace(/\\\)/g, '$');
-                
                 botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : DOMPurify.sanitize(safeMathText); 
                 botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
                 if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom(); 
@@ -391,7 +404,7 @@
                 while (true) { 
                     const { done, value } = await reader.read(); 
                     if (done) break; 
-                    if (firstChunk) { firstChunk = false; } 
+                    if (firstChunk) firstChunk = false;
                     buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n\n'); buffer = lines.pop(); 
                     for (const line of lines) { 
                         if (line.startsWith('data: ')) { 
@@ -399,12 +412,7 @@
                                 const data = JSON.parse(line.substring(6)); 
                                 if (data.event === 'message') { 
                                     fullAnswer += data.answer; 
-                                    
-                                    if (isThinkingLocal && fullAnswer.trim().length > 0) {
-                                        isThinkingLocal = false;
-                                        if (window.setMascotThinking) window.setMascotThinking(false);
-                                    }
-
+                                    if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
                                     if (!renderQueued) { 
                                         renderQueued = true; 
                                         requestAnimationFrame(() => { 
@@ -428,21 +436,17 @@
             } 
             const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
         } catch (e) { 
-            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-            botDiv.innerHTML = `⚠️ Errore LIME.`; 
-            if(bottomBar) botDiv.appendChild(bottomBar); 
+            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); botDiv.innerHTML = `⚠️ Errore LIME.`; if(bottomBar) botDiv.appendChild(bottomBar); 
         } finally { 
-            isGenerating = false; 
-            if (window.setMascotThinking) window.setMascotThinking(false); 
-            DOM.sendBtn.disabled = false; scrollToBottom(true); 
+            isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; scrollToBottom(true); 
         }
     }
 
     function toggleSidebar() { DOM.sidebar.classList.toggle('hidden'); DOM.backdrop.classList.toggle('active'); }
-    DOM.inputField.addEventListener('keypress', e => { if (e.key === 'Enter') { if (isRecording) toggleRecording(); else if (!isGenerating) sendMessage(); } });
 
     function applyChatBackground(imageUrl) { if (DOM.chatBox) { if (imageUrl) { DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(${imageUrl})`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed'; } else DOM.chatBox.style.backgroundImage = 'none'; } }
-    async function applyTheme(themeName) { if (themeName === 'light') { document.body.classList.add('light-theme'); document.getElementById('theme-light-radio').checked = true; } else { document.body.classList.remove('light-theme'); document.getElementById('theme-dark-radio').checked = true; } }
+    function applyTheme(themeName) { if (themeName === 'light') document.body.classList.add('light-theme'); else document.body.classList.remove('light-theme'); }
+    function toggleThemeSwitch() { handleThemeChange(document.body.classList.contains('light-theme') ? 'dark' : 'light'); }
     async function handleThemeChange(themeName) { if (!userId) return; applyTheme(themeName); await supabaseClient.auth.updateUser({ data: { theme: themeName } }); }
     function updateColorCirclesUI(hex) { document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('active')); const activeCircle = document.querySelector(`.color-circle[data-color="${hex}"]`); if (activeCircle) activeCircle.classList.add('active'); }
     async function handleColorChange(hex) { if (!userId) return; document.documentElement.style.setProperty('--accent', hex); document.documentElement.style.setProperty('--lime-accent', hex); updateColorCirclesUI(hex); await supabaseClient.auth.updateUser({ data: { color: hex } }); }
@@ -450,21 +454,21 @@
     function updateProfileUI(user) { 
         const avatarDivs = [document.getElementById('settings-user-avatar')]; 
         const nameSpans = [document.getElementById('settings-user-name')]; 
-        
         if (user && user.email) { 
             const fullName = user.user_metadata?.full_name || user.email.split('@')[0], initial = fullName.charAt(0).toUpperCase(); 
             nameSpans.forEach(span => span.innerText = fullName); 
+            const savedTheme = user.user_metadata?.theme || 'dark', savedColor = user.user_metadata?.color || '#c0f22c', savedBg = user.user_metadata?.bg; 
             
-            const savedTheme = user.user_metadata?.theme || 'dark'; 
-            const savedColor = user.user_metadata?.color || '#c0f22c'; 
-            const savedBg = user.user_metadata?.bg; 
+            const cloudLevel = user.user_metadata?.lime_edu_level; const cloudInst = user.user_metadata?.lime_inst_type;
+            const eduDropdown = document.getElementById('edu-dropdown'); const instDropdown = document.getElementById('inst-dropdown');
+
+            if (cloudLevel) { globalEduLevel = cloudLevel; localStorage.setItem('lime_edu_level', cloudLevel); if (eduDropdown) eduDropdown.value = cloudLevel; }
+            if (cloudInst) { globalInstType = cloudInst; localStorage.setItem('lime_inst_type', cloudInst); if (instDropdown) instDropdown.value = cloudInst; }
             
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = initial; }); 
-            
             applyChatBackground(savedBg); applyTheme(savedTheme); document.documentElement.style.setProperty('--accent', savedColor); document.documentElement.style.setProperty('--lime-accent', savedColor); updateColorCirclesUI(savedColor); 
         } else { 
-            nameSpans.forEach(span => span.innerText = ""); 
-            avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
+            nameSpans.forEach(span => span.innerText = ""); avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
             applyChatBackground(null); applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#c0f22c'); document.documentElement.style.setProperty('--lime-accent', '#c0f22c'); updateColorCirclesUI('#c0f22c'); 
         } 
     }
@@ -474,767 +478,94 @@
     async function handleBgUpload(event) { if (!userId) return; const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { applyChatBackground(e.target.result); }; reader.readAsDataURL(file); const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); if (publicUrl) { await supabaseClient.auth.updateUser({ data: { bg: publicUrl } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } } }
 
     function initLimeExtras() {
-        const bodyM = document.getElementById('lime-body-main'), eyesM = document.querySelectorAll('.lime-eye'); let isThinking = false;
+        const eyesM = document.querySelectorAll('.lime-eye'); let isThinking = false;
         window.setGreetingVisible = (visible) => { if (!DOM.greetingBox) return; DOM.greetingBox.style.opacity = visible ? '1' : '0'; DOM.greetingBox.style.visibility = visible ? 'visible' : 'hidden'; };
         if(DOM.chatBox && DOM.chatBox.innerHTML.trim() === "") window.setGreetingVisible(true);
         const sendTrigger = (code) => { if (!DOM.inputField) return; DOM.inputField.value = code; DOM.inputField.dispatchEvent(new Event('input', { bubbles: true })); const e = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 }; DOM.inputField.dispatchEvent(new KeyboardEvent('keydown', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keypress', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keyup', e)); };
         window.setMascotThinking = (state) => { isThinking = state; eyesM.forEach(e => state ? e.classList.add('eyes-closed') : e.classList.remove('eyes-closed')); };
         
         function syncFloatingUI() { if (!DOM.chatBox) return; const rect = DOM.chatBox.getBoundingClientRect(); if (DOM.greetingBox) { DOM.greetingBox.style.width = rect.width + "px"; DOM.greetingBox.style.left = rect.left + "px"; } }
-        
         syncFloatingUI(); const resizeObserver = new ResizeObserver(() => requestAnimationFrame(syncFloatingUI)); resizeObserver.observe(document.body); if (DOM.inputArea) resizeObserver.observe(DOM.inputArea);
-        
         if (DOM.chatBox) { new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.addedNodes.length > 0) { mutation.addedNodes.forEach((node) => { if (node.nodeType === 1) { const t = node.innerText || ""; if (t.includes('@1') || t.includes('@2') || t.includes('@3') || t.includes('@4')) node.classList.add('ghost-hidden'); } }); } }); }).observe(DOM.chatBox, { childList: true, subtree: true }); }
         
-        function playBody() { if (document.hidden) return setTimeout(playBody, 2000); if (isThinking) return setTimeout(playBody, 1000); const r = Math.random() * 100, a = r < 60 ? 'anim-squeeze' : r < 90 ? 'anim-roll' : 'anim-jump'; bodyM.classList.add(a); bodyM.addEventListener('animationend', () => { bodyM.classList.remove(a); setTimeout(playBody, Math.random() * 4000 + 3000); }, { once: true }); }
         function playBlink() { if (document.hidden) return setTimeout(playBlink, 2000); if (!isThinking) { eyesM.forEach(e => e.classList.add('anim-blink')); setTimeout(() => eyesM.forEach(e => e.classList.remove('anim-blink')), 150); } setTimeout(playBlink, Math.random() * 5000 + 2000); }
         function look() { if (document.hidden) return setTimeout(look, 2000); if (isThinking) return setTimeout(look, 1000); const dirs = [{x:0,y:0},{x:0,y:-4},{x:0,y:4},{x:4,y:0},{x:-4,y:0},{x:3,y:-3},{x:-3,y:-3},{x:3,y:3},{x:-3,y:3}]; const d = dirs[Math.floor(Math.random() * dirs.length)]; eyesM.forEach(e => { e.style.setProperty('--lx', d.x+'px'); e.style.setProperty('--ly', d.y+'px'); e.style.transform = `translate(${d.x}px, ${d.y}px)`; }); setTimeout(look, Math.random() * 3000 + 2000); }
-        setTimeout(playBody, 2000); setTimeout(playBlink, 2500); setTimeout(look, 3000);
+        setTimeout(playBlink, 1500); setTimeout(look, 3000);
         
         document.addEventListener('click', (e) => { if (e.target.classList.contains('lime-chip')) { sendTrigger(e.target.getAttribute('data-trigger')); window.setGreetingVisible(false); } if (e.target.innerText && e.target.innerText.includes('Nuova chat')) window.setGreetingVisible(true); if (e.target.closest('.history-item')) window.setGreetingVisible(false); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Enter') window.setGreetingVisible(false); });
     }
 
-    // --- PATCH: Sincronizzazione Sessione (Silenziosa) ---
-    (function() {
-        async function fetchFreshData() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session && session.user) {
-                const { data: { user }, error } = await supabaseClient.auth.getUser();
-                if (!error && user) {
-                    if (window.updateProfileUI) window.updateProfileUI(user);
-                    await supabaseClient.auth.refreshSession();
-                }
-            }
-        }
-        window.addEventListener('load', fetchFreshData);
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') fetchFreshData();
-        });
-    })();
-
-    // --- PATCH: Blocco Viewport e Posizionamento Chirugico ---
-    (function() {
-        const mascotSvg = document.querySelector('#lime-app-mascot svg');
-        const chatBox = document.getElementById('chat-box');
-        const inputArea = document.querySelector('.input-area');
-        const greetingBox = document.getElementById('lime-greeting-box');
-        let lastMsgPadding = -1;
-        let lockedWidth = window.innerWidth;
-        let lockedHeight = window.innerHeight;
-
-        function lockDimensions() {
-            document.body.style.height = lockedHeight + 'px';
-            document.documentElement.style.height = lockedHeight + 'px';
-        }
+    function initLayoutAndAnchoring() {
+        let lastMsgPadding = -1, lockedWidth = window.innerWidth, lockedHeight = window.innerHeight;
+        function lockDimensions() { document.body.style.height = lockedHeight + 'px'; document.documentElement.style.height = lockedHeight + 'px'; }
         lockDimensions();
 
-        function getBaseLineY() {
-            if (!mascotSvg) return lockedHeight / 2;
-            const rect = mascotSvg.getBoundingClientRect();
-            return rect.top + (rect.height / 2);
-        }
-
-        function updateAnchoring() {
-            if (chatBox) {
-                const targetY = getBaseLineY();
-                const boxRect = chatBox.getBoundingClientRect();
-                const requiredPadding = Math.max(0, boxRect.bottom - targetY);
-                if (Math.abs(requiredPadding - lastMsgPadding) > 1) {
-                    chatBox.style.paddingBottom = requiredPadding + 'px';
-                    lastMsgPadding = requiredPadding;
-                }
+        function syncAnchoring() {
+            const breathArea = document.getElementById('breath-area');
+            if (breathArea) {
+                const breathRect = breathArea.getBoundingClientRect();
+                const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+                document.documentElement.style.setProperty('--breath-padding', Math.max(0, viewportHeight - breathRect.top) + 'px');
             }
         }
-        updateAnchoring();
+        syncAnchoring();
 
-        window.addEventListener('resize', () => {
-            if (window.innerWidth !== lockedWidth) { 
-                lockedWidth = window.innerWidth;
-                lockedHeight = window.innerHeight;
-                lockDimensions();
-            }
-            updateAnchoring();
-        }, { passive: true });
-
+        window.addEventListener('resize', () => { if (window.innerWidth !== lockedWidth) { lockedWidth = window.innerWidth; lockedHeight = window.innerHeight; lockDimensions(); } requestAnimationFrame(syncAnchoring); }, { passive: true });
         if (window.visualViewport) {
             function trickKeyboard() {
-                const vvHeight = window.visualViewport.height;
-                const vvOffset = window.visualViewport.offsetTop;
-                const keyboardHeight = Math.max(0, lockedHeight - (vvHeight + vvOffset));
+                const vvHeight = window.visualViewport.height, vvOffset = window.visualViewport.offsetTop, keyboardHeight = Math.max(0, lockedHeight - (vvHeight + vvOffset));
                 const shiftY = `translateY(-${keyboardHeight}px)`;
-                
-                if (inputArea) inputArea.style.transform = `${shiftY} translateZ(0)`;
-                if (greetingBox) greetingBox.style.transform = shiftY;
-                if (chatBox) chatBox.style.transform = shiftY;
-                window.scrollTo(0, 0);
-                updateAnchoring(); 
+                if (DOM.inputArea) DOM.inputArea.style.transform = `${shiftY} translateZ(0)`;
+                if (DOM.greetingBox) DOM.greetingBox.style.transform = shiftY;
+                if (DOM.chatBox) DOM.chatBox.style.transform = shiftY;
+                window.scrollTo(0, 0); syncAnchoring(); 
             }
-            window.visualViewport.addEventListener('resize', trickKeyboard);
-            window.visualViewport.addEventListener('scroll', trickKeyboard);
+            window.visualViewport.addEventListener('resize', trickKeyboard, { passive: true }); window.visualViewport.addEventListener('scroll', trickKeyboard, { passive: true });
         }
-
-        window.scrollToBottom = function(force = false) {
-            if (!chatBox) return;
-            if (!window.isUserScrolling || force) {
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        };
-    })();
-
-    // --- PATCH: Motore Matematico e DOMPurify ---
-    (function() {
-        if (window.marked && window.markedKatex) {
-            marked.use(window.markedKatex({ throwOnError: false }));
-        }
-
-        if (window.DOMPurify) {
-            const originalSanitize = window.DOMPurify.sanitize;
-            window.DOMPurify.sanitize = function(content, config) {
-                const mathConfig = {
-                    ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g'],
-                    ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'],
-                };
-                return originalSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, mathConfig));
-            };
-        }
-
-        function syncThumb(el, scrollbar) {
-            const thumb = scrollbar.querySelector('.math-thumb');
-            if (!thumb) return;
-            const scrollableWidth = el.scrollWidth - el.clientWidth;
-            if (scrollableWidth <= 0) return;
-
-            const scrollRatio = el.scrollLeft / scrollableWidth;
-            const thumbWidthRatio = el.clientWidth / el.scrollWidth;
-            const thumbPercent = Math.max(15, thumbWidthRatio * 100);
-            
-            thumb.style.width = thumbPercent + '%';
-            thumb.style.left = `calc(${scrollRatio} * (100% - ${thumbPercent}%))`;
-        }
-
-        const resizeObserver = new ResizeObserver(entries => {
-            for (let entry of entries) {
-                const el = entry.target;
-                let scrollbar = el.nextElementSibling;
-                
-                if (!scrollbar || !scrollbar.classList.contains('math-scrollbar')) {
-                    scrollbar = document.createElement('div');
-                    scrollbar.className = 'math-scrollbar';
-                    scrollbar.innerHTML = `
-                        <div class="math-arrow left"></div>
-                        <div class="math-track"><div class="math-thumb"></div></div>
-                        <div class="math-arrow right"></div>
-                    `;
-                    el.insertAdjacentElement('afterend', scrollbar);
-                    el.addEventListener('scroll', () => syncThumb(el, scrollbar), { passive: true });
-                }
-
-                const isOverflowing = el.scrollWidth > el.clientWidth + 2;
-                scrollbar.style.display = isOverflowing ? 'flex' : 'none';
-
-                if (isOverflowing) syncThumb(el, scrollbar);
-            }
-        });
-
-        const mutationObserver = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) {
-                        if (node.classList.contains('katex-display')) resizeObserver.observe(node);
-                        const mathBlocks = node.querySelectorAll ? node.querySelectorAll('.katex-display') : [];
-                        mathBlocks.forEach(block => resizeObserver.observe(block));
-                    }
-                });
-            });
-        });
+        window.scrollToBottom = function(force = false) { if (DOM.chatBox && (!window.isUserScrolling || force)) DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight; };
         
-        const chatBoxEl = document.getElementById('chat-box');
-        if (chatBoxEl) mutationObserver.observe(chatBoxEl, { childList: true, subtree: true });
-    })();
+        if (DOM.chatBox) {
+            new MutationObserver((mutations) => {
+                if (mutations.some(m => m.addedNodes.length > 0)) {
+                    requestAnimationFrame(() => { syncAnchoring(); if (window.scrollToBottom) window.scrollToBottom(true); });
+                }
+            }).observe(DOM.chatBox, { childList: true });
+        }
+    }
+
+    async function initSessionSync() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session && session.user) {
+            const { data: { user }, error } = await supabaseClient.auth.getUser();
+            if (!error && user) { if (window.updateProfileUI) window.updateProfileUI(user); await supabaseClient.auth.refreshSession(); }
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
+        if(window.marked) marked.use({ breaks: true, gfm: true, ...(window.markedKatex ? {extensions: [window.markedKatex({ throwOnError: false })]} : {}) });
+        if (window.DOMPurify) { const origSanitize = window.DOMPurify.sanitize; window.DOMPurify.sanitize = function(content, config) { return origSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, { ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g'], ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'] })); }; }
+        
+        DOM.chatBox = document.getElementById('chat-box'); DOM.inputField = document.getElementById('user-input'); DOM.sendBtn = document.getElementById('send-btn'); DOM.sidebar = document.getElementById('sidebar'); DOM.backdrop = document.getElementById('sidebar-backdrop'); DOM.historyList = document.getElementById('history-list'); DOM.greetingBox = document.getElementById('lime-greeting-box'); DOM.mascotContainer = document.getElementById('lime-app-mascot'); DOM.inputArea = document.querySelector('.input-area');
+        
+        DOM.chatBox.addEventListener('scroll', () => { if (!scrollTimeout) { scrollTimeout = requestAnimationFrame(() => { isUserScrolling = (DOM.chatBox.scrollHeight - DOM.chatBox.scrollTop) > (DOM.chatBox.clientHeight + 100); scrollTimeout = null; }); } }, { passive: true });
+        DOM.chatBox.addEventListener('click', (e) => { const copyBtn = e.target.closest('.copy-btn'); if (copyBtn) { const pre = copyBtn.closest('pre'); if(pre) { navigator.clipboard.writeText(pre.querySelector('code').innerText); copyBtn.innerText = 'Copiato!'; setTimeout(() => copyBtn.innerText = 'Copia', 2000); } } });
+        DOM.inputField.addEventListener('input', () => { clearTimeout(inputDebounce); inputDebounce = setTimeout(() => { if (DOM.inputField.value.trim().length > 0 && window.setGreetingVisible) window.setGreetingVisible(false); }, 150); });
+        DOM.inputField.addEventListener('keypress', e => { if (e.key === 'Enter') { if (isRecording) toggleRecording(); else if (!isGenerating) sendMessage(); } });
+
+        const eduDropdown = document.getElementById('edu-dropdown'), instDropdown = document.getElementById('inst-dropdown');
+        if (eduDropdown) { if (globalEduLevel) eduDropdown.value = globalEduLevel; eduDropdown.addEventListener('change', async (e) => { globalEduLevel = e.target.value; localStorage.setItem('lime_edu_level', globalEduLevel); try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: globalEduLevel } }); } catch (err) {} }); }
+        if (instDropdown) { if (globalInstType) instDropdown.value = globalInstType; instDropdown.addEventListener('change', async (e) => { globalInstType = e.target.value; localStorage.setItem('lime_inst_type', globalInstType); try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: globalInstType } }); } catch (err) {} }); }
+
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); updateProfileUI(session.user); loadHistory(); }
         supabaseClient.auth.onAuthStateChange((event, session) => { if (session) { userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); updateProfileUI(session.user); loadHistory(); } else { userId = null; document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); updateProfileUI(null); } });
-        initLimeExtras();
-    });
-</script>
-
-
-<style>
-  /* 1. Spegniamo gli occhi originali quando legge */
-  .is-reading .lime-eye {
-      opacity: 0 !important; 
-  }
-
-  /* 2. Il gruppo di lettura (Occhiali + Occhi Finti) */
-  #lime-reading-group {
-      opacity: 0;
-      transform: translateY(-15px);
-      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      pointer-events: none;
-  }
-  
-  /* 3. Quando inizia a leggere, l'intero blocco SCIVOLA IN BASSO sul naso */
-  .is-reading #lime-reading-group {
-      opacity: 1;
-      transform: translateY(14px); 
-  }
-
-  /* 4. Ritmo asimmetrico: lineare per un controllo assoluto dei tempi */
-  .reading-eye {
-      animation: lime-read-anim-eyes 1.8s linear infinite;
-  }
-
-  @keyframes lime-read-anim-eyes {
-      /* Parte a sinistra e fa una micro-pausa */
-      0%, 5% { transform: translate(-6px, 4px); }
-      
-      /* Corsa VELOCIZZATA da Sinistra verso Destra (impiega solo il 21% del ciclo) */
-      26% { transform: translate(6px, 4px); }
-      
-      /* Micro-pausa a destra per spezzare il ritmo e mettere a fuoco */
-      31% { transform: translate(6px, 4px); }
-      
-      /* Corsa LENTA da Destra verso Sinistra (impiega il 64% del ciclo) */
-      95%, 100% { transform: translate(-6px, 4px); }
-  }
-</style>
-
-<script>
-(function() {
-  const eyesGroup = document.getElementById('lime-eyes-group');
-  const mascotContainer = document.getElementById('lime-app-mascot');
-  
-  // Iniezione del gruppo (Occhiali + Occhi Neri finti)
-  if (eyesGroup && !document.getElementById('lime-reading-group')) {
-      const readingSVG = `
-          <g id="lime-reading-group">
-              <g fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round">
-                  <circle cx="65" cy="175" r="15" />
-                  <circle cx="135" cy="175" r="15" />
-                  <path d="M 80 175 Q 100 165 120 175" />
-              </g>
-              <g>
-                  <circle class="reading-eye" cx="65" cy="175" r="9" fill="#1a1a1a" />
-                  <circle class="reading-eye" cx="135" cy="175" r="9" fill="#1a1a1a" />
-              </g>
-          </g>
-      `;
-      eyesGroup.insertAdjacentHTML('afterend', readingSVG);
-  }
-
-  // Monkey Patching: Attiva/disattiva lo stato
-  if (typeof window.handleFileSelect === 'function') {
-      const originalHandleFileSelect = window.handleFileSelect;
-      window.handleFileSelect = function(e) {
-          originalHandleFileSelect.apply(this, arguments);
-          const fileInput = e.target;
-          if (fileInput && fileInput.files && fileInput.files.length > 0) {
-              if (mascotContainer) mascotContainer.classList.add('is-reading');
-          }
-      };
-  }
-
-  if (typeof window.clearAttachment === 'function') {
-      const originalClearAttachment = window.clearAttachment;
-      window.clearAttachment = function() {
-          originalClearAttachment.apply(this, arguments);
-          if (mascotContainer) mascotContainer.classList.remove('is-reading');
-      };
-  }
-})();
-</script>
-
-<style>
-  /* 1. Gruppo cuffie: nascosto di default */
-  #lime-headphones-group {
-      opacity: 0;
-      /* Parte dal'alto per l'effetto di indossamento */
-      transform: translateY(-20px);
-      transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      pointer-events: none;
-  }
-
-  /* 2. Attivazione microfono: entrano e restano immobili (nessuna fluttuazione) */
-  .is-listening #lime-headphones-group {
-      opacity: 1;
-      transform: translateY(0);
-  }
-  
-  /* 3. Occhi aperti e attenti durante l'ascolto */
-  .is-listening .lime-eye {
-      transform: scaleY(1) !important;
-  }
-</style>
-
-<script>
-(function() {
-  const bodyGroup = document.getElementById('lime-body-main');
-  const mascotContainer = document.getElementById('lime-app-mascot');
-  const timerDisplay = document.getElementById('recording-timer');
-  
-  if (bodyGroup && !document.getElementById('lime-headphones-group')) {
-      const headphonesSVG = `
-          <g id="lime-headphones-group">
-              <path d="M 29 159 C 29 74, 171 74, 171 159" fill="none" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round" />
-              
-              <rect x="20" y="154" width="18" height="42" rx="9" fill="#1a1a1a" />
-              
-              <rect x="162" y="154" width="18" height="42" rx="9" fill="#1a1a1a" />
-          </g>
-      `;
-      bodyGroup.insertAdjacentHTML('beforeend', headphonesSVG);
-  }
-
-  // Observer per intercettare l'attivazione del microfono
-  if (timerDisplay && mascotContainer) {
-      const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-              if (mutation.attributeName === 'class') {
-                  if (timerDisplay.classList.contains('hidden')) {
-                      mascotContainer.classList.remove('is-listening');
-                  } else {
-                      mascotContainer.classList.add('is-listening');
-                  }
-              }
-          });
-      });
-      
-      observer.observe(timerDisplay, { attributes: true });
-  }
-})();
-</script>
-
-
-
-
-
-<style>
-    /* 1. Breath-area strutturale al 95% dell'altezza */
-    #breath-area {
-        position: absolute;
-        bottom: 100%;
-        left: 0;
-        width: 100%;
-        height: 95%; 
-        pointer-events: none;
-    }
-
-    /* 2. Sovrascrittura chirurgica degli ancoraggi (Chat e Greeting Box) */
-    #chat-box {
-        padding-bottom: var(--breath-padding, 140px) !important;
-    }
-
-    #lime-greeting-box {
-        bottom: var(--breath-padding, 140px) !important;
-        margin-bottom: 15px !important; /* Piccolo respiro visivo dalla linea di base */
-    }
-
-    /* 3. Spaziatore flessibile per forzare il layout dal basso verso l'alto */
-    #chat-box::before {
-        content: "";
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-</style>
-
-<script>
-    (function() {
-        // Iniezione sicura senza duplicati
-        if (!document.getElementById('breath-area')) {
-            const breathArea = document.createElement('div');
-            breathArea.id = 'breath-area';
-            
-            const inputArea = document.querySelector('.input-area');
-            if (inputArea) inputArea.appendChild(breathArea);
-        }
-
-        // Calcolo fluido e cross-platform dell'ancoraggio
-        function syncBreathAnchoring() {
-            const breathArea = document.getElementById('breath-area');
-            if (!breathArea) return;
-            
-            const breathRect = breathArea.getBoundingClientRect();
-            // Utilizzo del visualViewport per aggirare le anomalie delle tastiere mobile
-            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
-            
-            // Aggiorna la variabile CSS condivisa
-            document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
-        }
-
-        // Event listener passivi per prestazioni elevate
-        window.addEventListener('resize', syncBreathAnchoring, { passive: true });
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
-            window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
-        }
         
-        // Osservatore chirurgico per il caricamento dei messaggi
-        const chatBox = document.getElementById('chat-box');
-        if (chatBox) {
-            new MutationObserver((mutations) => {
-                let shouldScroll = false;
-                mutations.forEach(m => {
-                    if (m.addedNodes.length > 0) shouldScroll = true;
-                });
-                
-                if (shouldScroll) {
-                    requestAnimationFrame(() => {
-                        syncBreathAnchoring();
-                        if (window.scrollToBottom) window.scrollToBottom(true);
-                    });
-                }
-            }).observe(chatBox, { childList: true });
-        }
-
-        // Inizializzazione rapida all'avvio
-        requestAnimationFrame(syncBreathAnchoring);
-        setTimeout(syncBreathAnchoring, 150);
-    })();
+        initLimeExtras(); initLayoutAndAnchoring(); await initSessionSync();
+    });
+    
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') initSessionSync(); });
 </script>
 
-
-    
-
-
-
-
-
-    
-
-<style>
-    /* 1. Rimozione della scritta "LIME" accanto al menu */
-    .header-title { display: none !important; }
-
-    /* 2. Sfondo circolare e dinamico per il pulsante del menu */
-    .menu-toggle {
-        background-color: var(--accent) !important;
-        color: #000 !important;
-        width: 44px !important;
-        height: 44px !important;
-        border-radius: 50% !important;
-        justify-content: center !important;
-        align-items: center !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-        padding: 0 !important;
-        transition: background-color 0.3s, transform 0.2s !important;
-    }
-    .menu-toggle:active { transform: scale(0.9); }
-    .menu-toggle svg { width: 22px !important; height: 22px !important; }
-
-    /* 3. Nasconde la label "Colore principale" e compatta lo spazio */
-    .setting-item:has(#color-picker) > label { display: none !important; }
-    .setting-item:has(#color-picker) {
-        justify-content: center !important;
-        margin-bottom: 8px !important;
-    }
-
-    /* 4. Switch Tema scuro/chiaro (Layout compatto) */
-    .theme-switch-wrapper {
-        display: flex; align-items: center; justify-content: space-between;
-        background: var(--input-bg); 
-        padding: 8px 12px;
-        border-radius: 12px;
-        border: 1px solid var(--border-color); 
-        margin-bottom: 8px; 
-        cursor: pointer;
-    }
-    .theme-switch-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
-    .theme-switch {
-        position: relative; width: 46px; height: 26px;
-        background-color: var(--text-muted); border-radius: 13px; transition: 0.3s;
-    }
-    .theme-switch::after {
-        content: ''; position: absolute; top: 3px; left: 3px;
-        width: 20px; height: 20px; background-color: #fff; border-radius: 50%;
-        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-    body:not(.light-theme) .theme-switch { background-color: var(--accent); }
-    body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
-
-    /* 5. Selettori a tendina per Profilo (Classe e Istituto) */
-    .edu-level-wrapper {
-        background: var(--input-bg);
-        padding: 8px 12px; 
-        border-radius: 12px;
-        border: 1px solid var(--border-color);
-        margin-top: 10px; 
-        margin-bottom: 5px; 
-        display: flex;
-        flex-direction: row; 
-        align-items: center;
-        justify-content: space-between;
-    }
-    .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
-    
-    .edu-select-container { position: relative; }
-    .edu-select-container::after {
-        content: '▼'; position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-        font-size: 0.6rem; color: var(--text-main); pointer-events: none;
-    }
-    .edu-select {
-        appearance: none; -webkit-appearance: none; background-color: var(--bg-color, #fff);
-        border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px;
-        padding: 6px 30px 6px 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer; outline: none;
-    }
-    body:not(.light-theme) .edu-select { background-color: var(--panel-bg); }
-    .edu-select:focus { border-color: var(--accent); }
-</style>
-
-<script>
-    (function() {
-        // --- A. GESTIONE INTERFACCIA BASE ---
-        const colorPicker = document.getElementById('color-picker');
-        if (colorPicker && colorPicker.previousElementSibling) {
-            colorPicker.previousElementSibling.style.display = 'none';
-            if (colorPicker.parentElement) {
-                colorPicker.parentElement.style.justifyContent = 'center';
-                colorPicker.parentElement.style.marginBottom = '8px';
-            }
-        }
-
-        const themeOptionsContainer = document.querySelector('.theme-options');
-        if (themeOptionsContainer && !document.getElementById('custom-theme-switch')) {
-            themeOptionsContainer.style.display = 'none'; 
-            const switchWrapper = document.createElement('div');
-            switchWrapper.className = 'theme-switch-wrapper';
-            switchWrapper.id = 'custom-theme-switch';
-            switchWrapper.innerHTML = `<span class="theme-switch-label">Tema scuro/chiaro</span><div class="theme-switch"></div>`;
-            themeOptionsContainer.parentNode.insertBefore(switchWrapper, themeOptionsContainer.nextSibling);
-            switchWrapper.addEventListener('click', () => {
-                const isLight = document.body.classList.contains('light-theme');
-                if (window.handleThemeChange) window.handleThemeChange(isLight ? 'dark' : 'light');
-            });
-        }
-
-        // --- B. SELETTORI PROFILO (Istruzione e Istituto) ---
-        if (!document.getElementById('edu-level-selector')) {
-            const profileBlock = document.querySelector('.user-profile, .profile-info, .user-info, .sidebar-header .name, #user-name');
-            
-            // Wrapper contenitore per raggruppare i selettori
-            const selectorsContainer = document.createElement('div');
-            selectorsContainer.id = 'profile-selectors-container';
-            selectorsContainer.style.marginBottom = '15px';
-
-            // 1. Selettore Classe
-            const eduWrapper = document.createElement('div');
-            eduWrapper.className = 'edu-level-wrapper';
-            eduWrapper.id = 'edu-level-selector';
-            eduWrapper.innerHTML = `
-                <span class="edu-level-label">Classe frequentata</span>
-                <div class="edu-select-container">
-                    <select class="edu-select" id="edu-dropdown">
-                        <option value="" disabled selected>Seleziona...</option>
-                        <option value="1">1ª Superiore</option>
-                        <option value="2">2ª Superiore</option>
-                        <option value="3">3ª Superiore</option>
-                        <option value="4">4ª Superiore</option>
-                        <option value="5">5ª Superiore</option>
-                    </select>
-                </div>
-            `;
-            
-            // 2. Selettore Istituto
-            const instWrapper = document.createElement('div');
-            instWrapper.className = 'edu-level-wrapper';
-            instWrapper.id = 'inst-type-selector';
-            instWrapper.innerHTML = `
-                <span class="edu-level-label">Tipo Istituto</span>
-                <div class="edu-select-container">
-                    <select class="edu-select" id="inst-dropdown">
-                        <option value="" disabled selected>Seleziona...</option>
-                        <option value="Liceo">Liceo</option>
-                        <option value="Tecnico">Tecnico</option>
-                        <option value="Professionale">Professionale</option>
-                    </select>
-                </div>
-            `;
-
-            selectorsContainer.appendChild(eduWrapper);
-            selectorsContainer.appendChild(instWrapper);
-
-            if (profileBlock && profileBlock.parentNode) {
-                profileBlock.parentNode.insertBefore(selectorsContainer, profileBlock.nextSibling);
-            } else {
-                const fallbackContainer = document.querySelector('.settings-panel') || themeOptionsContainer.parentNode;
-                if (fallbackContainer) fallbackContainer.prepend(selectorsContainer);
-            }
-
-            // Logica Classe
-            const eduDropdown = document.getElementById('edu-dropdown');
-            let currentLevel = localStorage.getItem('lime_edu_level');
-            if (currentLevel) eduDropdown.value = currentLevel;
-
-            eduDropdown.addEventListener('change', async (e) => {
-                const level = e.target.value;
-                localStorage.setItem('lime_edu_level', level); 
-                
-                if (typeof supabaseClient !== 'undefined') {
-                    try {
-                        await supabaseClient.auth.updateUser({
-                            data: { lime_edu_level: level }
-                        });
-                    } catch (err) {
-                        console.error("Errore salvataggio classe su Supabase:", err);
-                    }
-                }
-            });
-
-            // Logica Istituto
-            const instDropdown = document.getElementById('inst-dropdown');
-            let currentInst = localStorage.getItem('lime_inst_type');
-            if (currentInst) instDropdown.value = currentInst;
-
-            instDropdown.addEventListener('change', async (e) => {
-                const inst = e.target.value;
-                localStorage.setItem('lime_inst_type', inst); 
-                
-                if (typeof supabaseClient !== 'undefined') {
-                    try {
-                        await supabaseClient.auth.updateUser({
-                            data: { lime_inst_type: inst }
-                        });
-                    } catch (err) {
-                        console.error("Errore salvataggio istituto su Supabase:", err);
-                    }
-                }
-            });
-        }
-
-        // --- C. SINCRONIZZAZIONE DATI ---
-        async function fetchFreshData() {
-            if (typeof supabaseClient === 'undefined') return;
-
-            try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                
-                if (session && session.user) {
-                    const { data: { user }, error } = await supabaseClient.auth.getUser();
-                    
-                    if (!error && user) {
-                        // 1. Applica le logiche originali della UI
-                        if (window.updateProfileUI) window.updateProfileUI(user);
-                        
-                        // 2. Allinea i selettori e il localStorage usando i metadati freschi
-                        if (user.user_metadata) {
-                            // Sincronizzazione Classe
-                            if (user.user_metadata.lime_edu_level) {
-                                const cloudLevel = user.user_metadata.lime_edu_level;
-                                localStorage.setItem('lime_edu_level', cloudLevel);
-                                
-                                const eduDropdown = document.getElementById('edu-dropdown');
-                                if (eduDropdown && eduDropdown.value !== cloudLevel) {
-                                    eduDropdown.value = cloudLevel;
-                                }
-                            }
-
-                            // Sincronizzazione Istituto
-                            if (user.user_metadata.lime_inst_type) {
-                                const cloudInst = user.user_metadata.lime_inst_type;
-                                localStorage.setItem('lime_inst_type', cloudInst);
-                                
-                                const instDropdown = document.getElementById('inst-dropdown');
-                                if (instDropdown && instDropdown.value !== cloudInst) {
-                                    instDropdown.value = cloudInst;
-                                }
-                            }
-                        }
-                        
-                        await supabaseClient.auth.refreshSession();
-                    }
-                }
-            } catch (error) {
-                console.error("Errore recupero sessione fresca:", error);
-            }
-        }
-
-        window.addEventListener('load', fetchFreshData);
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                fetchFreshData();
-            }
-        });
-
-        // --- D. INIEZIONE PAYLOAD API (La magia per Dify) ---
-        const originalFetch = window.fetch;
-        window.fetch = async function() {
-            let [resource, config] = arguments;
-            if (typeof resource === 'string' && resource.includes('/chat-messages') && config && config.body) {
-                try {
-                    let bodyData = JSON.parse(config.body);
-                    if (!bodyData.inputs) bodyData.inputs = {};
-                    
-                    const eduLevel = localStorage.getItem('lime_edu_level');
-                    const instType = localStorage.getItem('lime_inst_type');
-                    
-                    if (eduLevel) {
-                        bodyData.inputs['classe_frequentata'] = eduLevel;
-                    }
-                    if (instType) {
-                        bodyData.inputs['tipo_istituto'] = instType;
-                    }
-                    
-                    config.body = JSON.stringify(bodyData);
-                } catch (e) {}
-            }
-            return originalFetch(resource, config);
-        };
-    })();
-</script>
-
-
-
-
-
-
-
-    
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
