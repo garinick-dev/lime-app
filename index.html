@@ -812,94 +812,6 @@
 
     
 <style>
-    /* 1. Breath-area strutturale al 95% dell'altezza */
-    #breath-area {
-        position: absolute;
-        bottom: 100%;
-        left: 0;
-        width: 100%;
-        height: 95%; 
-        pointer-events: none;
-    }
-
-    /* 2. Sovrascrittura chirurgica degli ancoraggi (Chat e Greeting Box) */
-    #chat-box {
-        padding-bottom: var(--breath-padding, 140px) !important;
-    }
-
-    #lime-greeting-box {
-        bottom: var(--breath-padding, 140px) !important;
-        margin-bottom: 15px !important; /* Piccolo respiro visivo dalla linea di base */
-    }
-
-    /* 3. Spaziatore flessibile per forzare il layout dal basso verso l'alto */
-    #chat-box::before {
-        content: "";
-        flex: 1 1 auto;
-        min-height: 0;
-    }
-</style>
-
-<script>
-    (function() {
-        // Iniezione sicura senza duplicati
-        if (!document.getElementById('breath-area')) {
-            const breathArea = document.createElement('div');
-            breathArea.id = 'breath-area';
-            
-            const inputArea = document.querySelector('.input-area');
-            if (inputArea) inputArea.appendChild(breathArea);
-        }
-
-        // Calcolo fluido e cross-platform dell'ancoraggio
-        function syncBreathAnchoring() {
-            const breathArea = document.getElementById('breath-area');
-            if (!breathArea) return;
-            
-            const breathRect = breathArea.getBoundingClientRect();
-            // Utilizzo del visualViewport per aggirare le anomalie delle tastiere mobile
-            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
-            
-            // Aggiorna la variabile CSS condivisa
-            document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
-        }
-
-        // Event listener passivi per prestazioni elevate
-        window.addEventListener('resize', syncBreathAnchoring, { passive: true });
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', syncBreathAnchoring, { passive: true });
-            window.visualViewport.addEventListener('scroll', syncBreathAnchoring, { passive: true });
-        }
-        
-        // Osservatore chirurgico per il caricamento dei messaggi
-        const chatBox = document.getElementById('chat-box');
-        if (chatBox) {
-            new MutationObserver((mutations) => {
-                let shouldScroll = false;
-                mutations.forEach(m => {
-                    if (m.addedNodes.length > 0) shouldScroll = true;
-                });
-                
-                if (shouldScroll) {
-                    requestAnimationFrame(() => {
-                        syncBreathAnchoring();
-                        if (window.scrollToBottom) window.scrollToBottom(true);
-                    });
-                }
-            }).observe(chatBox, { childList: true });
-        }
-
-        // Inizializzazione rapida all'avvio
-        requestAnimationFrame(syncBreathAnchoring);
-        setTimeout(syncBreathAnchoring, 150);
-    })();
-</script>
-
-
-
-
-<style>
     /* 1. Rimozione della scritta "LIME" accanto al menu */
     .header-title { display: none !important; }
 
@@ -926,7 +838,7 @@
         margin-bottom: 8px !important;
     }
 
-    /* 4. Switch Tema scuro/chiaro (Layout compatto) */
+    /* 4. Switch Tema scuro/chiaro */
     .theme-switch-wrapper {
         display: flex; align-items: center; justify-content: space-between;
         background: var(--input-bg); 
@@ -950,20 +862,19 @@
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
-    /* 5. Selettori a tendina (Classe e Istituto) - Classi CSS condivise per coerenza */
+    /* 5. Selettori a tendina (Classe e Istituto) */
     .edu-level-wrapper {
         background: var(--input-bg);
         padding: 8px 12px; 
         border-radius: 12px;
         border: 1px solid var(--border-color);
         margin-top: 10px; 
-        margin-bottom: 5px; /* Spazio ridotto tra i due selettori */
+        margin-bottom: 5px; 
         display: flex;
         flex-direction: row; 
         align-items: center;
         justify-content: space-between;
     }
-    /* Aggiungo un po' di margine inferiore solo all'ultimo selettore per staccarlo dal resto */
     #edu-type-selector {
         margin-bottom: 15px;
         margin-top: 0;
@@ -1014,7 +925,6 @@
         if (!document.getElementById('edu-level-selector')) {
             const profileBlock = document.querySelector('.user-profile, .profile-info, .user-info, .sidebar-header .name, #user-name');
             
-            // 1. Blocco Classe Frequentata
             const eduLevelWrapper = document.createElement('div');
             eduLevelWrapper.className = 'edu-level-wrapper';
             eduLevelWrapper.id = 'edu-level-selector';
@@ -1032,9 +942,8 @@
                 </div>
             `;
 
-            // 2. Blocco Tipo Istituto
             const eduTypeWrapper = document.createElement('div');
-            eduTypeWrapper.className = 'edu-level-wrapper'; // Riutilizziamo la classe CSS per coerenza visiva
+            eduTypeWrapper.className = 'edu-level-wrapper'; 
             eduTypeWrapper.id = 'edu-type-selector';
             eduTypeWrapper.innerHTML = `
                 <span class="edu-level-label">Tipo di istituto</span>
@@ -1048,10 +957,9 @@
                 </div>
             `;
             
-            // Inserimento nel DOM
             if (profileBlock && profileBlock.parentNode) {
                 profileBlock.parentNode.insertBefore(eduTypeWrapper, profileBlock.nextSibling);
-                profileBlock.parentNode.insertBefore(eduLevelWrapper, eduTypeWrapper); // Inserito prima per mantenere l'ordine
+                profileBlock.parentNode.insertBefore(eduLevelWrapper, eduTypeWrapper); 
             } else {
                 const fallbackContainer = document.querySelector('.settings-panel') || themeOptionsContainer.parentNode;
                 if (fallbackContainer) {
@@ -1060,7 +968,6 @@
                 }
             }
 
-            // Gestione eventi e storage locale (Classe)
             const levelDropdown = document.getElementById('edu-level-dropdown');
             let currentLevel = localStorage.getItem('lime_edu_level');
             if (currentLevel) levelDropdown.value = currentLevel;
@@ -1068,14 +975,12 @@
             levelDropdown.addEventListener('change', async (e) => {
                 const level = e.target.value;
                 localStorage.setItem('lime_edu_level', level); 
-                
                 if (typeof supabaseClient !== 'undefined') {
                     try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } 
-                    catch (err) { console.error("Errore salvataggio classe:", err); }
+                    catch (err) {}
                 }
             });
 
-            // Gestione eventi e storage locale (Istituto)
             const typeDropdown = document.getElementById('edu-type-dropdown');
             let currentType = localStorage.getItem('lime_edu_type');
             if (currentType) typeDropdown.value = currentType;
@@ -1083,10 +988,9 @@
             typeDropdown.addEventListener('change', async (e) => {
                 const type = e.target.value;
                 localStorage.setItem('lime_edu_type', type); 
-                
                 if (typeof supabaseClient !== 'undefined') {
                     try { await supabaseClient.auth.updateUser({ data: { lime_edu_type: type } }); } 
-                    catch (err) { console.error("Errore salvataggio istituto:", err); }
+                    catch (err) {}
                 }
             });
         }
@@ -1094,17 +998,13 @@
         // --- C. SINCRONIZZAZIONE DATI CLOUD ---
         async function fetchFreshData() {
             if (typeof supabaseClient === 'undefined') return;
-
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
-                
                 if (session && session.user) {
                     const { data: { user }, error } = await supabaseClient.auth.getUser();
-                    
                     if (!error && user) {
                         if (window.updateProfileUI) window.updateProfileUI(user);
                         
-                        // Allineamento Classe
                         if (user.user_metadata && user.user_metadata.lime_edu_level) {
                             const cloudLevel = user.user_metadata.lime_edu_level;
                             localStorage.setItem('lime_edu_level', cloudLevel);
@@ -1112,20 +1012,16 @@
                             if (levelDropdown && levelDropdown.value !== cloudLevel) levelDropdown.value = cloudLevel;
                         }
 
-                        // Allineamento Istituto
                         if (user.user_metadata && user.user_metadata.lime_edu_type) {
                             const cloudType = user.user_metadata.lime_edu_type;
                             localStorage.setItem('lime_edu_type', cloudType);
                             const typeDropdown = document.getElementById('edu-type-dropdown');
                             if (typeDropdown && typeDropdown.value !== cloudType) typeDropdown.value = cloudType;
                         }
-                        
                         await supabaseClient.auth.refreshSession();
                     }
                 }
-            } catch (error) {
-                console.error("Errore recupero sessione fresca:", error);
-            }
+            } catch (error) {}
         }
 
         window.addEventListener('load', fetchFreshData);
@@ -1135,23 +1031,27 @@
 
         // --- D. INIEZIONE PAYLOAD API (La magia per Dify) ---
         const originalFetch = window.fetch;
-        window.fetch = async function() {
-            let [resource, config] = arguments;
-            if (typeof resource === 'string' && resource.includes('/chat-messages') && config && config.body) {
+        window.fetch = async function(...args) {
+            // Verifichiamo che la chiamata sia verso l'endpoint corretto
+            if (args[0] && typeof args[0] === 'string' && args[0].includes('/chat-messages') && args[1] && args[1].body) {
                 try {
-                    let bodyData = JSON.parse(config.body);
+                    let bodyData = JSON.parse(args[1].body);
                     if (!bodyData.inputs) bodyData.inputs = {};
                     
-                    const eduLevel = localStorage.getItem('lime_edu_level');
-                    const eduType = localStorage.getItem('lime_edu_type');
+                    // Recuperiamo i dati (usando una stringa vuota come fallback di sicurezza)
+                    const eduLevel = localStorage.getItem('lime_edu_level') || "";
+                    const eduType = localStorage.getItem('lime_edu_type') || "";
                     
-                    if (eduLevel) bodyData.inputs['classe_frequentata'] = eduLevel;
-                    if (eduType) bodyData.inputs['tipo_istituto'] = eduType; // Inietta la nuova variabile
+                    // Inseriamo SEMPRE le chiavi nel payload, altrimenti Dify rifiuta le nuove chat
+                    bodyData.inputs['classe_frequentata'] = eduLevel;
+                    bodyData.inputs['tipo_istituto'] = eduType;
                     
-                    config.body = JSON.stringify(bodyData);
-                } catch (e) {}
+                    args[1].body = JSON.stringify(bodyData);
+                } catch (e) {
+                    console.error("Errore iniezione dati Dify:", e);
+                }
             }
-            return originalFetch(resource, config);
+            return originalFetch.apply(this, args);
         };
     })();
 </script>
@@ -1168,6 +1068,7 @@
     
 </body>
 </html>
+
 
 
 
