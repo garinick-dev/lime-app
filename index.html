@@ -777,27 +777,24 @@
 
 <script>
     (function() {
-        const originalOnAuthStateChange = supabaseClient.auth.onAuthStateChange;
-        
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            // Esegui la logica originale di autenticazione
-            if (session) {
-                userId = session.user.id;
-                document.getElementById('auth-section').classList.add('hidden');
-                document.getElementById('main-container').classList.remove('hidden');
-                updateProfileUI(session.user);
-                loadHistory();
-
-                // LOGICA PATCH: Se non c'è una chat attiva, mostra subito il greeting
-                if (!currentConversationId && typeof startNewChat === 'function') {
+        const autoStart = () => {
+            // Se non c'è una chat attiva e siamo nel container principale
+            if (!window.currentConversationId) {
+                const newChatBtn = document.getElementById('new-chat-btn');
+                if (newChatBtn) {
+                    newChatBtn.click();
+                } else if (typeof startNewChat === 'function') {
+                    // Fallback se il pulsante non fosse ancora cliccabile
                     startNewChat();
                 }
-            } else {
-                userId = null;
-                document.getElementById('auth-section').classList.remove('hidden');
-                document.getElementById('main-container').classList.add('hidden');
-                updateProfileUI(null);
             }
+        };
+
+        // Si aggancia alla fine del processo di caricamento esistente
+        window.addEventListener('load', () => {
+            // Un piccolo delay di 100ms assicura che Supabase 
+            // abbia finito di decidere se l'utente è loggato
+            setTimeout(autoStart, 100);
         });
     })();
 </script>
@@ -809,5 +806,6 @@
     
 </body>
 </html>
+
 
 
