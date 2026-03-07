@@ -48,6 +48,7 @@
         #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: env(safe-area-inset-bottom); }
         .setting-item { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; } .setting-item label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; } .setting-action-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.9rem; transition: background 0.2s; } .setting-action-btn:hover { background: var(--border-color); }
         
+        /* Tema Switch Integrato */
         .theme-switch-wrapper { display: flex; align-items: center; justify-content: space-between; background: var(--input-bg); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 8px; cursor: pointer; }
         .theme-switch-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
         .theme-switch { position: relative; width: 46px; height: 26px; background-color: var(--text-muted); border-radius: 13px; transition: 0.3s; }
@@ -55,6 +56,7 @@
         body:not(.light-theme) .theme-switch { background-color: var(--accent); }
         body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
+        /* Selettori Istruzione Integrati */
         .edu-level-wrapper { background: var(--input-bg); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 10px; margin-bottom: 5px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
         .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
         .edu-select-container { position: relative; }
@@ -63,6 +65,7 @@
         body:not(.light-theme) .edu-select { background-color: var(--input-bg); }
         .edu-select:focus { border-color: var(--accent); }
 
+        /* Color Picker Compattato */
         .setting-item:has(#color-picker) > label { display: none !important; }
         .setting-item:has(#color-picker) { justify-content: center !important; margin-bottom: 8px !important; }
         .color-picker-container { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px; justify-content: center; } .color-circle { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); } .color-circle:hover { transform: scale(1.15); } .color-circle.active { border-color: var(--text-main); transform: scale(1.1); }
@@ -76,7 +79,7 @@
         
         #content { flex: 1; display: flex; flex-direction: column; position: relative; height: 100%; min-width: 0; }
         
-        header { position: absolute !important; top: 0; left: 0; width: 100%; padding: 15px 20px; padding-top: calc(15px + env(safe-area-inset-top)); display: flex; align-items: center; z-index: 50; flex-shrink: 0; background: transparent !important; background-color: transparent !important; border-bottom: transparent !important; box-shadow: none !important; pointer-events: none; }
+        header { position: absolute !important; top: 0; left: 0; width: 100%; padding: 15px 20px; padding-top: calc(15px + env(safe-area-inset-top)); display: flex; align-items: center; z-index: 50; flex-shrink: 0; background: transparent !important; background-color: transparent !important; border-bottom: transparent !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; pointer-events: none; }
         .menu-toggle { background-color: var(--accent) !important; color: #000 !important; width: 44px !important; height: 44px !important; border-radius: 50% !important; justify-content: center !important; align-items: center !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; padding: 0 !important; transition: background-color 0.3s, transform 0.2s !important; cursor: pointer; display: flex; pointer-events: auto; } 
         .menu-toggle:active { transform: scale(0.9); }
         .menu-toggle svg { width: 22px !important; height: 22px !important; }
@@ -119,8 +122,7 @@
         
         #lime-app-mascot.lime-floating-container { position: absolute !important; bottom: 100% !important; left: -32px !important; margin-bottom: 0 !important; pointer-events: none; z-index: 9999; transition: left 0.15s ease-out, bottom 0.15s ease-out; will-change: left, bottom; } 
         #lime-app-mascot svg { height: auto !important; display: block; }
-        .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } 
-        .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out; will-change: transform; } .lime-eye.eyes-closed { transform: scaleY(0.1) !important; } .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
+        .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } .anim-squeeze { animation: lime-sq 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); } .anim-roll { animation: lime-ro 1.5s ease-in-out; } .anim-jump { animation: lime-ju 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); } @keyframes lime-sq { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1, 0.85); } } @keyframes lime-ro { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 75% { transform: rotate(-7deg); } } @keyframes lime-ju { 0% { transform: translateY(0); } 50% { transform: translateY(-70px); } 100% { transform: translateY(0); } } .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out; will-change: transform; } .lime-eye.eyes-closed { transform: scaleY(0.1) !important; } .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
         
         @media (max-width: 768px) { #sidebar { position: absolute; height: 100%; width: 85%; max-width: 340px; margin-right: 0; } #sidebar.hidden { transform: translateX(-100%); margin-right: 0; } .sidebar-header { display: flex; align-items: center; justify-content: space-between; } .new-chat-btn { flex: 1; } .mobile-close-sidebar { display: block; } .input-area { padding: 10px 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); } .input-wrapper { padding: 6px 12px 6px 15px; } .msg { max-width: 95%; font-size: 0.95rem; padding: 10px 15px; } .lime-floating-container { transform: scale(0.85); transform-origin: bottom left; } }
 
@@ -293,9 +295,7 @@
     </div>
 
 <script>
-    let globalEduLevel = localStorage.getItem('lime_edu_level');
-    let globalInstType = localStorage.getItem('lime_inst_type');
-
+    // --- PATCH API FETCH PAYLOAD ---
     const originalFetch = window.fetch;
     window.fetch = async function() {
         let [resource, config] = arguments;
@@ -303,8 +303,10 @@
             try {
                 let bodyData = JSON.parse(config.body);
                 if (!bodyData.inputs) bodyData.inputs = {};
-                if (globalEduLevel) bodyData.inputs['classe_frequentata'] = globalEduLevel;
-                if (globalInstType) bodyData.inputs['tipo_istituto'] = globalInstType;
+                const eduLevel = localStorage.getItem('lime_edu_level');
+                const instType = localStorage.getItem('lime_inst_type');
+                if (eduLevel) bodyData.inputs['classe_frequentata'] = eduLevel;
+                if (instType) bodyData.inputs['tipo_istituto'] = instType;
                 config.body = JSON.stringify(bodyData);
             } catch (e) {}
         }
@@ -324,16 +326,24 @@
     const supabaseClient = supabase.createClient(S_URL, S_KEY);
 
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
-    let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0, globalStream = null;
+    let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
+    let globalStream = null;
+
     const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
     const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
 
-    const DOM = { chatBox: null, inputField: null, sendBtn: null, sidebar: null, backdrop: null, historyList: null, greetingBox: null, mascotContainer: null, inputArea: null };
+    window.addEventListener('load', () => { if(window.marked) marked.use({ breaks: true, gfm: true }); });
 
     async function getAuthHeaders() {
         const { data: { session } } = await supabaseClient.auth.getSession();
         return { 'Authorization': `Bearer ${session?.access_token}` };
     }
+
+    const DOM = { chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area') };
+    
+    let scrollTimeout; DOM.chatBox.addEventListener('scroll', () => { if (!scrollTimeout) { scrollTimeout = requestAnimationFrame(() => { isUserScrolling = (DOM.chatBox.scrollHeight - DOM.chatBox.scrollTop) > (DOM.chatBox.clientHeight + 100); scrollTimeout = null; }); } }, { passive: true });
+    DOM.chatBox.addEventListener('click', (e) => { const copyBtn = e.target.closest('.copy-btn'); if (copyBtn) { const pre = copyBtn.closest('pre'); if(pre) { navigator.clipboard.writeText(pre.querySelector('code').innerText); copyBtn.innerText = 'Copiato!'; setTimeout(() => copyBtn.innerText = 'Copia', 2000); } } });
+    let inputDebounce; DOM.inputField.addEventListener('input', () => { clearTimeout(inputDebounce); inputDebounce = setTimeout(() => { if (DOM.inputField.value.trim().length > 0 && window.setGreetingVisible) window.setGreetingVisible(false); }, 150); });
 
     function toggleAuthMode() { authMode = authMode === 'login' ? 'signup' : 'login'; document.getElementById('signup-extra').classList.toggle('hidden'); document.getElementById('auth-btn').innerText = authMode === 'login' ? 'Accedi' : 'Registrati'; document.getElementById('auth-toggle-text').innerText = authMode === 'login' ? 'Nuovo utente? Registrati' : 'Hai già un account? Accedi'; }
     async function handleAuth() { const u = document.getElementById('username').value.trim().toLowerCase(), p = document.getElementById('password').value; if (!u || !p) return alert("Inserisci username e password"); if (authMode === 'signup' && p !== document.getElementById('confirm-password').value) return alert("Le password non coincidono"); const email = `${u}@lime.local`; if (authMode === 'signup') { const { error } = await supabaseClient.auth.signUp({ email, password: p }); if (error) return alert("Errore: " + error.message); alert("Account creato!"); toggleAuthMode(); } else { const { error } = await supabaseClient.auth.signInWithPassword({ email, password: p }); if (error) return alert("Credenziali errate"); } }
@@ -393,7 +403,9 @@
                 if (window.setMascotThinking) window.setMascotThinking(false); 
                 const data = await res.json(); fullAnswer = data.answer || ""; 
                 const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
+                
                 let safeMathText = fullAnswer.replace(/\\\[/g, '$$$$').replace(/\\\]/g, '$$$$').replace(/\\\(/g, '$').replace(/\\\)/g, '$');
+                
                 botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : DOMPurify.sanitize(safeMathText); 
                 botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
                 if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom(); 
@@ -404,7 +416,7 @@
                 while (true) { 
                     const { done, value } = await reader.read(); 
                     if (done) break; 
-                    if (firstChunk) firstChunk = false;
+                    if (firstChunk) { firstChunk = false; } 
                     buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n\n'); buffer = lines.pop(); 
                     for (const line of lines) { 
                         if (line.startsWith('data: ')) { 
@@ -412,7 +424,12 @@
                                 const data = JSON.parse(line.substring(6)); 
                                 if (data.event === 'message') { 
                                     fullAnswer += data.answer; 
-                                    if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
+                                    
+                                    if (isThinkingLocal && fullAnswer.trim().length > 0) {
+                                        isThinkingLocal = false;
+                                        if (window.setMascotThinking) window.setMascotThinking(false);
+                                    }
+
                                     if (!renderQueued) { 
                                         renderQueued = true; 
                                         requestAnimationFrame(() => { 
@@ -436,17 +453,31 @@
             } 
             const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
         } catch (e) { 
-            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); botDiv.innerHTML = `⚠️ Errore LIME.`; if(bottomBar) botDiv.appendChild(bottomBar); 
+            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
+            botDiv.innerHTML = `⚠️ Errore LIME.`; 
+            if(bottomBar) botDiv.appendChild(bottomBar); 
         } finally { 
-            isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; scrollToBottom(true); 
+            isGenerating = false; 
+            if (window.setMascotThinking) window.setMascotThinking(false); 
+            DOM.sendBtn.disabled = false; scrollToBottom(true); 
         }
     }
 
     function toggleSidebar() { DOM.sidebar.classList.toggle('hidden'); DOM.backdrop.classList.toggle('active'); }
+    DOM.inputField.addEventListener('keypress', e => { if (e.key === 'Enter') { if (isRecording) toggleRecording(); else if (!isGenerating) sendMessage(); } });
 
     function applyChatBackground(imageUrl) { if (DOM.chatBox) { if (imageUrl) { DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(${imageUrl})`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed'; } else DOM.chatBox.style.backgroundImage = 'none'; } }
-    function applyTheme(themeName) { if (themeName === 'light') document.body.classList.add('light-theme'); else document.body.classList.remove('light-theme'); }
-    function toggleThemeSwitch() { handleThemeChange(document.body.classList.contains('light-theme') ? 'dark' : 'light'); }
+    
+    function applyTheme(themeName) { 
+        if (themeName === 'light') { document.body.classList.add('light-theme'); } 
+        else { document.body.classList.remove('light-theme'); } 
+    }
+    
+    function toggleThemeSwitch() {
+        const isLight = document.body.classList.contains('light-theme');
+        handleThemeChange(isLight ? 'dark' : 'light');
+    }
+
     async function handleThemeChange(themeName) { if (!userId) return; applyTheme(themeName); await supabaseClient.auth.updateUser({ data: { theme: themeName } }); }
     function updateColorCirclesUI(hex) { document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('active')); const activeCircle = document.querySelector(`.color-circle[data-color="${hex}"]`); if (activeCircle) activeCircle.classList.add('active'); }
     async function handleColorChange(hex) { if (!userId) return; document.documentElement.style.setProperty('--accent', hex); document.documentElement.style.setProperty('--lime-accent', hex); updateColorCirclesUI(hex); await supabaseClient.auth.updateUser({ data: { color: hex } }); }
@@ -454,21 +485,30 @@
     function updateProfileUI(user) { 
         const avatarDivs = [document.getElementById('settings-user-avatar')]; 
         const nameSpans = [document.getElementById('settings-user-name')]; 
+        
         if (user && user.email) { 
             const fullName = user.user_metadata?.full_name || user.email.split('@')[0], initial = fullName.charAt(0).toUpperCase(); 
             nameSpans.forEach(span => span.innerText = fullName); 
-            const savedTheme = user.user_metadata?.theme || 'dark', savedColor = user.user_metadata?.color || '#c0f22c', savedBg = user.user_metadata?.bg; 
             
-            const cloudLevel = user.user_metadata?.lime_edu_level; const cloudInst = user.user_metadata?.lime_inst_type;
-            const eduDropdown = document.getElementById('edu-dropdown'); const instDropdown = document.getElementById('inst-dropdown');
+            const savedTheme = user.user_metadata?.theme || 'dark'; 
+            const savedColor = user.user_metadata?.color || '#c0f22c'; 
+            const savedBg = user.user_metadata?.bg; 
+            
+            // Sincronizzazione Dati Istruzione Nativi
+            const cloudLevel = user.user_metadata?.lime_edu_level;
+            const cloudInst = user.user_metadata?.lime_inst_type;
+            const eduDropdown = document.getElementById('edu-dropdown');
+            const instDropdown = document.getElementById('inst-dropdown');
 
-            if (cloudLevel) { globalEduLevel = cloudLevel; localStorage.setItem('lime_edu_level', cloudLevel); if (eduDropdown) eduDropdown.value = cloudLevel; }
-            if (cloudInst) { globalInstType = cloudInst; localStorage.setItem('lime_inst_type', cloudInst); if (instDropdown) instDropdown.value = cloudInst; }
+            if (cloudLevel) { localStorage.setItem('lime_edu_level', cloudLevel); if (eduDropdown) eduDropdown.value = cloudLevel; }
+            if (cloudInst) { localStorage.setItem('lime_inst_type', cloudInst); if (instDropdown) instDropdown.value = cloudInst; }
             
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = initial; }); 
+            
             applyChatBackground(savedBg); applyTheme(savedTheme); document.documentElement.style.setProperty('--accent', savedColor); document.documentElement.style.setProperty('--lime-accent', savedColor); updateColorCirclesUI(savedColor); 
         } else { 
-            nameSpans.forEach(span => span.innerText = ""); avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
+            nameSpans.forEach(span => span.innerText = ""); 
+            avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
             applyChatBackground(null); applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#c0f22c'); document.documentElement.style.setProperty('--lime-accent', '#c0f22c'); updateColorCirclesUI('#c0f22c'); 
         } 
     }
@@ -478,93 +518,238 @@
     async function handleBgUpload(event) { if (!userId) return; const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { applyChatBackground(e.target.result); }; reader.readAsDataURL(file); const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); if (publicUrl) { await supabaseClient.auth.updateUser({ data: { bg: publicUrl } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } } }
 
     function initLimeExtras() {
-        const eyesM = document.querySelectorAll('.lime-eye'); let isThinking = false;
+        const bodyM = document.getElementById('lime-body-main'), eyesM = document.querySelectorAll('.lime-eye'); let isThinking = false;
         window.setGreetingVisible = (visible) => { if (!DOM.greetingBox) return; DOM.greetingBox.style.opacity = visible ? '1' : '0'; DOM.greetingBox.style.visibility = visible ? 'visible' : 'hidden'; };
         if(DOM.chatBox && DOM.chatBox.innerHTML.trim() === "") window.setGreetingVisible(true);
         const sendTrigger = (code) => { if (!DOM.inputField) return; DOM.inputField.value = code; DOM.inputField.dispatchEvent(new Event('input', { bubbles: true })); const e = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 }; DOM.inputField.dispatchEvent(new KeyboardEvent('keydown', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keypress', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keyup', e)); };
         window.setMascotThinking = (state) => { isThinking = state; eyesM.forEach(e => state ? e.classList.add('eyes-closed') : e.classList.remove('eyes-closed')); };
         
         function syncFloatingUI() { if (!DOM.chatBox) return; const rect = DOM.chatBox.getBoundingClientRect(); if (DOM.greetingBox) { DOM.greetingBox.style.width = rect.width + "px"; DOM.greetingBox.style.left = rect.left + "px"; } }
+        
         syncFloatingUI(); const resizeObserver = new ResizeObserver(() => requestAnimationFrame(syncFloatingUI)); resizeObserver.observe(document.body); if (DOM.inputArea) resizeObserver.observe(DOM.inputArea);
+        
         if (DOM.chatBox) { new MutationObserver((mutations) => { mutations.forEach((mutation) => { if (mutation.addedNodes.length > 0) { mutation.addedNodes.forEach((node) => { if (node.nodeType === 1) { const t = node.innerText || ""; if (t.includes('@1') || t.includes('@2') || t.includes('@3') || t.includes('@4')) node.classList.add('ghost-hidden'); } }); } }); }).observe(DOM.chatBox, { childList: true, subtree: true }); }
         
+        function playBody() { if (document.hidden) return setTimeout(playBody, 2000); if (isThinking) return setTimeout(playBody, 1000); const r = Math.random() * 100, a = r < 60 ? 'anim-squeeze' : r < 90 ? 'anim-roll' : 'anim-jump'; bodyM.classList.add(a); bodyM.addEventListener('animationend', () => { bodyM.classList.remove(a); setTimeout(playBody, Math.random() * 4000 + 3000); }, { once: true }); }
         function playBlink() { if (document.hidden) return setTimeout(playBlink, 2000); if (!isThinking) { eyesM.forEach(e => e.classList.add('anim-blink')); setTimeout(() => eyesM.forEach(e => e.classList.remove('anim-blink')), 150); } setTimeout(playBlink, Math.random() * 5000 + 2000); }
         function look() { if (document.hidden) return setTimeout(look, 2000); if (isThinking) return setTimeout(look, 1000); const dirs = [{x:0,y:0},{x:0,y:-4},{x:0,y:4},{x:4,y:0},{x:-4,y:0},{x:3,y:-3},{x:-3,y:-3},{x:3,y:3},{x:-3,y:3}]; const d = dirs[Math.floor(Math.random() * dirs.length)]; eyesM.forEach(e => { e.style.setProperty('--lx', d.x+'px'); e.style.setProperty('--ly', d.y+'px'); e.style.transform = `translate(${d.x}px, ${d.y}px)`; }); setTimeout(look, Math.random() * 3000 + 2000); }
-        setTimeout(playBlink, 1500); setTimeout(look, 3000);
+        setTimeout(playBody, 2000); setTimeout(playBlink, 2500); setTimeout(look, 3000);
         
         document.addEventListener('click', (e) => { if (e.target.classList.contains('lime-chip')) { sendTrigger(e.target.getAttribute('data-trigger')); window.setGreetingVisible(false); } if (e.target.innerText && e.target.innerText.includes('Nuova chat')) window.setGreetingVisible(true); if (e.target.closest('.history-item')) window.setGreetingVisible(false); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Enter') window.setGreetingVisible(false); });
     }
 
-    function initLayoutAndAnchoring() {
-        let lastMsgPadding = -1, lockedWidth = window.innerWidth, lockedHeight = window.innerHeight;
-        function lockDimensions() { document.body.style.height = lockedHeight + 'px'; document.documentElement.style.height = lockedHeight + 'px'; }
+    // --- PATCH: Sincronizzazione Sessione NATIVA ---
+    (function() {
+        async function fetchFreshData() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                const { data: { user }, error } = await supabaseClient.auth.getUser();
+                if (!error && user) {
+                    if (window.updateProfileUI) window.updateProfileUI(user);
+                    await supabaseClient.auth.refreshSession();
+                }
+            }
+        }
+        window.addEventListener('load', fetchFreshData);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') fetchFreshData();
+        });
+    })();
+
+    // --- PATCH: Blocco Viewport e Posizionamento Chirurgico ---
+    (function() {
+        const mascotSvg = document.querySelector('#lime-app-mascot svg');
+        const chatBox = document.getElementById('chat-box');
+        const inputArea = document.querySelector('.input-area');
+        const greetingBox = document.getElementById('lime-greeting-box');
+        let lastMsgPadding = -1;
+        let lockedWidth = window.innerWidth;
+        let lockedHeight = window.innerHeight;
+
+        function lockDimensions() {
+            document.body.style.height = lockedHeight + 'px';
+            document.documentElement.style.height = lockedHeight + 'px';
+        }
         lockDimensions();
 
+        function getBaseLineY() {
+            if (!mascotSvg) return lockedHeight / 2;
+            const rect = mascotSvg.getBoundingClientRect();
+            return rect.top + (rect.height / 2);
+        }
+        
+        // Logica fusa per Breathbar e Ancoraggio Chat
         function syncAnchoring() {
             const breathArea = document.getElementById('breath-area');
             if (breathArea) {
                 const breathRect = breathArea.getBoundingClientRect();
                 const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-                document.documentElement.style.setProperty('--breath-padding', Math.max(0, viewportHeight - breathRect.top) + 'px');
+                const requiredPadding = Math.max(0, viewportHeight - breathRect.top);
+                document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px');
+            }
+
+            if (chatBox) {
+                const targetY = getBaseLineY();
+                const boxRect = chatBox.getBoundingClientRect();
+                const requiredPadding = Math.max(0, boxRect.bottom - targetY);
+                if (Math.abs(requiredPadding - lastMsgPadding) > 1) {
+                    // Manteniamo solo il target visivo della mascotte se diverge dalla breathbar
+                    // In realtà ora usiamo var(--breath-padding) nel CSS, 
+                    // ma lasciamo la logica intatta nel caso si stacchi.
+                    lastMsgPadding = requiredPadding;
+                }
             }
         }
         syncAnchoring();
 
-        window.addEventListener('resize', () => { if (window.innerWidth !== lockedWidth) { lockedWidth = window.innerWidth; lockedHeight = window.innerHeight; lockDimensions(); } requestAnimationFrame(syncAnchoring); }, { passive: true });
+        window.addEventListener('resize', () => {
+            if (window.innerWidth !== lockedWidth) { 
+                lockedWidth = window.innerWidth;
+                lockedHeight = window.innerHeight;
+                lockDimensions();
+            }
+            syncAnchoring();
+        }, { passive: true });
+
         if (window.visualViewport) {
             function trickKeyboard() {
-                const vvHeight = window.visualViewport.height, vvOffset = window.visualViewport.offsetTop, keyboardHeight = Math.max(0, lockedHeight - (vvHeight + vvOffset));
+                const vvHeight = window.visualViewport.height;
+                const vvOffset = window.visualViewport.offsetTop;
+                const keyboardHeight = Math.max(0, lockedHeight - (vvHeight + vvOffset));
                 const shiftY = `translateY(-${keyboardHeight}px)`;
-                if (DOM.inputArea) DOM.inputArea.style.transform = `${shiftY} translateZ(0)`;
-                if (DOM.greetingBox) DOM.greetingBox.style.transform = shiftY;
-                if (DOM.chatBox) DOM.chatBox.style.transform = shiftY;
-                window.scrollTo(0, 0); syncAnchoring(); 
+                
+                if (inputArea) inputArea.style.transform = `${shiftY} translateZ(0)`;
+                if (greetingBox) greetingBox.style.transform = shiftY;
+                if (chatBox) chatBox.style.transform = shiftY;
+                window.scrollTo(0, 0);
+                syncAnchoring(); 
             }
-            window.visualViewport.addEventListener('resize', trickKeyboard, { passive: true }); window.visualViewport.addEventListener('scroll', trickKeyboard, { passive: true });
+            window.visualViewport.addEventListener('resize', trickKeyboard, { passive: true });
+            window.visualViewport.addEventListener('scroll', trickKeyboard, { passive: true });
         }
-        window.scrollToBottom = function(force = false) { if (DOM.chatBox && (!window.isUserScrolling || force)) DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight; };
-        
-        if (DOM.chatBox) {
-            new MutationObserver((mutations) => {
-                if (mutations.some(m => m.addedNodes.length > 0)) {
-                    requestAnimationFrame(() => { syncAnchoring(); if (window.scrollToBottom) window.scrollToBottom(true); });
-                }
-            }).observe(DOM.chatBox, { childList: true });
-        }
-    }
 
-    async function initSessionSync() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session && session.user) {
-            const { data: { user }, error } = await supabaseClient.auth.getUser();
-            if (!error && user) { if (window.updateProfileUI) window.updateProfileUI(user); await supabaseClient.auth.refreshSession(); }
+        window.scrollToBottom = function(force = false) {
+            if (!chatBox) return;
+            if (!window.isUserScrolling || force) {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        };
+
+        if (chatBox) {
+            new MutationObserver((mutations) => {
+                let shouldScroll = false;
+                mutations.forEach(m => { if (m.addedNodes.length > 0) shouldScroll = true; });
+                if (shouldScroll) {
+                    requestAnimationFrame(() => {
+                        syncAnchoring();
+                        if (window.scrollToBottom) window.scrollToBottom(true);
+                    });
+                }
+            }).observe(chatBox, { childList: true });
         }
-    }
+    })();
+
+    // --- PATCH: Motore Matematico e DOMPurify ---
+    (function() {
+        if (window.marked && window.markedKatex) {
+            marked.use(window.markedKatex({ throwOnError: false }));
+        }
+
+        if (window.DOMPurify) {
+            const originalSanitize = window.DOMPurify.sanitize;
+            window.DOMPurify.sanitize = function(content, config) {
+                const mathConfig = {
+                    ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g'],
+                    ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'],
+                };
+                return originalSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, mathConfig));
+            };
+        }
+
+        function syncThumb(el, scrollbar) {
+            const thumb = scrollbar.querySelector('.math-thumb');
+            if (!thumb) return;
+            const scrollableWidth = el.scrollWidth - el.clientWidth;
+            if (scrollableWidth <= 0) return;
+
+            const scrollRatio = el.scrollLeft / scrollableWidth;
+            const thumbWidthRatio = el.clientWidth / el.scrollWidth;
+            const thumbPercent = Math.max(15, thumbWidthRatio * 100);
+            
+            thumb.style.width = thumbPercent + '%';
+            thumb.style.left = `calc(${scrollRatio} * (100% - ${thumbPercent}%))`;
+        }
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                const el = entry.target;
+                let scrollbar = el.nextElementSibling;
+                
+                if (!scrollbar || !scrollbar.classList.contains('math-scrollbar')) {
+                    scrollbar = document.createElement('div');
+                    scrollbar.className = 'math-scrollbar';
+                    scrollbar.innerHTML = `
+                        <div class="math-arrow left"></div>
+                        <div class="math-track"><div class="math-thumb"></div></div>
+                        <div class="math-arrow right"></div>
+                    `;
+                    el.insertAdjacentElement('afterend', scrollbar);
+                    el.addEventListener('scroll', () => syncThumb(el, scrollbar), { passive: true });
+                }
+
+                const isOverflowing = el.scrollWidth > el.clientWidth + 2;
+                scrollbar.style.display = isOverflowing ? 'flex' : 'none';
+
+                if (isOverflowing) syncThumb(el, scrollbar);
+            }
+        });
+
+        const mutationObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (node.classList.contains('katex-display')) resizeObserver.observe(node);
+                        const mathBlocks = node.querySelectorAll ? node.querySelectorAll('.katex-display') : [];
+                        mathBlocks.forEach(block => resizeObserver.observe(block));
+                    }
+                });
+            });
+        });
+        
+        const chatBoxEl = document.getElementById('chat-box');
+        if (chatBoxEl) mutationObserver.observe(chatBoxEl, { childList: true, subtree: true });
+    })();
 
     document.addEventListener('DOMContentLoaded', async () => {
-        if(window.marked) marked.use({ breaks: true, gfm: true, ...(window.markedKatex ? {extensions: [window.markedKatex({ throwOnError: false })]} : {}) });
-        if (window.DOMPurify) { const origSanitize = window.DOMPurify.sanitize; window.DOMPurify.sanitize = function(content, config) { return origSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, { ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g'], ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'] })); }; }
-        
-        DOM.chatBox = document.getElementById('chat-box'); DOM.inputField = document.getElementById('user-input'); DOM.sendBtn = document.getElementById('send-btn'); DOM.sidebar = document.getElementById('sidebar'); DOM.backdrop = document.getElementById('sidebar-backdrop'); DOM.historyList = document.getElementById('history-list'); DOM.greetingBox = document.getElementById('lime-greeting-box'); DOM.mascotContainer = document.getElementById('lime-app-mascot'); DOM.inputArea = document.querySelector('.input-area');
-        
-        DOM.chatBox.addEventListener('scroll', () => { if (!scrollTimeout) { scrollTimeout = requestAnimationFrame(() => { isUserScrolling = (DOM.chatBox.scrollHeight - DOM.chatBox.scrollTop) > (DOM.chatBox.clientHeight + 100); scrollTimeout = null; }); } }, { passive: true });
-        DOM.chatBox.addEventListener('click', (e) => { const copyBtn = e.target.closest('.copy-btn'); if (copyBtn) { const pre = copyBtn.closest('pre'); if(pre) { navigator.clipboard.writeText(pre.querySelector('code').innerText); copyBtn.innerText = 'Copiato!'; setTimeout(() => copyBtn.innerText = 'Copia', 2000); } } });
-        DOM.inputField.addEventListener('input', () => { clearTimeout(inputDebounce); inputDebounce = setTimeout(() => { if (DOM.inputField.value.trim().length > 0 && window.setGreetingVisible) window.setGreetingVisible(false); }, 150); });
-        DOM.inputField.addEventListener('keypress', e => { if (e.key === 'Enter') { if (isRecording) toggleRecording(); else if (!isGenerating) sendMessage(); } });
-
-        const eduDropdown = document.getElementById('edu-dropdown'), instDropdown = document.getElementById('inst-dropdown');
-        if (eduDropdown) { if (globalEduLevel) eduDropdown.value = globalEduLevel; eduDropdown.addEventListener('change', async (e) => { globalEduLevel = e.target.value; localStorage.setItem('lime_edu_level', globalEduLevel); try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: globalEduLevel } }); } catch (err) {} }); }
-        if (instDropdown) { if (globalInstType) instDropdown.value = globalInstType; instDropdown.addEventListener('change', async (e) => { globalInstType = e.target.value; localStorage.setItem('lime_inst_type', globalInstType); try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: globalInstType } }); } catch (err) {} }); }
-
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); updateProfileUI(session.user); loadHistory(); }
         supabaseClient.auth.onAuthStateChange((event, session) => { if (session) { userId = session.user.id; document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); updateProfileUI(session.user); loadHistory(); } else { userId = null; document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); updateProfileUI(null); } });
         
-        initLimeExtras(); initLayoutAndAnchoring(); await initSessionSync();
+        // Listeners per Selettori Istruzione Nativi
+        const eduDropdown = document.getElementById('edu-dropdown');
+        const instDropdown = document.getElementById('inst-dropdown');
+
+        if (eduDropdown) {
+            let currentLevel = localStorage.getItem('lime_edu_level');
+            if (currentLevel) eduDropdown.value = currentLevel;
+            eduDropdown.addEventListener('change', async (e) => {
+                const level = e.target.value; localStorage.setItem('lime_edu_level', level); 
+                try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } catch (err) {}
+            });
+        }
+
+        if (instDropdown) {
+            let currentInst = localStorage.getItem('lime_inst_type');
+            if (currentInst) instDropdown.value = currentInst;
+            instDropdown.addEventListener('change', async (e) => {
+                const inst = e.target.value; localStorage.setItem('lime_inst_type', inst); 
+                try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: inst } }); } catch (err) {}
+            });
+        }
+
+        initLimeExtras();
     });
-    
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') initSessionSync(); });
 </script>
 
 </body>
