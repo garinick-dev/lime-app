@@ -838,7 +838,7 @@
         margin-bottom: 8px !important;
     }
 
-    /* 4. Switch Tema scuro/chiaro */
+    /* 4. Switch Tema scuro/chiaro (Layout compatto) */
     .theme-switch-wrapper {
         display: flex; align-items: center; justify-content: space-between;
         background: var(--input-bg); 
@@ -862,22 +862,18 @@
     body:not(.light-theme) .theme-switch { background-color: var(--accent); }
     body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
-    /* 5. Selettori a tendina (Classe e Istituto) */
+    /* 5. Nuovo Selettore a tendina per il Grado di Istruzione (Sotto Profilo) */
     .edu-level-wrapper {
         background: var(--input-bg);
         padding: 8px 12px; 
         border-radius: 12px;
         border: 1px solid var(--border-color);
         margin-top: 10px; 
-        margin-bottom: 5px; 
+        margin-bottom: 15px; 
         display: flex;
         flex-direction: row; 
         align-items: center;
         justify-content: space-between;
-    }
-    #edu-type-selector {
-        margin-bottom: 15px;
-        margin-top: 0;
     }
     .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
     
@@ -921,17 +917,16 @@
             });
         }
 
-        // --- B. SELETTORI ISTRUZIONE E ISTITUTO ---
+        // --- B. SELETTORE ISTRUZIONE ---
         if (!document.getElementById('edu-level-selector')) {
             const profileBlock = document.querySelector('.user-profile, .profile-info, .user-info, .sidebar-header .name, #user-name');
-            
-            const eduLevelWrapper = document.createElement('div');
-            eduLevelWrapper.className = 'edu-level-wrapper';
-            eduLevelWrapper.id = 'edu-level-selector';
-            eduLevelWrapper.innerHTML = `
+            const eduWrapper = document.createElement('div');
+            eduWrapper.className = 'edu-level-wrapper';
+            eduWrapper.id = 'edu-level-selector';
+            eduWrapper.innerHTML = `
                 <span class="edu-level-label">Classe frequentata</span>
                 <div class="edu-select-container">
-                    <select class="edu-select" id="edu-level-dropdown">
+                    <select class="edu-select" id="edu-dropdown">
                         <option value="" disabled selected>Seleziona...</option>
                         <option value="1">1ª Superiore</option>
                         <option value="2">2ª Superiore</option>
@@ -941,117 +936,91 @@
                     </select>
                 </div>
             `;
-
-            const eduTypeWrapper = document.createElement('div');
-            eduTypeWrapper.className = 'edu-level-wrapper'; 
-            eduTypeWrapper.id = 'edu-type-selector';
-            eduTypeWrapper.innerHTML = `
-                <span class="edu-level-label">Tipo di istituto</span>
-                <div class="edu-select-container">
-                    <select class="edu-select" id="edu-type-dropdown">
-                        <option value="" disabled selected>Seleziona...</option>
-                        <option value="liceo">Liceo</option>
-                        <option value="tecnico">Istituto Tecnico</option>
-                        <option value="professionale">Ist. Professionale</option>
-                    </select>
-                </div>
-            `;
             
             if (profileBlock && profileBlock.parentNode) {
-                profileBlock.parentNode.insertBefore(eduTypeWrapper, profileBlock.nextSibling);
-                profileBlock.parentNode.insertBefore(eduLevelWrapper, eduTypeWrapper); 
+                profileBlock.parentNode.insertBefore(eduWrapper, profileBlock.nextSibling);
             } else {
                 const fallbackContainer = document.querySelector('.settings-panel') || themeOptionsContainer.parentNode;
-                if (fallbackContainer) {
-                    fallbackContainer.prepend(eduTypeWrapper);
-                    fallbackContainer.prepend(eduLevelWrapper);
-                }
+                if (fallbackContainer) fallbackContainer.prepend(eduWrapper);
             }
 
-            const levelDropdown = document.getElementById('edu-level-dropdown');
+            const dropdown = document.getElementById('edu-dropdown');
             let currentLevel = localStorage.getItem('lime_edu_level');
-            if (currentLevel) levelDropdown.value = currentLevel;
+            if (currentLevel) dropdown.value = currentLevel;
 
-            levelDropdown.addEventListener('change', async (e) => {
+            // Scrittura su Supabase al cambio
+            dropdown.addEventListener('change', async (e) => {
                 const level = e.target.value;
                 localStorage.setItem('lime_edu_level', level); 
+                
                 if (typeof supabaseClient !== 'undefined') {
-                    try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } 
-                    catch (err) {}
-                }
-            });
-
-            const typeDropdown = document.getElementById('edu-type-dropdown');
-            let currentType = localStorage.getItem('lime_edu_type');
-            if (currentType) typeDropdown.value = currentType;
-
-            typeDropdown.addEventListener('change', async (e) => {
-                const type = e.target.value;
-                localStorage.setItem('lime_edu_type', type); 
-                if (typeof supabaseClient !== 'undefined') {
-                    try { await supabaseClient.auth.updateUser({ data: { lime_edu_type: type } }); } 
-                    catch (err) {}
+                    try {
+                        await supabaseClient.auth.updateUser({
+                            data: { lime_edu_level: level }
+                        });
+                    } catch (err) {
+                        console.error("Errore salvataggio classe su Supabase:", err);
+                    }
                 }
             });
         }
 
-        // --- C. SINCRONIZZAZIONE DATI CLOUD ---
+        // --- C. SINCRONIZZAZIONE DATI (Dalla tua patch) ---
         async function fetchFreshData() {
             if (typeof supabaseClient === 'undefined') return;
+
             try {
                 const { data: { session } } = await supabaseClient.auth.getSession();
+                
                 if (session && session.user) {
                     const { data: { user }, error } = await supabaseClient.auth.getUser();
+                    
                     if (!error && user) {
+                        // 1. Applica le logiche originali della UI
                         if (window.updateProfileUI) window.updateProfileUI(user);
                         
+                        // 2. Allinea il selettore e il localStorage usando i metadati freschi
                         if (user.user_metadata && user.user_metadata.lime_edu_level) {
                             const cloudLevel = user.user_metadata.lime_edu_level;
                             localStorage.setItem('lime_edu_level', cloudLevel);
-                            const levelDropdown = document.getElementById('edu-level-dropdown');
-                            if (levelDropdown && levelDropdown.value !== cloudLevel) levelDropdown.value = cloudLevel;
+                            
+                            const dropdown = document.getElementById('edu-dropdown');
+                            if (dropdown && dropdown.value !== cloudLevel) {
+                                dropdown.value = cloudLevel;
+                            }
                         }
-
-                        if (user.user_metadata && user.user_metadata.lime_edu_type) {
-                            const cloudType = user.user_metadata.lime_edu_type;
-                            localStorage.setItem('lime_edu_type', cloudType);
-                            const typeDropdown = document.getElementById('edu-type-dropdown');
-                            if (typeDropdown && typeDropdown.value !== cloudType) typeDropdown.value = cloudType;
-                        }
+                        
                         await supabaseClient.auth.refreshSession();
                     }
                 }
-            } catch (error) {}
+            } catch (error) {
+                console.error("Errore recupero sessione fresca:", error);
+            }
         }
 
         window.addEventListener('load', fetchFreshData);
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') fetchFreshData();
+            if (document.visibilityState === 'visible') {
+                fetchFreshData();
+            }
         });
 
         // --- D. INIEZIONE PAYLOAD API (La magia per Dify) ---
         const originalFetch = window.fetch;
-        window.fetch = async function(...args) {
-            // Verifichiamo che la chiamata sia verso l'endpoint corretto
-            if (args[0] && typeof args[0] === 'string' && args[0].includes('/chat-messages') && args[1] && args[1].body) {
+        window.fetch = async function() {
+            let [resource, config] = arguments;
+            if (typeof resource === 'string' && resource.includes('/chat-messages') && config && config.body) {
                 try {
-                    let bodyData = JSON.parse(args[1].body);
+                    let bodyData = JSON.parse(config.body);
                     if (!bodyData.inputs) bodyData.inputs = {};
-                    
-                    // Recuperiamo i dati (usando una stringa vuota come fallback di sicurezza)
-                    const eduLevel = localStorage.getItem('lime_edu_level') || "";
-                    const eduType = localStorage.getItem('lime_edu_type') || "";
-                    
-                    // Inseriamo SEMPRE le chiavi nel payload, altrimenti Dify rifiuta le nuove chat
-                    bodyData.inputs['classe_frequentata'] = eduLevel;
-                    bodyData.inputs['tipo_istituto'] = eduType;
-                    
-                    args[1].body = JSON.stringify(bodyData);
-                } catch (e) {
-                    console.error("Errore iniezione dati Dify:", e);
-                }
+                    const eduLevel = localStorage.getItem('lime_edu_level');
+                    if (eduLevel) {
+                        bodyData.inputs['classe_frequentata'] = eduLevel;
+                    }
+                    config.body = JSON.stringify(bodyData);
+                } catch (e) {}
             }
-            return originalFetch.apply(this, args);
+            return originalFetch(resource, config);
         };
     })();
 </script>
@@ -1068,6 +1037,7 @@
     
 </body>
 </html>
+
 
 
 
