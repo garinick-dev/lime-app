@@ -922,8 +922,8 @@
     /* 3. Nasconde la label "Colore principale" e compatta lo spazio vuoto */
     .setting-item:has(#color-picker) > label { display: none !important; }
     .setting-item:has(#color-picker) {
-        justify-content: center !important; /* Centra il selettore */
-        margin-bottom: 10px !important; /* Riduce lo spazio verticale */
+        justify-content: center !important;
+        margin-bottom: 10px !important;
     }
 
     /* 4. Switch Tema scuro/chiaro */
@@ -1016,7 +1016,6 @@
 
         // --- Iniezione Selettore Grado di Istruzione ---
         if (!document.getElementById('edu-level-selector')) {
-            // Lo inseriamo subito dopo lo switch del tema
             const containerToAppend = document.getElementById('custom-theme-switch') || themeOptionsContainer;
             if (containerToAppend && containerToAppend.parentNode) {
                 const eduWrapper = document.createElement('div');
@@ -1057,12 +1056,10 @@
                         const level = e.target.getAttribute('data-level');
                         currentLevel = level;
                         
-                        // Salva in locale per mantenere la selezione al ricaricamento
                         localStorage.setItem('lime_edu_level', level);
                         updateButtons();
                         
-                        // NOTA: Qui potrai inserire la funzione di salvataggio verso Supabase
-                        // Esempio: if(window.saveToSupabase) window.saveToSupabase({ classe: level });
+                        // NOTA: Inserire qui l'eventuale sync con Supabase
                     });
                 });
             }
@@ -1082,6 +1079,7 @@
     
 </body>
 </html>
+
 
 
 
