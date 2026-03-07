@@ -777,28 +777,26 @@
 
 <script>
     (function() {
-        const autoStart = () => {
-            // Se non c'è una chat attiva e siamo nel container principale
-            if (!window.currentConversationId) {
-                const newChatBtn = document.getElementById('new-chat-btn');
-                if (newChatBtn) {
-                    newChatBtn.click();
-                } else if (typeof startNewChat === 'function') {
-                    // Fallback se il pulsante non fosse ancora cliccabile
-                    startNewChat();
-                }
+        const forceGreeting = () => {
+            const btn = document.getElementById('new-chat-btn');
+            if (btn) {
+                btn.click();
+            } else if (typeof startNewChat === 'function') {
+                startNewChat();
             }
         };
 
-        // Si aggancia alla fine del processo di caricamento esistente
-        window.addEventListener('load', () => {
-            // Un piccolo delay di 100ms assicura che Supabase 
-            // abbia finito di decidere se l'utente è loggato
-            setTimeout(autoStart, 100);
-        });
+        // Esegue al caricamento del DOM
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', forceGreeting);
+        } else {
+            forceGreeting();
+        }
+
+        // Backup estremo: se Supabase è lento a mostrare l'interfaccia
+        setTimeout(forceGreeting, 500);
     })();
 </script>
-
 
     
 
@@ -806,6 +804,7 @@
     
 </body>
 </html>
+
 
 
 
