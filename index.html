@@ -1027,9 +1027,8 @@
     (function() {
         let patchIntervalEyes = setInterval(function() {
             const eyesGroup = document.getElementById('lime-eyes-group');
-            const chatBox = document.getElementById('chat-box');
             
-            if (eyesGroup && chatBox && typeof window.setMascotThinking === 'function') {
+            if (eyesGroup && typeof window.setMascotThinking === 'function') {
                 clearInterval(patchIntervalEyes);
 
                 const ns = "http://www.w3.org/2000/svg";
@@ -1073,53 +1072,76 @@
 
                 const _originalSetMascotThinkingEyes = window.setMascotThinking;
                 let expressionTimeout;
-                let hasReacted = false;
+                let activeObserver = null;
+                let failsafeTimeout = null;
 
-                // 1. Quando inizia a pensare, resettiamo tutto
                 window.setMascotThinking = function(state) {
-                    _originalSetMascotThinkingEyes(state);
                     if (state) {
+                        _originalSetMascotThinkingEyes(true);
                         clearTimeout(expressionTimeout);
+                        clearTimeout(failsafeTimeout);
                         eyesGroup.classList.remove('show-stars', 'show-x');
-                        hasReacted = false;
+                        
+                        // Se c'è un observer ancora in ascolto dal messaggio precedente, spegniamolo
+                        if (activeObserver) {
+                            activeObserver.disconnect();
+                            activeObserver = null;
+                        }
+                    } else {
+                        setTimeout(() => {
+                            const botMsgs = document.querySelectorAll('.bot-msg');
+                            if (botMsgs.length === 0) {
+                                _originalSetMascotThinkingEyes(false);
+                                return;
+                            }
+                            
+                            const lastMsg = botMsgs[botMsgs.length - 1];
+                            const negRegex = /\b(sbagliato|errato|no|non|errore|purtroppo)\b/;
+                            const posRegex = /\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/;
+
+                            // Funzione di controllo testo isolata
+                            const checkText = () => {
+                                const text = lastMsg.innerText.toLowerCase().substring(0, 80);
+                                if (text.length < 2) return false;
+
+                                let flagEspressione = null;
+                                if (negRegex.test(text)) flagEspressione = 'show-x';
+                                else if (posRegex.test(text)) flagEspressione = 'show-stars';
+
+                                if (flagEspressione) {
+                                    eyesGroup.classList.add(flagEspressione);
+                                    expressionTimeout = setTimeout(() => eyesGroup.classList.remove(flagEspressione), 1500);
+                                    
+                                    // BERSAGLIO COLPITO: Auto-distruzione dell'observer per alleggerire il codice
+                                    if (activeObserver) {
+                                        activeObserver.disconnect();
+                                        activeObserver = null;
+                                    }
+                                    return true;
+                                }
+                                return false;
+                            };
+
+                            // Proviamo a fare il controllo subito
+                            if (!checkText()) {
+                                // Se la parola non c'è ancora, accendiamo l'observer usa-e-getta SOLO per questo messaggio
+                                activeObserver = new MutationObserver(checkText);
+                                activeObserver.observe(lastMsg, { childList: true, subtree: true, characterData: true });
+
+                                // KILL-SWITCH: Dopo 8 secondi l'observer viene forzatamente eliminato
+                                failsafeTimeout = setTimeout(() => {
+                                    if (activeObserver) {
+                                        activeObserver.disconnect();
+                                        activeObserver = null;
+                                    }
+                                }, 8000);
+                            }
+
+                            _originalSetMascotThinkingEyes(false);
+                            
+                        }, 50); 
                     }
                 };
-
-                // 2. Il "Lettore in tempo reale": scruta le parole che compaiono a schermo
-                const liveReader = new MutationObserver(() => {
-                    if (hasReacted) return; // Se si è già espressa, ignora per non sfarfallare
-
-                    const botMsgs = document.querySelectorAll('.bot-msg');
-                    if (botMsgs.length === 0) return;
-                    
-                    const lastMsgText = botMsgs[botMsgs.length - 1].innerText.toLowerCase();
-                    
-                    // Aspettiamo che ci sia almeno una parola completa
-                    if (lastMsgText.length > 5) { 
-                        // Legge le prime parole, tollerando incipit lunghi
-                        const firstWords = lastMsgText.substring(0, 80); 
-
-                        const negRegex = /\b(sbagliato|errato|no|non|errore|purtroppo)\b/;
-                        const posRegex = /\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/;
-
-                        let flagEspressione = null;
-                        if (negRegex.test(firstWords)) {
-                            flagEspressione = 'show-x';
-                        } else if (posRegex.test(firstWords)) {
-                            flagEspressione = 'show-stars';
-                        }
-
-                        // Se trova la parola, lancia l'animazione e spegne il lettore per questo turno
-                        if (flagEspressione) {
-                            eyesGroup.classList.add(flagEspressione);
-                            expressionTimeout = setTimeout(() => eyesGroup.classList.remove(flagEspressione), 1500);
-                            hasReacted = true; 
-                        }
-                    }
-                });
-
-                // Attacchiamo il lettore al contenitore della chat per spiare il testo in diretta
-                liveReader.observe(chatBox, { childList: true, subtree: true, characterData: true });
             }
         }, 50);
     })();
@@ -1135,6 +1157,7 @@
     
 </body>
 </html>
+
 
 
 
