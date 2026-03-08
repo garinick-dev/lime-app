@@ -889,16 +889,16 @@
     .typing-dot {
         width: 6px;
         height: 6px;
-        background-color: rgba(0, 0, 0, 0.6); /* Colore scuro per contrasto */
+        background-color: rgba(0, 0, 0, 0.6);
         border-radius: 50%;
-        animation: lime-typing-jump 1.2s infinite ease-in-out;
+        /* Ciclo leggermente più lungo per far respirare l'animazione */
+        animation: lime-typing-jump 1.4s infinite ease-in-out; 
     }
-    /* Sfasamento temporale per l'effetto "onda" */
+    /* Distacco temporale aumentato per un'onda più netta ma fluida */
     .typing-dot:nth-child(1) { animation-delay: 0s; }
-    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
     
-    /* Il movimento: salgono di 5px e tornano a zero */
     @keyframes lime-typing-jump {
         0%, 60%, 100% { transform: translateY(0); }
         30% { transform: translateY(-5px); }
@@ -907,14 +907,11 @@
 
 <script>
     (function() {
-        // Salviamo una copia della funzione originale che crea i messaggi
         const _originalCreateMessageNode = window.createMessageNode || createMessageNode;
         
-        // La sovrascriviamo in modo chirurgico per intercettare i puntini
         window.createMessageNode = function(role, text, timestamp = null, isHtml = false) {
             const wrapper = _originalCreateMessageNode(role, text, timestamp, isHtml);
             
-            // Sostituiamo i 3 puntini statici con la struttura HTML animata
             if (role === 'bot' && text === "...") {
                 const botDiv = wrapper.querySelector('.bot-msg');
                 if (botDiv) {
@@ -941,5 +938,6 @@
     
 </body>
 </html>
+
 
 
