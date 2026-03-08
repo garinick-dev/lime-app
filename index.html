@@ -118,8 +118,30 @@
         #recording-timer { color: #ff4444; font-weight: 500; font-size: 0.95rem; margin-right: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0;}
         .action-btn svg, #attach-btn svg, #mic-btn svg, #send-btn svg { transition: color 0.2s ease, filter 0.2s ease; }
 
-        /* GREETING BOX: Tornato nella root assoluta e centrato col CSS */
-        #lime-greeting-box { position: absolute !important; bottom: var(--breath-padding, 140px) !important; margin-bottom: 15px !important; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1000; font-family: inherit; transition: opacity 0.2s ease; opacity: 1; pointer-events: auto; } 
+        /* GREETING BOX: Struttura robusta e classe CSS per la visibilità */
+        #lime-greeting-box { 
+            position: absolute !important; 
+            bottom: var(--breath-padding, 140px) !important; 
+            margin-bottom: 15px !important; 
+            left: 0; 
+            width: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            z-index: 1000; 
+            font-family: inherit; 
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        } 
+        
+        #lime-greeting-box.hidden-greeting {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
         .lime-container-inner { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; padding: 0 20px; } .lime-bubble { align-self: flex-start; background-color: var(--lime-accent); color: #000; padding: 12px 20px; border-radius: 18px 18px 18px 4px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.08); pointer-events: auto; transition: background-color 0.3s ease; } .lime-suggestions { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: auto; } .lime-chip { background-color: var(--lime-bg-chip); border: 1px solid var(--lime-chip-border); padding: 10px 16px; border-radius: 18px 18px 4px 18px; font-size: 0.9em; color: var(--lime-chip-color); cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s ease; transform: translateZ(0); } body:not(.light-theme) .lime-chip:hover { background-color: #3a3a3a; transform: translateX(-3px); } body.light-theme .lime-chip:hover { background-color: #ffffff; transform: translateX(-3px); } .ghost-hidden { display: none !important; }
         
         #lime-app-mascot.lime-floating-container { position: absolute !important; bottom: 100% !important; left: -32px !important; margin-bottom: 0 !important; pointer-events: none; z-index: 9999; transition: left 0.15s ease-out, bottom 0.15s ease-out; will-change: left, bottom; } 
@@ -569,26 +591,19 @@
         
         window.updateGreetingVisibility = () => {
             const box = document.getElementById('lime-greeting-box');
+            if (!box) return;
+
             const chat = document.getElementById('chat-box');
             const input = document.getElementById('user-input');
-            if (!box) return;
 
             const messageCount = chat ? chat.querySelectorAll('.msg-wrapper').length : 0;
             const hasText = input ? input.value.trim().length > 0 : false;
-            const isLoading = chat ? chat.innerHTML.includes('Recupero') : false;
             
-            if (messageCount === 0 && !hasText && !isLoading && !currentConversationId) {
-                box.style.display = 'flex';
-                setTimeout(() => { 
-                    box.style.opacity = '1'; 
-                    box.style.pointerEvents = 'auto'; 
-                }, 10);
+            // Unico check infallibile per nascondere o mostrare la classe
+            if (messageCount === 0 && !hasText && !currentConversationId) {
+                box.classList.remove('hidden-greeting');
             } else {
-                box.style.opacity = '0';
-                box.style.pointerEvents = 'none';
-                setTimeout(() => { 
-                    if (box.style.opacity === '0') box.style.display = 'none'; 
-                }, 200);
+                box.classList.add('hidden-greeting');
             }
         };
 
@@ -698,6 +713,8 @@
                 
                 if (inputArea) inputArea.style.transform = `${shiftY} translateZ(0)`;
                 if (chatBox) chatBox.style.transform = shiftY;
+                const greetingBox = document.getElementById('lime-greeting-box');
+                if (greetingBox) greetingBox.style.transform = shiftY;
                 window.scrollTo(0, 0);
                 syncAnchoring(); 
             }
