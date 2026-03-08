@@ -563,7 +563,6 @@
             const savedColor = user.user_metadata?.color || '#c0f22c'; 
             const savedBg = user.user_metadata?.bg; 
             
-            // Sincronizzazione Dati Istruzione Nativi
             const cloudLevel = user.user_metadata?.lime_edu_level;
             const cloudInst = user.user_metadata?.lime_inst_type;
             const eduDropdown = document.getElementById('edu-dropdown');
@@ -599,7 +598,6 @@
             const messageCount = chat ? chat.querySelectorAll('.msg-wrapper').length : 0;
             const hasText = input ? input.value.trim().length > 0 : false;
             
-            // Check infallibile per nascondere o mostrare la classe CSS
             if (messageCount === 0 && !hasText && !currentConversationId) {
                 box.classList.remove('hidden-greeting');
             } else {
@@ -675,7 +673,8 @@
             return rect.top + (rect.height / 2);
         }
         
-        function syncAnchoring() {
+        // Espongo la funzione a livello globale per poterla chiamare subito dopo il render
+        window.syncAnchoring = function() {
             const breathArea = document.getElementById('breath-area');
             if (breathArea) {
                 const breathRect = breathArea.getBoundingClientRect();
@@ -692,8 +691,9 @@
                     lastMsgPadding = requiredPadding;
                 }
             }
-        }
-        syncAnchoring();
+        };
+        
+        window.syncAnchoring();
 
         window.addEventListener('resize', () => {
             if (window.innerWidth !== lockedWidth) { 
@@ -701,7 +701,7 @@
                 lockedHeight = window.innerHeight;
                 lockDimensions();
             }
-            syncAnchoring();
+            window.syncAnchoring();
         }, { passive: true });
 
         if (window.visualViewport) {
@@ -716,7 +716,7 @@
                 const greetingBox = document.getElementById('lime-greeting-box');
                 if (greetingBox) greetingBox.style.transform = shiftY;
                 window.scrollTo(0, 0);
-                syncAnchoring(); 
+                window.syncAnchoring(); 
             }
             window.visualViewport.addEventListener('resize', trickKeyboard, { passive: true });
             window.visualViewport.addEventListener('scroll', trickKeyboard, { passive: true });
@@ -735,7 +735,7 @@
                 mutations.forEach(m => { if (m.addedNodes.length > 0) shouldScroll = true; });
                 if (shouldScroll) {
                     requestAnimationFrame(() => {
-                        syncAnchoring();
+                        window.syncAnchoring();
                         if (window.scrollToBottom) window.scrollToBottom(true);
                     });
                 }
@@ -819,11 +819,14 @@
             userId = session.user.id; 
             document.getElementById('auth-section').classList.add('hidden'); 
             document.getElementById('main-container').classList.remove('hidden'); 
-            updateProfileUI(session.user); 
-            loadHistory();
             
-            // LA CURA AL LIMBO: Avviamo ufficialmente una nuova chat al login
-            setTimeout(() => startNewChat(), 50);
+            // LA CURA AL BUG DEL GREETING VOLANTE:
+            // Ricalcoliamo il padding istantaneamente DOPO aver reso visibile il contenitore
+            if (window.syncAnchoring) window.syncAnchoring();
+            
+            updateProfileUI(session.user); 
+            loadHistory(); 
+            if (window.updateGreetingVisibility) window.updateGreetingVisibility();
         }
         
         supabaseClient.auth.onAuthStateChange((event, session) => { 
@@ -831,11 +834,13 @@
                 userId = session.user.id; 
                 document.getElementById('auth-section').classList.add('hidden'); 
                 document.getElementById('main-container').classList.remove('hidden'); 
+                
+                // LA CURA AL BUG DEL GREETING VOLANTE (Applicata anche al cambio stato)
+                if (window.syncAnchoring) window.syncAnchoring();
+                
                 updateProfileUI(session.user); 
                 loadHistory(); 
-                
-                // LA CURA AL LIMBO: Anche al cambio di stato
-                setTimeout(() => startNewChat(), 50);
+                if (window.updateGreetingVisibility) window.updateGreetingVisibility();
             } else { 
                 userId = null; 
                 document.getElementById('auth-section').classList.remove('hidden'); 
