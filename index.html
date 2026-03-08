@@ -1000,6 +1000,121 @@
 
 
 
+
+
+
+
+
+<style>
+    /* Transizioni fluide per lo scambio degli occhi */
+    .lime-eye {
+        transition: opacity 0.15s ease-out;
+    }
+    
+    /* Stile per le nuove forme iniettate dinamicamente */
+    .lime-eye-star, .lime-eye-x {
+        opacity: 0;
+        /* Effetto "pop" gommoso quando appaiono */
+        transition: opacity 0.15s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    /* Stato di default: rimpiccioliti e invisibili */
+    .lime-eye-star { transform: scale(0.5); }
+    .lime-eye-x { transform: scale(0.5); }
+
+    /* CLASSI DI ATTIVAZIONE */
+    /* Quando attacchiamo .show-stars al gruppo degli occhi */
+    #lime-eyes-group.show-stars .lime-eye { opacity: 0 !important; }
+    #lime-eyes-group.show-stars .lime-eye-star { opacity: 1; transform: scale(1); }
+
+    /* Quando attacchiamo .show-x al gruppo degli occhi */
+    #lime-eyes-group.show-x .lime-eye { opacity: 0 !important; }
+    #lime-eyes-group.show-x .lime-eye-x { opacity: 1; transform: scale(1); }
+</style>
+
+<script>
+    (function() {
+        let patchIntervalEyes = setInterval(function() {
+            const eyesGroup = document.getElementById('lime-eyes-group');
+            
+            // Aspettiamo che il gruppo occhi esista e che la patch precedente abbia settato setMascotThinking
+            if (eyesGroup && typeof window.setMascotThinking === 'function') {
+                clearInterval(patchIntervalEyes);
+
+                // 1. CREAZIONE E INIEZIONE DINAMICA DELLE FORME (Senza toccare l'HTML originale)
+                const ns = "http://www.w3.org/2000/svg";
+                
+                // Funzione per disegnare Stella o X calcolando le coordinate esatte (cx, cy)
+                const createShape = (type, cx, cy) => {
+                    const path = document.createElementNS(ns, "path");
+                    path.setAttribute("class", `lime-eye-${type}`);
+                    // Impostiamo il perno di rotazione/scala esattamente al centro dell'occhio
+                    path.style.transformOrigin = `${cx}px ${cy}px`; 
+                    
+                    if (type === 'star') {
+                        path.setAttribute("fill", "#1a1a1a");
+                        // Coordinate per una stella perfetta a 5 punte centrata
+                        path.setAttribute("d", `M${cx},${cy-9} L${cx+2.5},${cy-2.5} L${cx+9},${cy-2.5} L${cx+3.8},${cy+1.5} L${cx+5.8},${cy+8} L${cx},${cy+4.5} L${cx-5.8},${cy+8} L${cx-3.8},${cy+1.5} L${cx-9},${cy-2.5} L${cx-2.5},${cy-2.5} Z`);
+                    } else {
+                        path.setAttribute("stroke", "#1a1a1a");
+                        path.setAttribute("stroke-width", "3.5");
+                        path.setAttribute("stroke-linecap", "round");
+                        // Coordinate per una X crociata centrata
+                        path.setAttribute("d", `M${cx-5.5},${cy-5.5} L${cx+5.5},${cy+5.5} M${cx-5.5},${cy+5.5} L${cx+5.5},${cy-5.5}`);
+                    }
+                    return path;
+                };
+
+                // Iniettiamo le forme sopra gli occhi sinistro (65, 175) e destro (135, 175)
+                eyesGroup.appendChild(createShape('star', 65, 175));
+                eyesGroup.appendChild(createShape('star', 135, 175));
+                eyesGroup.appendChild(createShape('x', 65, 175));
+                eyesGroup.appendChild(createShape('x', 135, 175));
+
+                // 2. INTERCETTAZIONE DELLA RISPOSTA (Lettura dell'umore)
+                const _originalSetMascotThinkingEyes = window.setMascotThinking;
+                let expressionTimeout;
+
+                window.setMascotThinking = function(state) {
+                    // Chiamiamo il comportamento standard (chiusura occhi e dondolio)
+                    _originalSetMascotThinkingEyes(state);
+
+                    if (state) {
+                        // Se inizia a pensare per un nuovo messaggio, resettiamo subito le espressioni
+                        clearTimeout(expressionTimeout);
+                        eyesGroup.classList.remove('show-stars', 'show-x');
+                    } else {
+                        // Ha finito di pensare! Diamo al DOM un istante per stampare il testo a schermo...
+                        setTimeout(() => {
+                            const botMsgs = document.querySelectorAll('.bot-msg');
+                            if (botMsgs.length === 0) return;
+                            
+                            // Leggiamo solo le prime parole del messaggio appena arrivato
+                            const lastMsg = botMsgs[botMsgs.length - 1].innerText.toLowerCase();
+                            const firstWords = lastMsg.substring(0, 45); 
+
+                            // Motore di "Sentimento" tramite Regex
+                            // Controllo Negativo (Ha la precedenza, es: "No, non è esatto")
+                            const negRegex = /\b(sbagliato|errato|no|non|errore|purtroppo)\b/;
+                            // Controllo Positivo
+                            const posRegex = /\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/;
+
+                            if (negRegex.test(firstWords)) {
+                                eyesGroup.classList.add('show-x');
+                                expressionTimeout = setTimeout(() => eyesGroup.classList.remove('show-x'), 3500);
+                            } else if (posRegex.test(firstWords)) {
+                                eyesGroup.classList.add('show-stars');
+                                expressionTimeout = setTimeout(() => eyesGroup.classList.remove('show-stars'), 3500);
+                            }
+                        }, 100);
+                    }
+                };
+            }
+        }, 50);
+    })();
+</script>
+    
+
     
 
 
@@ -1007,6 +1122,7 @@
     
 </body>
 </html>
+
 
 
 
