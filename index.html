@@ -118,7 +118,7 @@
         #recording-timer { color: #ff4444; font-weight: 500; font-size: 0.95rem; margin-right: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0;}
         .action-btn svg, #attach-btn svg, #mic-btn svg, #send-btn svg { transition: color 0.2s ease, filter 0.2s ease; }
 
-        /* GREETING BOX: Struttura robusta e classe CSS per la visibilità */
+        /* GREETING BOX: Tornato nella root assoluta e centrato col CSS */
         #lime-greeting-box { 
             position: absolute !important; 
             bottom: var(--breath-padding, 140px) !important; 
@@ -599,7 +599,7 @@
             const messageCount = chat ? chat.querySelectorAll('.msg-wrapper').length : 0;
             const hasText = input ? input.value.trim().length > 0 : false;
             
-            // Unico check infallibile per nascondere o mostrare la classe
+            // Check infallibile per nascondere o mostrare la classe CSS
             if (messageCount === 0 && !hasText && !currentConversationId) {
                 box.classList.remove('hidden-greeting');
             } else {
@@ -820,7 +820,10 @@
             document.getElementById('auth-section').classList.add('hidden'); 
             document.getElementById('main-container').classList.remove('hidden'); 
             updateProfileUI(session.user); 
-            loadHistory(); 
+            loadHistory();
+            
+            // LA CURA AL LIMBO: Avviamo ufficialmente una nuova chat al login
+            setTimeout(() => startNewChat(), 50);
         }
         
         supabaseClient.auth.onAuthStateChange((event, session) => { 
@@ -830,14 +833,15 @@
                 document.getElementById('main-container').classList.remove('hidden'); 
                 updateProfileUI(session.user); 
                 loadHistory(); 
+                
+                // LA CURA AL LIMBO: Anche al cambio di stato
+                setTimeout(() => startNewChat(), 50);
             } else { 
                 userId = null; 
                 document.getElementById('auth-section').classList.remove('hidden'); 
                 document.getElementById('main-container').classList.add('hidden'); 
                 updateProfileUI(null); 
             } 
-            
-            setTimeout(() => { if (window.updateGreetingVisibility) window.updateGreetingVisibility(); }, 300);
         });
         
         const eduDropdown = document.getElementById('edu-dropdown');
@@ -862,7 +866,6 @@
         }
 
         initLimeExtras();
-        setTimeout(() => { if (window.updateGreetingVisibility) window.updateGreetingVisibility(); }, 300);
     });
 </script>
     
