@@ -935,49 +935,59 @@
 
 
 <style>
-    /* Il movimento di dondolio senza forzature 3D per non rompere gli SVG */
+    /* Fisica del pendolo: scomponiamo le curve di accelerazione
+       per non farlo mai frenare quando passa per il centro (0 e 100) 
+    */
     @keyframes lime-rocking {
-        0%   { transform: rotate(0deg); }
-        25%  { transform: rotate(6deg); }
-        75%  { transform: rotate(-6deg); }
-        100% { transform: rotate(0deg); }
+        0% { 
+            transform: rotate(0deg); 
+            animation-timing-function: ease-out; /* Frena mentre sale a destra */
+        }
+        25% { 
+            transform: rotate(6deg); 
+            animation-timing-function: ease-in-out; /* Accelera scendendo, frena salendo a sx */
+        }
+        75% { 
+            transform: rotate(-6deg); 
+            animation-timing-function: ease-in; /* Accelera mentre torna verso il centro */
+        }
+        100% { 
+            transform: rotate(0deg); 
+            /* Arriva al massimo della velocità per riallacciarsi fluidamente allo 0% */
+        }
     }
     
     .lime-body-group.anim-rocking {
-        animation: lime-rocking 1.4s ease-in-out infinite !important;
+        /* Rimuoviamo l'ease globale per lasciare il controllo ai keyframe interni */
+        animation: lime-rocking 1.5s infinite linear !important;
     }
 </style>
 
 <script>
     (function() {
-        // Il "segugio": controlla ogni 50ms se il programma principale ha finito di caricarsi
         let patchInterval = setInterval(function() {
-            
-            // Appena la funzione originale viene creata dal tuo script...
             if (typeof window.setMascotThinking === 'function') {
-                clearInterval(patchInterval); // Spegniamo il segugio
+                clearInterval(patchInterval);
                 
                 const originalSetMascotThinking = window.setMascotThinking;
                 const bodyM = document.getElementById('lime-body-main');
                 let wantsToStopRocking = false;
 
                 if (bodyM) {
-                    // Sovrascriviamo la logica
                     window.setMascotThinking = function(state) {
-                        originalSetMascotThinking(state); // Fa chiudere/aprire gli occhi normalmente
+                        originalSetMascotThinking(state);
 
                         if (state) {
                             wantsToStopRocking = false;
-                            bodyM.classList.add('anim-rocking'); // Inizia il dondolio
+                            bodyM.classList.add('anim-rocking');
                         } else {
-                            wantsToStopRocking = true; // "Prenota" la fermata dolce
+                            wantsToStopRocking = true;
                         }
                     };
 
-                    // Quando un ciclo di dondolio fa un giro completo e passa per lo "zero"...
                     bodyM.addEventListener('animationiteration', function(e) {
                         if (e.animationName === 'lime-rocking' && wantsToStopRocking) {
-                            bodyM.classList.remove('anim-rocking'); // Lo sganciamo in modo invisibile
+                            bodyM.classList.remove('anim-rocking');
                             wantsToStopRocking = false;
                         }
                     });
@@ -997,6 +1007,7 @@
     
 </body>
 </html>
+
 
 
 
