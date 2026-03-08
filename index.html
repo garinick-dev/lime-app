@@ -1007,21 +1007,18 @@
         transition: transform 0.2s ease-out, opacity 0.15s ease-out !important;
     }
     
-    /* Regola UNICA per tutte le espressioni aggiuntive */
     .lime-eye-shape {
         opacity: 0;
         transform: scale(0.5);
         transition: opacity 0.15s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    /* Sparizione istantanea dell'occhio tondo per qualsiasi espressione */
     #lime-eyes-group.show-stars .lime-eye,
     #lime-eyes-group.show-x .lime-eye { 
         opacity: 0 !important; 
         transition: transform 0.2s ease-out, opacity 0s !important; 
     }
 
-    /* Attivazione specifica in base alla classe */
     #lime-eyes-group.show-stars .lime-eye-star { opacity: 1; transform: scale(1); }
     #lime-eyes-group.show-x .lime-eye-x { opacity: 1; transform: scale(1); }
 </style>
@@ -1030,16 +1027,15 @@
     (function() {
         let patchIntervalEyes = setInterval(function() {
             const eyesGroup = document.getElementById('lime-eyes-group');
+            const chatBox = document.getElementById('chat-box');
             
-            if (eyesGroup && typeof window.setMascotThinking === 'function') {
+            if (eyesGroup && chatBox && typeof window.setMascotThinking === 'function') {
                 clearInterval(patchIntervalEyes);
 
                 const ns = "http://www.w3.org/2000/svg";
                 
-                // Funzione costruttrice unica
                 const createShape = (type, cx, cy) => {
                     const svgNode = document.createElementNS(ns, "svg");
-                    // Assegniamo la classe comune E quella specifica
                     svgNode.setAttribute("class", `lime-eye-shape lime-eye-${type}`);
                     svgNode.style.transformOrigin = `${cx}px ${cy}px`; 
                     svgNode.style.overflow = "visible";
@@ -1077,43 +1073,53 @@
 
                 const _originalSetMascotThinkingEyes = window.setMascotThinking;
                 let expressionTimeout;
+                let hasReacted = false;
 
+                // 1. Quando inizia a pensare, resettiamo tutto
                 window.setMascotThinking = function(state) {
+                    _originalSetMascotThinkingEyes(state);
                     if (state) {
-                        _originalSetMascotThinkingEyes(true);
                         clearTimeout(expressionTimeout);
                         eyesGroup.classList.remove('show-stars', 'show-x');
-                    } else {
-                        setTimeout(() => {
-                            const botMsgs = document.querySelectorAll('.bot-msg');
-                            let flagEspressione = null; // Il nostro "flag" unico
-
-                            if (botMsgs.length > 0) {
-                                const lastMsg = botMsgs[botMsgs.length - 1].innerText.toLowerCase();
-                                const firstWords = lastMsg.substring(0, 45); 
-
-                                const negRegex = /\b(sbagliato|errato|no|non|errore|purtroppo)\b/;
-                                const posRegex = /\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/;
-
-                                // Assegniamo semplicemente la classe al flag
-                                if (negRegex.test(firstWords)) {
-                                    flagEspressione = 'show-x';
-                                } else if (posRegex.test(firstWords)) {
-                                    flagEspressione = 'show-stars';
-                                }
-                            }
-                            
-                            // Logica di esecuzione UNICA
-                            if (flagEspressione) {
-                                eyesGroup.classList.add(flagEspressione);
-                                expressionTimeout = setTimeout(() => eyesGroup.classList.remove(flagEspressione), 1500);
-                            }
-                            
-                            _originalSetMascotThinkingEyes(false);
-                            
-                        }, 50); 
+                        hasReacted = false;
                     }
                 };
+
+                // 2. Il "Lettore in tempo reale": scruta le parole che compaiono a schermo
+                const liveReader = new MutationObserver(() => {
+                    if (hasReacted) return; // Se si è già espressa, ignora per non sfarfallare
+
+                    const botMsgs = document.querySelectorAll('.bot-msg');
+                    if (botMsgs.length === 0) return;
+                    
+                    const lastMsgText = botMsgs[botMsgs.length - 1].innerText.toLowerCase();
+                    
+                    // Aspettiamo che ci sia almeno una parola completa
+                    if (lastMsgText.length > 5) { 
+                        // Legge le prime parole, tollerando incipit lunghi
+                        const firstWords = lastMsgText.substring(0, 80); 
+
+                        const negRegex = /\b(sbagliato|errato|no|non|errore|purtroppo)\b/;
+                        const posRegex = /\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/;
+
+                        let flagEspressione = null;
+                        if (negRegex.test(firstWords)) {
+                            flagEspressione = 'show-x';
+                        } else if (posRegex.test(firstWords)) {
+                            flagEspressione = 'show-stars';
+                        }
+
+                        // Se trova la parola, lancia l'animazione e spegne il lettore per questo turno
+                        if (flagEspressione) {
+                            eyesGroup.classList.add(flagEspressione);
+                            expressionTimeout = setTimeout(() => eyesGroup.classList.remove(flagEspressione), 1500);
+                            hasReacted = true; 
+                        }
+                    }
+                });
+
+                // Attacchiamo il lettore al contenitore della chat per spiare il testo in diretta
+                liveReader.observe(chatBox, { childList: true, subtree: true, characterData: true });
             }
         }, 50);
     })();
@@ -1129,6 +1135,7 @@
     
 </body>
 </html>
+
 
 
 
