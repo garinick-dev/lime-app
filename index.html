@@ -1074,20 +1074,32 @@
                 let expressionTimeout;
                 let activeObserver = null;
                 let failsafeTimeout = null;
+                
+                // Variabile per capire se stavamo davvero aspettando una risposta
+                let stavaPensandoDavvero = false;
 
                 window.setMascotThinking = function(state) {
                     if (state) {
+                        stavaPensandoDavvero = true;
                         _originalSetMascotThinkingEyes(true);
                         clearTimeout(expressionTimeout);
                         clearTimeout(failsafeTimeout);
                         eyesGroup.classList.remove('show-stars', 'show-x');
                         
-                        // Se c'è un observer ancora in ascolto dal messaggio precedente, spegniamolo
                         if (activeObserver) {
                             activeObserver.disconnect();
                             activeObserver = null;
                         }
                     } else {
+                        // Se riceve il comando di spegnersi, ma non stava pensando (es. cambio chat), si ferma qui
+                        if (!stavaPensandoDavvero) {
+                            _originalSetMascotThinkingEyes(false);
+                            return;
+                        }
+                        
+                        // Resettiamo la variabile per il prossimo turno
+                        stavaPensandoDavvero = false;
+
                         setTimeout(() => {
                             const botMsgs = document.querySelectorAll('.bot-msg');
                             if (botMsgs.length === 0) {
@@ -1099,7 +1111,6 @@
                             const negRegex = /\b(sbagliato|errato|no|non|errore|purtroppo)\b/;
                             const posRegex = /\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/;
 
-                            // Funzione di controllo testo isolata
                             const checkText = () => {
                                 const text = lastMsg.innerText.toLowerCase().substring(0, 80);
                                 if (text.length < 2) return false;
@@ -1112,7 +1123,6 @@
                                     eyesGroup.classList.add(flagEspressione);
                                     expressionTimeout = setTimeout(() => eyesGroup.classList.remove(flagEspressione), 1500);
                                     
-                                    // BERSAGLIO COLPITO: Auto-distruzione dell'observer per alleggerire il codice
                                     if (activeObserver) {
                                         activeObserver.disconnect();
                                         activeObserver = null;
@@ -1122,13 +1132,10 @@
                                 return false;
                             };
 
-                            // Proviamo a fare il controllo subito
                             if (!checkText()) {
-                                // Se la parola non c'è ancora, accendiamo l'observer usa-e-getta SOLO per questo messaggio
                                 activeObserver = new MutationObserver(checkText);
                                 activeObserver.observe(lastMsg, { childList: true, subtree: true, characterData: true });
 
-                                // KILL-SWITCH: Dopo 8 secondi l'observer viene forzatamente eliminato
                                 failsafeTimeout = setTimeout(() => {
                                     if (activeObserver) {
                                         activeObserver.disconnect();
@@ -1157,6 +1164,7 @@
     
 </body>
 </html>
+
 
 
 
