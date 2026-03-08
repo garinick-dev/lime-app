@@ -935,58 +935,51 @@
 
 
 <style>
-    /* Il movimento di dondolio: parte da 0, va a destra, va a sinistra, torna a 0 */
+    /* Aggiunto translateZ(0) per forzare l'accelerazione hardware ed evitare scatti */
     @keyframes lime-rocking {
-        0%   { transform: rotate(0deg); }
-        25%  { transform: rotate(6deg); }
-        75%  { transform: rotate(-6deg); }
-        100% { transform: rotate(0deg); }
+        0%   { transform: rotate(0deg) translateZ(0); }
+        25%  { transform: rotate(6deg) translateZ(0); }
+        75%  { transform: rotate(-6deg) translateZ(0); }
+        100% { transform: rotate(0deg) translateZ(0); }
     }
     
-    /* Aggiungiamo !important per assicurarci che metta in pausa le altre animazioni */
     .lime-body-group.anim-rocking {
         animation: lime-rocking 1.6s ease-in-out infinite !important;
     }
 </style>
 
 <script>
-    (function() {
+    // Usiamo l'evento 'load' per assicurarci che il programma originale 
+    // abbia già definito le sue funzioni prima di sovrascriverle
+    window.addEventListener('load', function() {
         const bodyM = document.getElementById('lime-body-main');
         const _originalSetMascotThinking = window.setMascotThinking;
         
-        // Questa variabile fa da "freno a mano dolce"
         let wantsToStopRocking = false;
 
         if (_originalSetMascotThinking && bodyM) {
-            // Intercettiamo l'apertura e chiusura degli occhi
             window.setMascotThinking = function(state) {
-                // Eseguiamo la chiusura/apertura nativa degli occhi
+                // Esegue la chiusura/apertura nativa degli occhi
                 _originalSetMascotThinking(state);
 
                 if (state) {
-                    // Sta pensando: annulliamo il freno e iniziamo a dondolare
                     wantsToStopRocking = false;
-                    if (!bodyM.classList.contains('anim-rocking')) {
-                        bodyM.classList.add('anim-rocking');
-                    }
+                    bodyM.classList.add('anim-rocking');
                 } else {
-                    // Ha finito di pensare! 
-                    // Invece di fermarlo brutalmente, "prenotiamo" la fermata.
+                    // Ha finito di pensare: prenotiamo l'uscita dolce
                     wantsToStopRocking = true;
                 }
             };
 
-            // Questo è il cuore della fluidità: ascoltiamo la fine esatta di un giro
+            // Ascolta la fine esatta di un ciclo di rotazione (quando passa da 0 gradi)
             bodyM.addEventListener('animationiteration', function(e) {
                 if (e.animationName === 'lime-rocking' && wantsToStopRocking) {
-                    // Solo quando l'animazione passa per lo zero perfetto (100% del ciclo),
-                    // gli togliamo la classe, garantendo uno stop invisibile e morbidissimo.
                     bodyM.classList.remove('anim-rocking');
                     wantsToStopRocking = false;
                 }
             });
         }
-    })();
+    });
 </script>
 
 
@@ -999,6 +992,7 @@
     
 </body>
 </html>
+
 
 
 
