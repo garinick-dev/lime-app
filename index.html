@@ -48,7 +48,6 @@
         #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: env(safe-area-inset-bottom); }
         .setting-item { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; } .setting-item label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; } .setting-action-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.9rem; transition: background 0.2s; } .setting-action-btn:hover { background: var(--border-color); }
         
-        /* Tema Switch Integrato */
         .theme-switch-wrapper { display: flex; align-items: center; justify-content: space-between; background: var(--input-bg); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 8px; cursor: pointer; }
         .theme-switch-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
         .theme-switch { position: relative; width: 46px; height: 26px; background-color: var(--text-muted); border-radius: 13px; transition: 0.3s; }
@@ -56,7 +55,6 @@
         body:not(.light-theme) .theme-switch { background-color: var(--accent); }
         body:not(.light-theme) .theme-switch::after { transform: translateX(20px); }
 
-        /* Selettori Istruzione Integrati */
         .edu-level-wrapper { background: var(--input-bg); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 10px; margin-bottom: 5px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
         .edu-level-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
         .edu-select-container { position: relative; }
@@ -65,7 +63,6 @@
         body:not(.light-theme) .edu-select { background-color: var(--input-bg); }
         .edu-select:focus { border-color: var(--accent); }
 
-        /* Color Picker Compattato */
         .setting-item:has(#color-picker) > label { display: none !important; }
         .setting-item:has(#color-picker) { justify-content: center !important; margin-bottom: 8px !important; }
         .color-picker-container { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px; justify-content: center; } .color-circle { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); } .color-circle:hover { transform: scale(1.15); } .color-circle.active { border-color: var(--text-main); transform: scale(1.1); }
@@ -124,7 +121,7 @@
         
         #lime-app-mascot.lime-floating-container { position: absolute !important; bottom: 100% !important; left: -32px !important; margin-bottom: 0 !important; pointer-events: none; z-index: 9999; transition: left 0.15s ease-out, bottom 0.15s ease-out; will-change: left, bottom; } 
         #lime-app-mascot svg { height: auto !important; display: block; }
-        .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } .anim-squeeze { animation: lime-sq 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); } .anim-roll { animation: lime-ro 1.5s ease-in-out; } .anim-jump { animation: lime-ju 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); } @keyframes lime-sq { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1, 0.85); } } @keyframes lime-ro { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 75% { transform: rotate(-7deg); } } @keyframes lime-ju { 0% { transform: translateY(0); } 50% { transform: translateY(-70px); } 100% { transform: translateY(0); } } .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out; will-change: transform; } .lime-eye.eyes-closed { transform: scaleY(0.1) !important; } .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
+        .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } .anim-squeeze { animation: lime-sq 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); } .anim-roll { animation: lime-ro 1.5s ease-in-out; } .anim-jump { animation: lime-ju 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); } @keyframes lime-sq { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1, 0.85); } } @keyframes lime-ro { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 75% { transform: rotate(-7deg); } } @keyframes lime-ju { 0% { transform: translateY(0); } 50% { transform: translateY(-70px); } 100% { transform: translateY(0); } } .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out, opacity 0.15s ease-out !important; will-change: transform; } .lime-eye.eyes-closed { transform: scaleY(0.1) !important; } .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
         
         @media (max-width: 768px) { #sidebar { position: absolute; height: 100%; width: 85%; max-width: 340px; margin-right: 0; } #sidebar.hidden { transform: translateX(-100%); margin-right: 0; } .sidebar-header { display: flex; align-items: center; justify-content: space-between; } .new-chat-btn { flex: 1; } .mobile-close-sidebar { display: block; } .input-area { padding: 10px 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); } .input-wrapper { padding: 6px 12px 6px 15px; } .msg { max-width: 95%; font-size: 0.95rem; padding: 10px 15px; } .lime-floating-container { transform: scale(0.85); transform-origin: bottom left; } }
 
@@ -136,6 +133,18 @@
         .math-arrow.right { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='8,5 16,12 8,19'/%3E%3C/svg%3E"); }
         .math-track { flex-grow: 1; height: 5px; background: rgba(0, 0, 0, 0.08); margin: 0 8px; border-radius: 4px; position: relative; }
         .math-thumb { position: absolute; top: 0; left: 0; height: 100%; background: rgba(0, 0, 0, 0.35); border-radius: 4px; }
+
+        /* Integrazione nativa Typing Indicator */
+        .typing-indicator { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 4px 2px; height: 20px; }
+        .typing-dot { width: 6px; height: 6px; background-color: rgba(0, 0, 0, 0.6); border-radius: 50%; animation: lime-typing-jump 1.4s infinite ease-in-out; }
+        .typing-dot:nth-child(1) { animation-delay: 0s; } .typing-dot:nth-child(2) { animation-delay: 0.2s; } .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes lime-typing-jump { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+
+        /* Integrazione nativa Espressioni Occhi */
+        .lime-eye-shape { opacity: 0; transform: scale(0.5); transition: opacity 0.15s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-box: fill-box; transform-origin: center; }
+        #lime-eyes-group.show-stars .lime-eye, #lime-eyes-group.show-x .lime-eye { opacity: 0 !important; transition: transform 0.2s ease-out, opacity 0s !important; }
+        #lime-eyes-group.show-stars .lime-eye-star { opacity: 1; transform: scale(1); }
+        #lime-eyes-group.show-x .lime-eye-x { opacity: 1; transform: scale(1); }
     </style>
 </head>
 <body>
@@ -271,6 +280,10 @@
                                 <g id="lime-eyes-group">
                                     <circle class="lime-eye" cx="65" cy="175" r="9" fill="#1a1a1a" />
                                     <circle class="lime-eye" cx="135" cy="175" r="9" fill="#1a1a1a" />
+                                    <svg class="lime-eye-shape lime-eye-star" x="53" y="163" width="24" height="24" viewBox="0 0 24 24"><path fill="#1a1a1a" d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z"/></svg>
+                                    <svg class="lime-eye-shape lime-eye-star" x="123" y="163" width="24" height="24" viewBox="0 0 24 24"><path fill="#1a1a1a" d="M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z"/></svg>
+                                    <svg class="lime-eye-shape lime-eye-x" x="52.5" y="162.5" width="25" height="25" viewBox="0 0 25 25"><path fill="#1a1a1a" d="M18.148,12.48 L23.813,6.82 C25.376,5.26 25.376,2.72 23.813,1.16 C22.248,-0.41 19.712,-0.41 18.148,1.16 L12.484,6.82 L6.82,1.16 C5.257,-0.41 2.721,-0.41 1.156,1.16 C-0.407,2.72 -0.407,5.26 1.156,6.82 L6.82,12.48 L1.156,18.15 C-0.407,19.71 -0.407,22.25 1.156,23.81 C2.721,25.38 5.257,25.38 6.82,23.81 L12.484,18.15 L18.148,23.81 C19.712,25.38 22.248,25.38 23.813,23.81 C25.376,22.25 25.376,19.71 23.813,18.15 L18.148,12.48"/></svg>
+                                    <svg class="lime-eye-shape lime-eye-x" x="122.5" y="162.5" width="25" height="25" viewBox="0 0 25 25"><path fill="#1a1a1a" d="M18.148,12.48 L23.813,6.82 C25.376,5.26 25.376,2.72 23.813,1.16 C22.248,-0.41 19.712,-0.41 18.148,1.16 L12.484,6.82 L6.82,1.16 C5.257,-0.41 2.721,-0.41 1.156,1.16 C-0.407,2.72 -0.407,5.26 1.156,6.82 L6.82,12.48 L1.156,18.15 C-0.407,19.71 -0.407,22.25 1.156,23.81 C2.721,25.38 5.257,25.38 6.82,23.81 L12.484,18.15 L18.148,23.81 C19.712,25.38 22.248,25.38 23.813,23.81 C25.376,22.25 25.376,19.71 23.813,18.15 L18.148,12.48"/></svg>
                                 </g>
                             </g>
                         </svg>
@@ -421,7 +434,6 @@
     function formatDateSeparator(unixTimestamp) { const d = unixTimestamp ? new Date(unixTimestamp * 1000) : new Date(), t = new Date(), y = new Date(t); y.setDate(y.getDate() - 1); if (d.toDateString() === t.toDateString()) return "Oggi"; if (d.toDateString() === y.toDateString()) return "Ieri"; return d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
     function createDateSeparatorNode(ds) { const s = document.createElement('div'); s.className = 'date-separator'; s.innerHTML = `<span class="date-separator-text">${ds}</span>`; return s; }
     
-    // --- FUNZIONE MODIFICATA: Applica il filtro formatLaTeX anche ai messaggi passati ---
     function createMessageNode(role, text, timestamp = null, isHtml = false) { 
         const wrapper = document.createElement('div'); 
         wrapper.className = `msg-wrapper ${role === 'user' ? 'user-wrapper' : 'bot-wrapper'}`; 
@@ -429,10 +441,13 @@
         div.className = `msg ${role === 'user' ? 'user-msg' : 'bot-msg'}`; 
         
         if (role === 'bot') { 
-            // QUI L'AGGIUNTA: Filttriamo il testo prima di darlo a marked.js!
-            let safeMathText = formatLaTeX(text || "...");
-            div.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : DOMPurify.sanitize(safeMathText); 
-            div.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
+            if (text === "...") {
+                div.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+            } else {
+                let safeMathText = formatLaTeX(text || "...");
+                div.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : DOMPurify.sanitize(safeMathText); 
+                div.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
+            }
         } else { 
             if (isHtml) div.innerHTML = text; else div.textContent = text; 
         } 
@@ -588,7 +603,12 @@
     async function handleBgUpload(event) { if (!userId) return; const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { applyChatBackground(e.target.result); }; reader.readAsDataURL(file); const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); if (publicUrl) { await supabaseClient.auth.updateUser({ data: { bg: publicUrl } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } } }
 
     function initLimeExtras() {
-        const bodyM = document.getElementById('lime-body-main'), eyesM = document.querySelectorAll('.lime-eye'); let isThinking = false;
+        const bodyM = document.getElementById('lime-body-main'), eyesM = document.querySelectorAll('.lime-eye'); 
+        const eyesGroup = document.getElementById('lime-eyes-group');
+        let isThinking = false;
+        let expressionTimeout, failsafeTimeout;
+        let activeObserver = null;
+        let stavaPensandoDavvero = false;
         
         window.updateGreetingVisibility = () => {
             const box = document.getElementById('lime-greeting-box');
@@ -608,7 +628,77 @@
         };
 
         const sendTrigger = (code) => { if (!DOM.inputField) return; DOM.inputField.value = code; DOM.inputField.dispatchEvent(new Event('input', { bubbles: true })); const e = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 }; DOM.inputField.dispatchEvent(new KeyboardEvent('keydown', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keypress', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keyup', e)); };
-        window.setMascotThinking = (state) => { isThinking = state; eyesM.forEach(e => state ? e.classList.add('eyes-closed') : e.classList.remove('eyes-closed')); };
+        
+        window.setMascotThinking = (state) => { 
+            isThinking = state; 
+            
+            if (state) {
+                stavaPensandoDavvero = true;
+                eyesM.forEach(e => e.classList.add('eyes-closed'));
+                clearTimeout(expressionTimeout);
+                clearTimeout(failsafeTimeout);
+                if (eyesGroup) eyesGroup.classList.remove('show-stars', 'show-x');
+                
+                if (activeObserver) {
+                    activeObserver.disconnect();
+                    activeObserver = null;
+                }
+            } else {
+                if (!stavaPensandoDavvero) {
+                    eyesM.forEach(e => e.classList.remove('eyes-closed'));
+                    return;
+                }
+                
+                stavaPensandoDavvero = false;
+
+                setTimeout(() => {
+                    const botMsgs = document.querySelectorAll('.bot-msg');
+                    if (botMsgs.length === 0) {
+                        eyesM.forEach(e => e.classList.remove('eyes-closed'));
+                        return;
+                    }
+                    
+                    const lastMsg = botMsgs[botMsgs.length - 1];
+                    const negRegex = /\b(sbagliato|errato|no|non|errore|purtroppo)\b/;
+                    const posRegex = /\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/;
+
+                    const checkText = () => {
+                        const text = lastMsg.innerText.toLowerCase().substring(0, 80);
+                        if (text.length < 2) return false;
+
+                        let flagEspressione = null;
+                        if (negRegex.test(text)) flagEspressione = 'show-x';
+                        else if (posRegex.test(text)) flagEspressione = 'show-stars';
+
+                        if (flagEspressione && eyesGroup) {
+                            eyesGroup.classList.add(flagEspressione);
+                            expressionTimeout = setTimeout(() => eyesGroup.classList.remove(flagEspressione), 1500);
+                            
+                            if (activeObserver) {
+                                activeObserver.disconnect();
+                                activeObserver = null;
+                            }
+                            return true;
+                        }
+                        return false;
+                    };
+
+                    if (!checkText()) {
+                        activeObserver = new MutationObserver(checkText);
+                        activeObserver.observe(lastMsg, { childList: true, subtree: true, characterData: true });
+
+                        failsafeTimeout = setTimeout(() => {
+                            if (activeObserver) {
+                                activeObserver.disconnect();
+                                activeObserver = null;
+                            }
+                        }, 8000);
+                    }
+
+                    eyesM.forEach(e => e.classList.remove('eyes-closed'));
+                }, 50); 
+            }
+        };
         
         if (DOM.chatBox) { 
             new MutationObserver((mutations) => { 
@@ -872,313 +962,5 @@
     });
 </script>
 
-
-
-
-
-
-<style>
-    .typing-indicator {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        padding: 4px 2px;
-        height: 20px;
-    }
-    .typing-dot {
-        width: 6px;
-        height: 6px;
-        background-color: rgba(0, 0, 0, 0.6);
-        border-radius: 50%;
-        /* Ciclo leggermente più lungo per far respirare l'animazione */
-        animation: lime-typing-jump 1.4s infinite ease-in-out; 
-    }
-    /* Distacco temporale aumentato per un'onda più netta ma fluida */
-    .typing-dot:nth-child(1) { animation-delay: 0s; }
-    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-    
-    @keyframes lime-typing-jump {
-        0%, 60%, 100% { transform: translateY(0); }
-        30% { transform: translateY(-5px); }
-    }
-</style>
-
-<script>
-    (function() {
-        const _originalCreateMessageNode = window.createMessageNode || createMessageNode;
-        
-        window.createMessageNode = function(role, text, timestamp = null, isHtml = false) {
-            const wrapper = _originalCreateMessageNode(role, text, timestamp, isHtml);
-            
-            if (role === 'bot' && text === "...") {
-                const botDiv = wrapper.querySelector('.bot-msg');
-                if (botDiv) {
-                    botDiv.innerHTML = `
-                        <div class="typing-indicator">
-                            <div class="typing-dot"></div>
-                            <div class="typing-dot"></div>
-                            <div class="typing-dot"></div>
-                        </div>
-                    `;
-                }
-            }
-            
-            return wrapper;
-        };
-    })();
-</script>
-
-
-
-
-
-<style>
-    /* Fisica del pendolo: scomponiamo le curve di accelerazione
-       per non farlo mai frenare quando passa per il centro (0 e 100) 
-    */
-    @keyframes lime-rocking {
-        0% { 
-            transform: rotate(0deg); 
-            animation-timing-function: ease-out; /* Frena mentre sale a destra */
-        }
-        25% { 
-            transform: rotate(6deg); 
-            animation-timing-function: ease-in-out; /* Accelera scendendo, frena salendo a sx */
-        }
-        75% { 
-            transform: rotate(-6deg); 
-            animation-timing-function: ease-in; /* Accelera mentre torna verso il centro */
-        }
-        100% { 
-            transform: rotate(0deg); 
-            /* Arriva al massimo della velocità per riallacciarsi fluidamente allo 0% */
-        }
-    }
-    
-    .lime-body-group.anim-rocking {
-        /* Rimuoviamo l'ease globale per lasciare il controllo ai keyframe interni */
-        animation: lime-rocking 1.5s infinite linear !important;
-    }
-</style>
-
-<script>
-    (function() {
-        let patchInterval = setInterval(function() {
-            if (typeof window.setMascotThinking === 'function') {
-                clearInterval(patchInterval);
-                
-                const originalSetMascotThinking = window.setMascotThinking;
-                const bodyM = document.getElementById('lime-body-main');
-                let wantsToStopRocking = false;
-
-                if (bodyM) {
-                    window.setMascotThinking = function(state) {
-                        originalSetMascotThinking(state);
-
-                        if (state) {
-                            wantsToStopRocking = false;
-                            bodyM.classList.add('anim-rocking');
-                        } else {
-                            wantsToStopRocking = true;
-                        }
-                    };
-
-                    bodyM.addEventListener('animationiteration', function(e) {
-                        if (e.animationName === 'lime-rocking' && wantsToStopRocking) {
-                            bodyM.classList.remove('anim-rocking');
-                            wantsToStopRocking = false;
-                        }
-                    });
-                }
-            }
-        }, 50);
-    })();
-</script>
-
-
-
-
-
-
-<style>
-    .lime-eye {
-        transition: transform 0.2s ease-out, opacity 0.15s ease-out !important;
-    }
-    
-    .lime-eye-shape {
-        opacity: 0;
-        transform: scale(0.5);
-        transition: opacity 0.15s ease-out, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    #lime-eyes-group.show-stars .lime-eye,
-    #lime-eyes-group.show-x .lime-eye { 
-        opacity: 0 !important; 
-        transition: transform 0.2s ease-out, opacity 0s !important; 
-    }
-
-    #lime-eyes-group.show-stars .lime-eye-star { opacity: 1; transform: scale(1); }
-    #lime-eyes-group.show-x .lime-eye-x { opacity: 1; transform: scale(1); }
-</style>
-
-<script>
-    (function() {
-        let patchIntervalEyes = setInterval(function() {
-            const eyesGroup = document.getElementById('lime-eyes-group');
-            
-            if (eyesGroup && typeof window.setMascotThinking === 'function') {
-                clearInterval(patchIntervalEyes);
-
-                const ns = "http://www.w3.org/2000/svg";
-                
-                const createShape = (type, cx, cy) => {
-                    const svgNode = document.createElementNS(ns, "svg");
-                    svgNode.setAttribute("class", `lime-eye-shape lime-eye-${type}`);
-                    svgNode.style.transformOrigin = `${cx}px ${cy}px`; 
-                    svgNode.style.overflow = "visible";
-                    
-                    if (type === 'star') {
-                        svgNode.setAttribute("x", cx - 12);
-                        svgNode.setAttribute("y", cy - 12);
-                        svgNode.setAttribute("width", "24");
-                        svgNode.setAttribute("height", "24");
-                        svgNode.setAttribute("viewBox", "0 0 24 24");
-                        
-                        const path = document.createElementNS(ns, "path");
-                        path.setAttribute("fill", "#1a1a1a");
-                        path.setAttribute("d", "M9.15316 5.40838C10.4198 3.13613 11.0531 2 12 2C12.9469 2 13.5802 3.13612 14.8468 5.40837L15.1745 5.99623C15.5345 6.64193 15.7144 6.96479 15.9951 7.17781C16.2757 7.39083 16.6251 7.4699 17.3241 7.62805L17.9605 7.77203C20.4201 8.32856 21.65 8.60682 21.9426 9.54773C22.2352 10.4886 21.3968 11.4691 19.7199 13.4299L19.2861 13.9372C18.8096 14.4944 18.5713 14.773 18.4641 15.1177C18.357 15.4624 18.393 15.8341 18.465 16.5776L18.5306 17.2544C18.7841 19.8706 18.9109 21.1787 18.1449 21.7602C17.3788 22.3417 16.2273 21.8115 13.9243 20.7512L13.3285 20.4768C12.6741 20.1755 12.3469 20.0248 12 20.0248C11.6531 20.0248 11.3259 20.1755 10.6715 20.4768L10.0757 20.7512C7.77268 21.8115 6.62118 22.3417 5.85515 21.7602C5.08912 21.1787 5.21588 19.8706 5.4694 17.2544L5.53498 16.5776C5.60703 15.8341 5.64305 15.4624 5.53586 15.1177C5.42868 14.773 5.19043 14.4944 4.71392 13.9372L4.2801 13.4299C2.60325 11.4691 1.76482 10.4886 2.05742 9.54773C2.35002 8.60682 3.57986 8.32856 6.03954 7.77203L6.67589 7.62805C7.37485 7.4699 7.72433 7.39083 8.00494 7.17781C8.28555 6.96479 8.46553 6.64194 8.82547 5.99623L9.15316 5.40838Z");
-                        svgNode.appendChild(path);
-                    } else {
-                        svgNode.setAttribute("x", cx - 12.5);
-                        svgNode.setAttribute("y", cy - 12.5);
-                        svgNode.setAttribute("width", "25");
-                        svgNode.setAttribute("height", "25");
-                        svgNode.setAttribute("viewBox", "0 0 25 25");
-
-                        const path = document.createElementNS(ns, "path");
-                        path.setAttribute("fill", "#1a1a1a");
-                        path.setAttribute("d", "M18.148,12.48 L23.813,6.82 C25.376,5.26 25.376,2.72 23.813,1.16 C22.248,-0.41 19.712,-0.41 18.148,1.16 L12.484,6.82 L6.82,1.16 C5.257,-0.41 2.721,-0.41 1.156,1.16 C-0.407,2.72 -0.407,5.26 1.156,6.82 L6.82,12.48 L1.156,18.15 C-0.407,19.71 -0.407,22.25 1.156,23.81 C2.721,25.38 5.257,25.38 6.82,23.81 L12.484,18.15 L18.148,23.81 C19.712,25.38 22.248,25.38 23.813,23.81 C25.376,22.25 25.376,19.71 23.813,18.15 L18.148,12.48");
-                        svgNode.appendChild(path);
-                    }
-                    return svgNode;
-                };
-
-                eyesGroup.appendChild(createShape('star', 65, 175));
-                eyesGroup.appendChild(createShape('star', 135, 175));
-                eyesGroup.appendChild(createShape('x', 65, 175));
-                eyesGroup.appendChild(createShape('x', 135, 175));
-
-                const _originalSetMascotThinkingEyes = window.setMascotThinking;
-                let expressionTimeout;
-                let activeObserver = null;
-                let failsafeTimeout = null;
-                
-                // Variabile per capire se stavamo davvero aspettando una risposta
-                let stavaPensandoDavvero = false;
-
-                window.setMascotThinking = function(state) {
-                    if (state) {
-                        stavaPensandoDavvero = true;
-                        _originalSetMascotThinkingEyes(true);
-                        clearTimeout(expressionTimeout);
-                        clearTimeout(failsafeTimeout);
-                        eyesGroup.classList.remove('show-stars', 'show-x');
-                        
-                        if (activeObserver) {
-                            activeObserver.disconnect();
-                            activeObserver = null;
-                        }
-                    } else {
-                        // Se riceve il comando di spegnersi, ma non stava pensando (es. cambio chat), si ferma qui
-                        if (!stavaPensandoDavvero) {
-                            _originalSetMascotThinkingEyes(false);
-                            return;
-                        }
-                        
-                        // Resettiamo la variabile per il prossimo turno
-                        stavaPensandoDavvero = false;
-
-                        setTimeout(() => {
-                            const botMsgs = document.querySelectorAll('.bot-msg');
-                            if (botMsgs.length === 0) {
-                                _originalSetMascotThinkingEyes(false);
-                                return;
-                            }
-                            
-                            const lastMsg = botMsgs[botMsgs.length - 1];
-                            const negRegex = /\b(sbagliato|errato|no|non|errore|purtroppo)\b/;
-                            const posRegex = /\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/;
-
-                            const checkText = () => {
-                                const text = lastMsg.innerText.toLowerCase().substring(0, 80);
-                                if (text.length < 2) return false;
-
-                                let flagEspressione = null;
-                                if (negRegex.test(text)) flagEspressione = 'show-x';
-                                else if (posRegex.test(text)) flagEspressione = 'show-stars';
-
-                                if (flagEspressione) {
-                                    eyesGroup.classList.add(flagEspressione);
-                                    expressionTimeout = setTimeout(() => eyesGroup.classList.remove(flagEspressione), 1500);
-                                    
-                                    if (activeObserver) {
-                                        activeObserver.disconnect();
-                                        activeObserver = null;
-                                    }
-                                    return true;
-                                }
-                                return false;
-                            };
-
-                            if (!checkText()) {
-                                activeObserver = new MutationObserver(checkText);
-                                activeObserver.observe(lastMsg, { childList: true, subtree: true, characterData: true });
-
-                                failsafeTimeout = setTimeout(() => {
-                                    if (activeObserver) {
-                                        activeObserver.disconnect();
-                                        activeObserver = null;
-                                    }
-                                }, 8000);
-                            }
-
-                            _originalSetMascotThinkingEyes(false);
-                            
-                        }, 50); 
-                    }
-                };
-            }
-        }, 50);
-    })();
-</script>);
-    })();
-</script>
-
-
-    
-
-    
-
-
-
-    
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
