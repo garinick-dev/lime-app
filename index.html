@@ -118,8 +118,8 @@
         #recording-timer { color: #ff4444; font-weight: 500; font-size: 0.95rem; margin-right: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; flex-shrink: 0;}
         .action-btn svg, #attach-btn svg, #mic-btn svg, #send-btn svg { transition: color 0.2s ease, filter 0.2s ease; }
 
-        /* GREETING BOX SPOSTATO E RESO ABSOLUTE */
-        #lime-greeting-box { position: absolute; bottom: var(--breath-padding, 140px) !important; margin-bottom: 15px !important; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1000; pointer-events: none; font-family: inherit; transition: opacity 0.2s ease, visibility 0.2s; will-change: opacity, visibility; } 
+        /* GREETING BOX INCLUSO NEL FLUSSO RELATIVO PER OVERRIDE DEFINITIVO */
+        #lime-greeting-box { position: relative !important; bottom: auto !important; margin-bottom: 20px !important; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1000; font-family: inherit; transition: opacity 0.2s ease; opacity: 1; pointer-events: auto; } 
         .lime-container-inner { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 15px; padding: 0 20px; } .lime-bubble { align-self: flex-start; background-color: var(--lime-accent); color: #000; padding: 12px 20px; border-radius: 18px 18px 18px 4px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.08); pointer-events: auto; transition: background-color 0.3s ease; } .lime-suggestions { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: auto; } .lime-chip { background-color: var(--lime-bg-chip); border: 1px solid var(--lime-chip-border); padding: 10px 16px; border-radius: 18px 18px 4px 18px; font-size: 0.9em; color: var(--lime-chip-color); cursor: pointer; backdrop-filter: blur(8px); transition: all 0.2s ease; transform: translateZ(0); } body:not(.light-theme) .lime-chip:hover { background-color: #3a3a3a; transform: translateX(-3px); } body.light-theme .lime-chip:hover { background-color: #ffffff; transform: translateX(-3px); } .ghost-hidden { display: none !important; }
         
         #lime-app-mascot.lime-floating-container { position: absolute !important; bottom: 100% !important; left: -32px !important; margin-bottom: 0 !important; pointer-events: none; z-index: 9999; transition: left 0.15s ease-out, bottom 0.15s ease-out; will-change: left, bottom; } 
@@ -238,19 +238,20 @@
 
             <div id="chat-box"></div>
             
-            <div id="lime-greeting-box">
-                <div class="lime-container-inner">
-                    <div class="lime-bubble">Cosa studiamo oggi?</div>
-                    <div class="lime-suggestions">
-                        <button class="lime-chip" data-trigger="@1">interrogami su ...</button>
-                        <button class="lime-chip" data-trigger="@2">parliamo in un'altra lingua</button>
-                        <button class="lime-chip" data-trigger="@3">suggeriscimi degli esercizi</button>
-                        <button class="lime-chip" data-trigger="@4">verifica la mia fluidità</button>
+            <div class="input-area">
+                
+                <div id="lime-greeting-box">
+                    <div class="lime-container-inner">
+                        <div class="lime-bubble">Cosa studiamo oggi?</div>
+                        <div class="lime-suggestions">
+                            <button class="lime-chip" data-trigger="@1">interrogami su ...</button>
+                            <button class="lime-chip" data-trigger="@2">parliamo in un'altra lingua</button>
+                            <button class="lime-chip" data-trigger="@3">suggeriscimi degli esercizi</button>
+                            <button class="lime-chip" data-trigger="@4">verifica la mia fluidità</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="input-area">
+                
                 <div id="breath-area"></div>
                 <div class="input-wrapper">
                     
@@ -393,6 +394,7 @@
         if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
         if (chatCache[id]) { renderMessages(chatCache[id]); return; } 
         DOM.chatBox.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Recupero messaggi...</div>`; 
+        if (window.updateGreetingVisibility) window.updateGreetingVisibility();
         const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 10000); 
         try { 
             const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}`, { headers: await getAuthHeaders(), signal: controller.signal }); 
@@ -572,19 +574,25 @@
             const box = document.getElementById('lime-greeting-box');
             const chat = document.getElementById('chat-box');
             const input = document.getElementById('user-input');
-            if (!box || !chat || !input) return;
+            if (!box) return;
 
-            const hasMessages = chat.querySelectorAll('.msg-wrapper').length > 0;
-            const hasText = input.value.trim().length > 0;
+            const messageCount = chat ? chat.querySelectorAll('.msg-wrapper').length : 0;
+            const hasText = input ? input.value.trim().length > 0 : false;
+            const isLoading = chat ? chat.innerHTML.includes('Recupero') : false;
             
-            if (!hasMessages && !hasText) {
-                box.style.opacity = '1';
-                box.style.visibility = 'visible';
-                box.style.pointerEvents = 'auto';
+            // L'OVERRIDE DEFINITIVO: Mostriamo o nascondiamo in modo netto alterando il display
+            if (messageCount === 0 && !hasText && !isLoading && !currentConversationId) {
+                box.style.display = 'flex';
+                setTimeout(() => { 
+                    box.style.opacity = '1'; 
+                    box.style.pointerEvents = 'auto'; 
+                }, 10);
             } else {
                 box.style.opacity = '0';
-                box.style.visibility = 'hidden';
                 box.style.pointerEvents = 'none';
+                setTimeout(() => { 
+                    if (box.style.opacity === '0') box.style.display = 'none'; 
+                }, 200);
             }
         };
 
@@ -642,7 +650,6 @@
         const mascotSvg = document.querySelector('#lime-app-mascot svg');
         const chatBox = document.getElementById('chat-box');
         const inputArea = document.querySelector('.input-area');
-        const greetingBox = document.getElementById('lime-greeting-box');
         let lastMsgPadding = -1;
         let lockedWidth = window.innerWidth;
         let lockedHeight = window.innerHeight;
@@ -697,7 +704,6 @@
                 const shiftY = `translateY(-${keyboardHeight}px)`;
                 
                 if (inputArea) inputArea.style.transform = `${shiftY} translateZ(0)`;
-                if (greetingBox) greetingBox.style.transform = shiftY;
                 if (chatBox) chatBox.style.transform = shiftY;
                 window.scrollTo(0, 0);
                 syncAnchoring(); 
@@ -806,8 +812,6 @@
             document.getElementById('main-container').classList.remove('hidden'); 
             updateProfileUI(session.user); 
             loadHistory(); 
-            // Forza l'aggiornamento visivo non appena il contenitore è pronto
-            if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
         }
         
         supabaseClient.auth.onAuthStateChange((event, session) => { 
@@ -817,13 +821,15 @@
                 document.getElementById('main-container').classList.remove('hidden'); 
                 updateProfileUI(session.user); 
                 loadHistory(); 
-                if (window.updateGreetingVisibility) window.updateGreetingVisibility();
             } else { 
                 userId = null; 
                 document.getElementById('auth-section').classList.remove('hidden'); 
                 document.getElementById('main-container').classList.add('hidden'); 
                 updateProfileUI(null); 
             } 
+            
+            // Forza l'update dopo il caricamento della sessione per superare il check
+            setTimeout(() => { if (window.updateGreetingVisibility) window.updateGreetingVisibility(); }, 300);
         });
         
         // Listeners per Selettori Istruzione Nativi
@@ -849,6 +855,8 @@
         }
 
         initLimeExtras();
+        // Override al lancio
+        setTimeout(() => { if (window.updateGreetingVisibility) window.updateGreetingVisibility(); }, 300);
     });
 </script>
     
