@@ -871,6 +871,72 @@
         initLimeExtras();
     });
 </script>
+
+
+
+
+
+
+<style>
+    .typing-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 4px 2px;
+        height: 20px;
+    }
+    .typing-dot {
+        width: 7px;
+        height: 7px;
+        background-color: rgba(0, 0, 0, 0.6); /* Colore scuro per staccare sul lime */
+        border-radius: 50%;
+        animation: lime-typing-bounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+    
+    @keyframes lime-typing-bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+</style>
+
+<script>
+    (function() {
+        // Salviamo una copia della funzione originale che crea i messaggi
+        const _originalCreateMessageNode = window.createMessageNode || createMessageNode;
+        
+        // La sovrascriviamo in modo chirurgico
+        window.createMessageNode = function(role, text, timestamp = null, isHtml = false) {
+            // Generiamo il contenitore base usando la funzione originale
+            const wrapper = _originalCreateMessageNode(role, text, timestamp, isHtml);
+            
+            // Se il bot sta per scrivere i 3 puntini statici, li sostituiamo con l'animazione
+            if (role === 'bot' && text === "...") {
+                const botDiv = wrapper.querySelector('.bot-msg');
+                if (botDiv) {
+                    botDiv.innerHTML = `
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    `;
+                }
+            }
+            
+            return wrapper;
+        };
+    })();
+</script>
+
+
+
+
+
+
     
 </body>
 </html>
+
