@@ -295,14 +295,18 @@
     </div>
 
 <script>
-    // --- FUNZIONE NORMALIZZAZIONE MATEMATICA ---
+    // --- FUNZIONE NORMALIZZAZIONE MATEMATICA CORRETTA ---
     function formatLaTeX(text) {
         if (!text) return "";
         return text
-            .replace(/\\\\\(/g, '\\(').replace(/\\\\\)/g, '\\)')
-            .replace(/\\\\\[/g, '\\[').replace(/\\\\\]/g, '\\]')
-            .replace(/\\\[/g, () => '$$$$').replace(/\\\]/g, () => '$$$$')
-            .replace(/\\\(/g, () => '$').replace(/\\\)/g, () => '$');
+            .replace(/\\\\\[/g, () => '\\[')
+            .replace(/\\\\\]/g, () => '\\]')
+            .replace(/\\\\\(/g, () => '\\(')
+            .replace(/\\\\\)/g, () => '\\)')
+            .replace(/\\\[/g, () => '$$')
+            .replace(/\\\]/g, () => '$$')
+            .replace(/\\\(/g, () => '$')
+            .replace(/\\\)/g, () => '$');
     }
 
     // --- PATCH API FETCH PAYLOAD ---
@@ -373,9 +377,37 @@
     
     async function renameChat(id, old) { const n = prompt("Nuovo titolo:", old); if (n && n.trim() !== "" && n !== old) { await supabaseClient.from('conversations').update({ title: n.trim() }).eq('dify_id', id); loadHistory(); } }
     async function deleteChat(id) { if (confirm("Vuoi eliminare questa chat?")) { await supabaseClient.from('conversations').delete().eq('dify_id', id); delete chatCache[id]; if (currentConversationId === id) startNewChat(); else loadHistory(); } }
-    function startNewChat() { isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; currentConversationId = null; DOM.chatBox.innerHTML = ""; if (window.updateGreetingVisibility) window.updateGreetingVisibility(); document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-chat')); if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); }
+    
+    function startNewChat() { 
+        isGenerating = false; 
+        if (window.setMascotThinking) window.setMascotThinking(false); 
+        DOM.sendBtn.disabled = false; 
+        currentConversationId = null; 
+        DOM.chatBox.innerHTML = ""; 
+        if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
+        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-chat')); 
+        if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
+    }
 
-    async function loadChat(id) { currentConversationId = id; if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); if (chatCache[id]) { renderMessages(chatCache[id]); return; } DOM.chatBox.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Recupero messaggi...</div>`; const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 10000); try { const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}`, { headers: await getAuthHeaders(), signal: controller.signal }); clearTimeout(timeoutId); const result = await res.json(); if (result.data && result.data.length > 0) { const sorted = result.data.sort((a, b) => a.created_at - b.created_at); chatCache[id] = sorted; renderMessages(sorted); } else startNewChat(); } catch (e) { clearTimeout(timeoutId); DOM.chatBox.innerHTML = `<div style="color:#ff4444; text-align:center; width:100%;">Impossibile recuperare la chat. Riprova.</div>`; } }
+    async function loadChat(id) { 
+        currentConversationId = id; 
+        if (window.updateGreetingVisibility) window.updateGreetingVisibility();
+        if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
+        if (chatCache[id]) { renderMessages(chatCache[id]); return; } 
+        DOM.chatBox.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Recupero messaggi...</div>`; 
+        const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 10000); 
+        try { 
+            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}`, { headers: await getAuthHeaders(), signal: controller.signal }); 
+            clearTimeout(timeoutId); const result = await res.json(); 
+            if (result.data && result.data.length > 0) { 
+                const sorted = result.data.sort((a, b) => a.created_at - b.created_at); 
+                chatCache[id] = sorted; renderMessages(sorted); 
+            } else startNewChat(); 
+        } catch (e) { 
+            clearTimeout(timeoutId); DOM.chatBox.innerHTML = `<div style="color:#ff4444; text-align:center; width:100%;">Impossibile recuperare la chat. Riprova.</div>`; 
+        } 
+    }
+    
     function renderMessages(messages) { DOM.chatBox.innerHTML = ""; const fragment = document.createDocumentFragment(); let lastDate = null; messages.forEach(m => { const md = formatDateSeparator(m.created_at); if (md !== lastDate) { fragment.appendChild(createDateSeparatorNode(md)); lastDate = md; } let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); if (fileMatch) { fileName = fileMatch[1]; rawQuery = rawQuery.replace(fileMatch[0], ""); } const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; let hasFile = docRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); let userHtml = rawQuery.replace(docRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); }); DOM.chatBox.appendChild(fragment); scrollToBottom(true); if(window.updateGreetingVisibility) window.updateGreetingVisibility(); }
 
     window.handleFileSelect = function(e) { const file = e.target.files[0]; if (!file) { clearAttachment(); return; } currentFile = file; const btn = document.getElementById('attach-btn'); btn.classList.add('active'); btn.innerHTML = `${svgAttach}<div class="del-badge">${svgCross}</div>`; btn.onclick = clearAttachment; const label = document.getElementById('attachment-label'); label.innerText = file.name; label.style.display = 'block'; };
@@ -540,9 +572,9 @@
         
         window.updateGreetingVisibility = () => {
             if (!DOM.greetingBox) return;
-            const hasMessages = DOM.chatBox && DOM.chatBox.querySelectorAll('.msg').length > 0;
+            const isNewChat = !currentConversationId;
             const isPromptEmpty = DOM.inputField && DOM.inputField.value.trim().length === 0;
-            const visible = !hasMessages && isPromptEmpty;
+            const visible = isNewChat && isPromptEmpty;
             
             DOM.greetingBox.style.opacity = visible ? '1' : '0';
             DOM.greetingBox.style.visibility = visible ? 'visible' : 'hidden';
