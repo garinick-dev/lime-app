@@ -962,22 +962,23 @@ if (currentConversationId) {
 
 
 <style>
-    /* PATCH GRAFICA UNICA: Intestazioni fisse per Chat e Impostazioni */
+    /* PATCH GRAFICA UNICA V2: Intestazioni fisse per Chat e Impostazioni */
     
-    #history-list::before {
+    #sidebar-top::before {
         content: "Chat";
-        position: -webkit-sticky;
-        position: sticky;
-        top: -10px;
         display: block;
-        background: var(--sidebar-bg);
         color: var(--accent);
         font-size: 0.95rem;
         font-weight: 800;
         letter-spacing: 1px;
-        padding: 10px 0 10px 0;
-        margin: -10px 0 10px 0;
-        z-index: 10;
+        padding: 20px 20px 5px 20px;
+        padding-top: calc(20px + env(safe-area-inset-top));
+        flex-shrink: 0;
+    }
+
+    /* Bilanciamo lo spazio sopra il pulsante per mantenere coerenza visiva */
+    .sidebar-header {
+        padding-top: 5px !important; 
     }
 
     #sidebar-bottom::before {
@@ -1000,6 +1001,7 @@ if (currentConversationId) {
 
 
 
+
     
 
 
@@ -1007,6 +1009,7 @@ if (currentConversationId) {
 
 </body>
 </html>
+
 
 
 
