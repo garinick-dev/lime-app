@@ -1200,6 +1200,47 @@
 
 
 
+
+<script>
+(function() {
+    let capturedChipTitle = null;
+
+    // Intercettiamo il click sui suggerimenti per catturare il testo scelto dall'utente
+    document.addEventListener('click', (e) => {
+        const chip = e.target.closest('.lime-chip');
+        if (chip) {
+            // Puliamo il testo da eventuali spazi o emoji per un titolo pulito
+            capturedChipTitle = chip.innerText.trim();
+        }
+    }, true);
+
+    // Eseguiamo il "monkey-patch" su Supabase per sostituire il titolo generico (@1, @2...)
+    // con il testo catturato dal chip solo durante il primo inserimento.
+    const originalFrom = supabaseClient.from;
+    supabaseClient.from = function(tableName) {
+        const queryBuilder = originalFrom.apply(this, arguments);
+        
+        if (tableName === 'conversations') {
+            const originalInsert = queryBuilder.insert;
+            queryBuilder.insert = function(records) {
+                // Se abbiamo un titolo catturato e stiamo creando una nuova riga
+                if (capturedChipTitle && records && records[0]) {
+                    records[0].title = capturedChipTitle;
+                    capturedChipTitle = null; // Reset immediato: deve capitare una volta sola
+                }
+                return originalInsert.apply(this, arguments);
+            };
+        }
+        return queryBuilder;
+    };
+})();
+</script>
+
+
+
+    
+
+
     
 
 
@@ -1208,4 +1249,5 @@
 
 </body>
 </html>
+
 
