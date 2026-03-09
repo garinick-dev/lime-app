@@ -955,6 +955,39 @@ if (currentConversationId) {
     });
 </script>
 
+
+
+
+
+
+
+<style>
+    /* PATCH GRAFICA: Intestazione "Impostazioni" fissa nella sidebar */
+    #sidebar-bottom::before {
+        content: "Impostazioni";
+        position: -webkit-sticky; /* Supporto esteso per vecchi dispositivi iOS */
+        position: sticky;
+        top: -20px;               /* Compensa il padding originale del contenitore */
+        display: block;
+        background: var(--sidebar-bg);
+        color: var(--accent);     /* Si adatta istantaneamente al cambio colore del tema */
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        padding: 20px 0 15px 0;
+        margin: -20px 0 15px 0;
+        z-index: 10;              /* Resta sopra gli elementi durante lo scroll */
+    }
+</style>
+
+
+
+    
+
+
+    
+
 </body>
 </html>
+
 
