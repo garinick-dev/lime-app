@@ -687,27 +687,33 @@
                     } 
                 } 
             } 
-            
             // --- INIZIO BLOCCO RIPOSIZIONAMENTO CHAT ---
-            if (currentConversationId) {
-                // Converto sempre in stringa per evitare mismatch silenti (es: '123' vs 123)
-                const chatIndex = allChats.findIndex(c => String(c.dify_id) === String(currentConversationId));
-                
-                if (chatIndex > -1) {
-                    // Chat già in memoria: la sposto istantaneamente all'inizio dell'array
-                    const [activeChat] = allChats.splice(chatIndex, 1);
-                    allChats.unshift(activeChat);
-                    renderHistoryList();
-                    // Aggiorno asincronamente il database
-                    supabaseClient.from('conversations').update({ created_at: new Date().toISOString() }).eq('dify_id', currentConversationId);
-                } else {
-                    // Chat nuovissima: loadHistory() la sta già recuperando in background.
-                    // Nel frattempo forziamo il prepending visivo per evitare latenze.
-                    const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); 
-                    if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
-                }
-            }
-            // --- FINE BLOCCO RIPOSIZIONAMENTO CHAT ---
+if (currentConversationId) {
+    // Converto sempre in stringa per evitare mismatch silenti (es: '123' vs 123)
+    const chatIndex = allChats.findIndex(c => String(c.dify_id) === String(currentConversationId));
+    
+    if (chatIndex > -1) {
+        // Chat già in memoria: la sposto istantaneamente all'inizio dell'array
+        const [activeChat] = allChats.splice(chatIndex, 1);
+        allChats.unshift(activeChat);
+        renderHistoryList();
+        
+        // Aggiorno asincronamente il database (con .then() per sparare effettivamente la query)
+        supabaseClient.from('conversations')
+            .update({ created_at: new Date().toISOString() })
+            .eq('dify_id', currentConversationId)
+            .then(({ error }) => { 
+                if (error) console.error("Errore fissaggio chat:", error.message); 
+            });
+    } else {
+        // Chat nuovissima: loadHistory() la sta già recuperando in background.
+        // Nel frattempo forziamo il prepending visivo per evitare latenze.
+        const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); 
+        if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
+    }
+}
+// --- FINE BLOCCO RIPOSIZIONAMENTO CHAT ---
+
             
         } catch (e) { 
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
@@ -951,3 +957,4 @@
 
 </body>
 </html>
+
