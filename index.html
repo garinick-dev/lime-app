@@ -122,7 +122,13 @@
         
         #lime-app-mascot.lime-floating-container { position: absolute !important; bottom: 100% !important; left: -32px !important; margin-bottom: 0 !important; pointer-events: none; z-index: 9999; transition: left 0.15s ease-out, bottom 0.15s ease-out; will-change: left, bottom; } 
         #lime-app-mascot svg { height: auto !important; display: block; }
-        .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } .anim-squeeze { animation: lime-sq 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); } .anim-roll { animation: lime-ro 1.5s ease-in-out; } .anim-jump { animation: lime-ju 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); } @keyframes lime-sq { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1, 0.85); } } @keyframes lime-ro { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 75% { transform: rotate(-7deg); } } @keyframes lime-ju { 0% { transform: translateY(0); } 50% { transform: translateY(-70px); } 100% { transform: translateY(0); } } .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out, opacity 0.15s ease-out !important; will-change: transform; } .lime-eye.eyes-closed { transform: scaleY(0.1) !important; } .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
+        .lime-body-group { transform-origin: 100px 225px; transform: translateZ(0); } .skin { fill: var(--lime-accent); transition: fill 0.3s ease; } .anim-squeeze { animation: lime-sq 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); } .anim-roll { animation: lime-ro 1.5s ease-in-out; } .anim-jump { animation: lime-ju 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); } @keyframes lime-sq { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1, 0.85); } } @keyframes lime-ro { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 75% { transform: rotate(-7deg); } } @keyframes lime-ju { 0% { transform: translateY(0); } 50% { transform: translateY(-70px); } 100% { transform: translateY(0); } } .lime-eye { transform-origin: center; transform-box: fill-box; transition: transform 0.2s ease-out, opacity 0.15s ease-out !important; will-change: transform; } 
+        
+        /* Nuova animazione di rolling applicata ESCLUSIVAMENTE agli occhi */
+        @keyframes lime-eyes-think-roll { 0%, 100% { transform: scaleY(0.1) translate(0, 0); } 25% { transform: scaleY(0.1) translate(-4px, 0); } 75% { transform: scaleY(0.1) translate(4px, 0); } }
+        .lime-eye.eyes-closed { transform: scaleY(0.1) !important; animation: lime-eyes-think-roll 1.5s infinite ease-in-out; } 
+        
+        .anim-blink { animation: lime-blink 0.15s ease-in-out; } @keyframes lime-blink { 0%, 100% { transform: scaleY(1) translate(var(--lx,0), var(--ly,0)); } 50% { transform: scaleY(0.1) translate(var(--lx,0), var(--ly,0)); } }
         
         @media (max-width: 768px) { #sidebar { position: absolute; height: 100%; width: 85%; max-width: 340px; margin-right: 0; } #sidebar.hidden { transform: translateX(-100%); margin-right: 0; } .sidebar-header { display: flex; align-items: center; justify-content: space-between; } .new-chat-btn { flex: 1; } .mobile-close-sidebar { display: block; } .input-area { padding: 10px 15px; padding-bottom: calc(15px + env(safe-area-inset-bottom)); } .input-wrapper { padding: 6px 12px 6px 15px; } .msg { max-width: 95%; font-size: 0.95rem; padding: 10px 15px; } .lime-floating-container { transform: scale(0.85); transform-origin: bottom left; } }
 
@@ -581,6 +587,10 @@
         if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
         let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
         
+        // --- LOGICA GESTIONE TITOLO CHAT ---
+        let activeChatTitle = window.pendingChatTitle || (query.substring(0, 35) || "Nuova Chat");
+        window.pendingChatTitle = null; // Reset immediato
+        
         isGenerating = true; if (window.setMascotThinking) window.setMascotThinking(true); DOM.sendBtn.disabled = true; 
         const exs = DOM.chatBox.querySelectorAll('.date-separator-text'); 
         if (exs.length === 0 || exs[exs.length - 1].innerText !== "Oggi") DOM.chatBox.appendChild(createDateSeparatorNode("Oggi"));
@@ -638,7 +648,7 @@
                 botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
                 if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom(); 
                 
-                if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: query.substring(0, 35) || "Nuova Chat" }]); loadHistory(); } 
+                if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: activeChatTitle }]); loadHistory(); } 
                 if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
             } else { 
                 const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = "", firstChunk = true; 
@@ -655,7 +665,6 @@
                                     fullAnswer += data.answer; 
                                     if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
                                     
-                                    // Throttling del rendering
                                     const now = Date.now();
                                     if (now - lastRenderTime > 50) {
                                         lastRenderTime = now;
@@ -679,7 +688,7 @@
                                     } 
                                 } else if (data.event === 'message_end') { 
                                     botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
-                                    if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: query.substring(0, 35) || "Nuova Chat" }]); loadHistory(); } 
+                                    if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: activeChatTitle }]); loadHistory(); } 
                                     if(currentConversationId) { if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); } 
                                 } 
                             } catch (e) {} 
@@ -687,33 +696,19 @@
                     } 
                 } 
             } 
-            // --- INIZIO BLOCCO RIPOSIZIONAMENTO CHAT ---
-if (currentConversationId) {
-    // Converto sempre in stringa per evitare mismatch silenti (es: '123' vs 123)
-    const chatIndex = allChats.findIndex(c => String(c.dify_id) === String(currentConversationId));
-    
-    if (chatIndex > -1) {
-        // Chat già in memoria: la sposto istantaneamente all'inizio dell'array
-        const [activeChat] = allChats.splice(chatIndex, 1);
-        allChats.unshift(activeChat);
-        renderHistoryList();
-        
-        // Aggiorno asincronamente il database (con .then() per sparare effettivamente la query)
-        supabaseClient.from('conversations')
-            .update({ created_at: new Date().toISOString() })
-            .eq('dify_id', currentConversationId)
-            .then(({ error }) => { 
-                if (error) console.error("Errore fissaggio chat:", error.message); 
-            });
-    } else {
-        // Chat nuovissima: loadHistory() la sta già recuperando in background.
-        // Nel frattempo forziamo il prepending visivo per evitare latenze.
-        const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); 
-        if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
-    }
-}
-// --- FINE BLOCCO RIPOSIZIONAMENTO CHAT ---
-
+            
+            if (currentConversationId) {
+                const chatIndex = allChats.findIndex(c => String(c.dify_id) === String(currentConversationId));
+                if (chatIndex > -1) {
+                    const [activeChat] = allChats.splice(chatIndex, 1);
+                    allChats.unshift(activeChat);
+                    renderHistoryList();
+                    supabaseClient.from('conversations').update({ created_at: new Date().toISOString() }).eq('dify_id', currentConversationId).then(({ error }) => { if (error) console.error("Errore fissaggio chat:", error.message); });
+                } else {
+                    const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); 
+                    if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
+                }
+            }
             
         } catch (e) { 
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
@@ -835,7 +830,13 @@ if (currentConversationId) {
         
         setTimeout(playBody, 2000); setTimeout(playBlink, 2500); setTimeout(look, 3000);
         
-        document.addEventListener('click', (e) => { if (e.target.classList.contains('lime-chip')) sendTrigger(e.target.getAttribute('data-trigger')); });
+        // --- CATTURA DEL TITOLO PER LA CHAT DAI CHIPS ---
+        document.addEventListener('click', (e) => { 
+            if (e.target.classList.contains('lime-chip')) {
+                window.pendingChatTitle = e.target.innerText.trim();
+                sendTrigger(e.target.getAttribute('data-trigger')); 
+            }
+        });
     }
 
     function setupViewportAnchoring() {
@@ -955,61 +956,5 @@ if (currentConversationId) {
     });
 </script>
 
-
-
-
-
-
-
-<style>
-    /* PATCH GRAFICA UNICA V2: Intestazioni fisse per Chat e Impostazioni */
-    
-    #sidebar-top::before {
-        content: "Chat";
-        display: block;
-        color: var(--accent);
-        font-size: 0.95rem;
-        font-weight: 800;
-        letter-spacing: 1px;
-        padding: 20px 20px 5px 20px;
-        padding-top: calc(20px + env(safe-area-inset-top));
-        flex-shrink: 0;
-    }
-
-    /* Bilanciamo lo spazio sopra il pulsante per mantenere coerenza visiva */
-    .sidebar-header {
-        padding-top: 5px !important; 
-    }
-
-    #sidebar-bottom::before {
-        content: "Impostazioni";
-        position: -webkit-sticky;
-        position: sticky;
-        top: -20px;
-        display: block;
-        background: var(--sidebar-bg);
-        color: var(--accent);
-        font-size: 0.95rem;
-        font-weight: 800;
-        letter-spacing: 1px;
-        padding: 20px 0 15px 0;
-        margin: -20px 0 15px 0;
-        z-index: 10;
-    }
-</style>
-
-
-
-
-
-    
-
-
-    
-
 </body>
 </html>
-
-
-
-
