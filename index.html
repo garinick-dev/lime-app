@@ -928,5 +928,43 @@
     });
 </script>
 
+
+
+
+
+    <script>
+    (function() {
+        // Salviamo una referenza alla tua funzione originale
+        const originalSendMessage = window.sendMessage;
+        
+        window.sendMessage = async function() {
+            // Memorizziamo l'ID della chat prima che parta la richiesta
+            const idToUpdate = currentConversationId; 
+            
+            // Avviamo la funzione originale senza modificarne il comportamento
+            const result = originalSendMessage.apply(this, arguments);
+            
+            // Se siamo dentro una chat esistente, aggiorniamo silenziosamente
+            // il suo timestamp nel database. In questo modo loadHistory()
+            // la rimetterà permanentemente in cima al prossimo avvio.
+            if (idToUpdate) {
+                const now = new Date().toISOString();
+                supabaseClient.from('conversations')
+                    .update({ created_at: now })
+                    .eq('dify_id', idToUpdate)
+                    .catch(e => console.error("Errore nell'aggiornamento posizione chat:", e));
+            }
+            
+            return result;
+        };
+    })();
+    </script>
+
+
+
+
+    
+
 </body>
 </html>
+
