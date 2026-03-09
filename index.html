@@ -962,23 +962,41 @@ if (currentConversationId) {
 
 
 <style>
-    /* PATCH GRAFICA: Intestazione "Impostazioni" fissa nella sidebar */
-    #sidebar-bottom::before {
-        content: "Impostazioni";
-        position: -webkit-sticky; /* Supporto esteso per vecchi dispositivi iOS */
+    /* PATCH GRAFICA UNICA: Intestazioni fisse per Chat e Impostazioni */
+    
+    #history-list::before {
+        content: "Chat";
+        position: -webkit-sticky;
         position: sticky;
-        top: -20px;               /* Compensa il padding originale del contenitore */
+        top: -10px;
         display: block;
         background: var(--sidebar-bg);
-        color: var(--accent);     /* Si adatta istantaneamente al cambio colore del tema */
+        color: var(--accent);
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        padding: 10px 0 10px 0;
+        margin: -10px 0 10px 0;
+        z-index: 10;
+    }
+
+    #sidebar-bottom::before {
+        content: "Impostazioni";
+        position: -webkit-sticky;
+        position: sticky;
+        top: -20px;
+        display: block;
+        background: var(--sidebar-bg);
+        color: var(--accent);
         font-size: 0.95rem;
         font-weight: 800;
         letter-spacing: 1px;
         padding: 20px 0 15px 0;
         margin: -20px 0 15px 0;
-        z-index: 10;              /* Resta sopra gli elementi durante lo scroll */
+        z-index: 10;
     }
 </style>
+
 
 
 
@@ -989,5 +1007,6 @@ if (currentConversationId) {
 
 </body>
 </html>
+
 
 
