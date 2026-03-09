@@ -931,29 +931,37 @@
 
 
 
-
     <script>
     (function() {
-        // Salviamo una referenza alla tua funzione originale
         const originalSendMessage = window.sendMessage;
         
         window.sendMessage = async function() {
-            // Memorizziamo l'ID della chat prima che parta la richiesta
-            const idToUpdate = currentConversationId; 
+            // Controlliamo se stiamo scrivendo in una chat già esistente
+            const isExistingChat = !!window.currentConversationId;
             
-            // Avviamo la funzione originale senza modificarne il comportamento
+            // Facciamo partire il motore di invio originale
             const result = originalSendMessage.apply(this, arguments);
             
-            // Se siamo dentro una chat esistente, aggiorniamo silenziosamente
-            // il suo timestamp nel database. In questo modo loadHistory()
-            // la rimetterà permanentemente in cima al prossimo avvio.
-            if (idToUpdate) {
-                const now = new Date().toISOString();
-                supabaseClient.from('conversations')
-                    .update({ created_at: now })
-                    .eq('dify_id', idToUpdate)
-                    .catch(e => console.error("Errore nell'aggiornamento posizione chat:", e));
-            }
+            // Eseguiamo l'aggiornamento in background per mantenere la fluidità
+            setTimeout(async () => {
+                if (window.currentConversationId && isExistingChat) {
+                    try {
+                        const now = new Date().toISOString();
+                        
+                        // L'uso di 'await' qui è cruciale per forzare l'esecuzione su Supabase
+                        await supabaseClient.from('conversations')
+                            .update({ created_at: now })
+                            .eq('dify_id', window.currentConversationId);
+                        
+                        // Ricarichiamo la lista lateralmente in modo silente
+                        if (window.loadHistory) {
+                            window.loadHistory();
+                        }
+                    } catch (e) {
+                        console.error("Errore nell'aggiornamento posizione chat:", e);
+                    }
+                }
+            }, 800); // Leggero ritardo per evitare sovrapposizioni di calcolo
             
             return result;
         };
@@ -963,8 +971,10 @@
 
 
 
+
     
 
 </body>
 </html>
+
 
