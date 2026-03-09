@@ -687,7 +687,21 @@
                     } 
                 } 
             } 
-            const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
+            if (currentConversationId) {
+    // 1. Allineamento della memoria locale per un'esperienza fluida e istantanea
+    const chatIndex = allChats.findIndex(c => c.dify_id === currentConversationId);
+    if (chatIndex > -1) {
+        const [activeChat] = allChats.splice(chatIndex, 1);
+        allChats.unshift(activeChat);
+        renderHistoryList();
+    }
+    
+    // 2. Aggiornamento asincrono sul database per la persistenza e coerenza tra dispositivi
+    supabaseClient.from('conversations')
+        .update({ created_at: new Date().toISOString() })
+        .eq('dify_id', currentConversationId);
+}
+
         } catch (e) { 
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
             botDiv.innerHTML = `⚠️ Dify non risponde o ha rifiutato la richiesta. Verifica le chiavi e la connessione.`; 
@@ -930,3 +944,4 @@
 
 </body>
 </html>
+
