@@ -1239,11 +1239,13 @@
 
 
 <style>
+    /* Mantiene la gerarchia visiva per far scorrere la traduzione "sotto" la bubble */
     .bot-msg {
         z-index: 2 !important;
         position: relative;
     }
 
+    /* Stile del bottone a forma di occhio */
     .translate-btn {
         background: none;
         border: none;
@@ -1252,24 +1254,20 @@
         cursor: pointer;
         padding: 2px;
         margin-left: 8px;
-        transition: opacity 0.2s, color 0.2s, transform 0.2s;
+        transition: opacity 0.2s, transform 0.2s;
         display: flex;
         align-items: center;
         justify-content: center;
         outline: none;
     }
     
-    .translate-btn:hover {
+    .translate-btn:hover, .translate-btn.active {
         opacity: 1;
         color: var(--accent);
         transform: scale(1.15);
     }
-    
-    .translate-btn.active {
-        opacity: 1;
-        color: var(--accent);
-    }
 
+    /* Wrapper per l'animazione a scomparsa fluida via CSS Grid */
     .translation-wrapper {
         display: grid;
         grid-template-rows: 0fr;
@@ -1291,6 +1289,7 @@
         overflow: hidden;
     }
 
+    /* Il box nero con il testo in risalto */
     .translation-box {
         background-color: #000000;
         color: var(--accent);
@@ -1309,46 +1308,11 @@
 (function() {
     const SVG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
 
-    const itStopWords = new Set(['il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una', 'di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'e', 'ed', 'o', 'ma', 'se', 'che', 'non', 'mi', 'ti', 'si', 'ci', 'vi', 'sono', 'è', 'ha', 'hanno', 'come', 'più', 'questo', 'quello', 'ciao', 'buongiorno', 'bene', 'grazie']);
-
-    function isMostlyForeign(text) {
-        const words = text.toLowerCase().match(/\b[a-zàèéìòù]+\b/g);
-        if (!words || words.length < 2) return false; 
-        
-        let itCount = 0;
-        const len = words.length;
-        for (let i = 0; i < len; i++) {
-            if (itStopWords.has(words[i])) itCount++;
-        }
-        return (itCount / len) <= 0.20; 
-    }
-
-    async function fetchBackendTranslation(text) {
-        try {
-            const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
-            const edgeUrl = typeof EDGE_FUNCTION_URL !== 'undefined' ? EDGE_FUNCTION_URL : '/api/dify';
-            
-            // Chiamata identica a quella nativa di LIME, ma col path /translate
-            const res = await fetch(`${edgeUrl}?path=/translate`, {
-                method: 'POST',
-                headers: { ...authHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text })
-            });
-
-            if (!res.ok) throw new Error(`Errore Server: ${res.status}`);
-            const data = await res.json();
-            
-            // Supporto flessibile per la risposta del tuo backend
-            return data?.translatedText || data?.answer || data?.text || "⚠️ Errore: Nessun testo restituito dal server.";
-        } catch (e) {
-            return "⚠️ Errore di comunicazione con il server di traduzione.";
-        }
-    }
-
     function processTranslations() {
         const chatBox = document.getElementById('chat-box');
         if (!chatBox) return;
 
+        // Cerca i messaggi completati non ancora processati
         const wrappers = chatBox.querySelectorAll('.bot-wrapper.msg-complete:not([data-lang-checked])');
         if (wrappers.length === 0) return;
         
@@ -1356,74 +1320,70 @@
             const botMsg = wrapper.querySelector('.bot-msg');
             const bottomBar = botMsg ? botMsg.querySelector('.msg-bottom-bar') : null;
             
-            // Sicurezza extra: se il nodo è stato svuotato momentaneamente dallo scroll, lo skippiamo senza marcarlo
             if (!botMsg || !bottomBar) return;
             
+            // Marca come processato per evitare cicli infiniti
             wrapper.setAttribute('data-lang-checked', 'true'); 
 
-            const clone = botMsg.cloneNode(true);
-            const toRemove = clone.querySelectorAll('pre, code, .msg-bottom-bar, .translation-wrapper');
-            for(let i = 0; i < toRemove.length; i++) toRemove[i].remove();
-            
-            const rawText = clone.textContent.trim();
+            // Estraiamo temporaneamente la barra inferiore per non "tagliarla"
+            if (bottomBar) bottomBar.remove();
+            botMsg.querySelectorAll('.translation-wrapper').forEach(e => e.remove());
 
-            if (isMostlyForeign(rawText)) {
+            const fullHtml = botMsg.innerHTML;
+            
+            // Rilevamento della "soluzione stupida ma efficace"
+            if (fullHtml.includes('%%%')) {
+                // Separiamo il testo originale dalla traduzione
+                const parts = fullHtml.split('%%%');
+                const mainText = parts[0].trim();
+                const transText = parts[1].trim();
+
+                // 1. Riapplichiamo solo la parte sinistra alla bubble speech nativa
+                botMsg.innerHTML = mainText;
+                botMsg.appendChild(bottomBar); // Rimettiamo la barra col timer
+
+                // 2. Aggiungiamo il bottone magico alla bottom bar
                 bottomBar.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione">${SVG_EYE}</button>`);
                 
+                // 3. Inseriamo la traduzione nel pannello nascosto (parte destra)
                 wrapper.insertAdjacentHTML('beforeend', `
                     <div class="translation-wrapper">
                         <div class="translation-inner">
-                            <div class="translation-box">
-                                <span class="typing-indicator" style="display:inline-flex;">
-                                    <span class="typing-dot" style="background:var(--accent)"></span>
-                                    <span class="typing-dot" style="background:var(--accent)"></span>
-                                    <span class="typing-dot" style="background:var(--accent)"></span>
-                                </span> Traduzione in corso...
-                            </div>
+                            <div class="translation-box">${transText}</div>
                         </div>
                     </div>
                 `);
+            } else {
+                // Se non c'è il %%% (messaggio standard in italiano), rimettiamo solo la bottom bar
+                botMsg.appendChild(bottomBar);
             }
         });
     }
 
+    // Gestore click globale super leggero per la chat
     const chatBox = document.getElementById('chat-box');
     if (chatBox) {
-        chatBox.addEventListener('click', async (e) => {
+        chatBox.addEventListener('click', (e) => {
             const btn = e.target.closest('.translate-btn');
             if (!btn) return;
             
             e.stopPropagation();
-            
             const wrapper = btn.closest('.bot-wrapper');
             const transWrapper = wrapper.querySelector('.translation-wrapper');
-            const transBox = transWrapper.querySelector('.translation-box');
             
-            const isOpen = transWrapper.classList.toggle('open');
             btn.classList.toggle('active');
-
-            if (isOpen && !transBox.hasAttribute('data-translated')) {
-                transBox.setAttribute('data-translated', 'true');
-                
-                // Estraiamo il testo al momento del click per non appesantire il DOM con attributi infiniti
-                const botMsg = wrapper.querySelector('.bot-msg');
-                const clone = botMsg.cloneNode(true);
-                clone.querySelectorAll('pre, code, .msg-bottom-bar, .translation-wrapper').forEach(el => el.remove());
-                const rawText = clone.textContent.trim();
-
-                const translatedText = await fetchBackendTranslation(rawText);
-                transBox.innerHTML = translatedText.replace(/\n/g, '<br>');
-            }
+            transWrapper.classList.toggle('open');
             
+            // Sincronizza l'ancoraggio della mascotte
             setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 350);
         });
 
+        // Osserviamo SOLTANTO l'aggiunta della classe 'msg-complete'
         let debounceTimer;
         const observer = new MutationObserver((mutations) => {
             let shouldCheck = false;
             for(let i = 0; i < mutations.length; i++) {
                 const m = mutations[i];
-                // Ci attiviamo SOLO quando la classe "msg-complete" viene aggiunta. Nessun sovraccarico durante lo streaming testuale!
                 if (m.type === 'attributes' && m.attributeName === 'class' && m.target.classList.contains('msg-complete')) {
                     shouldCheck = true;
                     break;
@@ -1431,18 +1391,18 @@
             }
             if (shouldCheck) {
                 clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(processTranslations, 150);
+                debounceTimer = setTimeout(processTranslations, 150); // Piccolo debounce per garanzia
             }
         });
         
-        // Ascoltiamo solo gli attributi, ignorando i nodi testuali che cambiano continuamente
+        // Ascoltiamo solo gli attributi (nessun blocco durante lo streaming del testo!)
         observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'] });
     }
 
+    // Controllo preventivo al caricamento (es. cronologia vecchie chat)
     setTimeout(processTranslations, 500);
 })();
 </script>
-
 
 
     
@@ -1457,6 +1417,7 @@
 
 </body>
 </html>
+
 
 
 
