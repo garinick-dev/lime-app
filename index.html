@@ -26,7 +26,7 @@
         body.light-theme { --bg-color: #f0f2f5; --sidebar-bg: #ffffff; --bg-main-rgb: 240, 242, 245; --text-main: #1a1a1a; --text-muted: #666666; --text-light: #444444; --input-bg: #ffffff; --border-color: #d1d5db; --lime-bg-chip: rgba(242, 242, 242, 0.95); --lime-chip-color: #444; --lime-chip-border: rgba(0,0,0,0.05); background-color: var(--bg-color) !important; color: var(--text-main) !important; }
         body.light-theme #sidebar { background-color: var(--sidebar-bg) !important; border-color: var(--border-color) !important; }
         body.light-theme header, body.light-theme .input-area { background-color: transparent !important; border-color: transparent !important; }
-        body.light-theme .input-wrapper, body.light-theme .new-chat-btn, body.light-theme .setting-action-btn { background-color: var(--input-bg) !important; color: var(--text-main) !important; border-color: var(--border-color) !important; }
+        body.light-theme .input-wrapper, body.light-theme .new-chat-btn, body.light-theme .setting-action-btn, body.light-theme #remove-bg-btn { background-color: var(--input-bg) !important; color: var(--text-main) !important; border-color: var(--border-color) !important; }
         body.light-theme .history-item { color: var(--text-main) !important; } body.light-theme .history-item:hover { background-color: #f0f2f5 !important; }
         body.light-theme .active-chat { background-color: #e5e5ea !important; color: #1a1a1a !important; border-left-color: var(--accent) !important; } body.light-theme .active-chat * { color: #1a1a1a !important; }
         body.light-theme .menu-toggle { color: var(--text-main) !important; } body.light-theme .menu-toggle svg, body.light-theme .menu-toggle path { stroke: #1a1a1a !important; fill: #1a1a1a !important; color: #1a1a1a !important; }
@@ -38,7 +38,11 @@
         
         #sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column; border-right: 1px solid var(--border-color); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0; will-change: transform; z-index: 20000; }
         #sidebar.hidden { transform: translateX(-100%); margin-right: calc(-1 * var(--sidebar-width)); }
-        #sidebar-top { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; } .sidebar-header { padding: 20px; padding-top: calc(20px + env(safe-area-inset-top)); flex-shrink: 0;}
+        
+        #sidebar-top { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; } 
+        #sidebar-top::before { content: "Chat"; display: block; color: var(--accent); font-size: 0.95rem; font-weight: 800; letter-spacing: 1px; padding: 20px 20px 5px 20px; padding-top: calc(20px + env(safe-area-inset-top)); flex-shrink: 0; }
+        .sidebar-header { padding: 20px; padding-top: 5px !important; flex-shrink: 0;}
+        
         .new-chat-btn { background: var(--user-bubble); color: var(--text-main); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px; cursor: pointer; width: 100%; font-weight: 600; text-align: left; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; } .new-chat-btn:hover { border-color: var(--accent); }
         .mobile-close-sidebar { display: none; background: none; border: none; font-size: 2rem; color: var(--text-muted); cursor: pointer; padding: 0 0 0 15px; line-height: 1; transition: color 0.2s; } .mobile-close-sidebar:hover { color: var(--text-main); }
         #history-list { flex: 1; overflow-y: auto; padding: 10px; contain: content; }
@@ -47,8 +51,17 @@
         .chat-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; pointer-events: none; } .chat-actions { display: flex; gap: 12px; } .action-btn { background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.6; padding: 4px; transition: opacity 0.2s; pointer-events: auto; } .action-btn:hover { opacity: 1; }
         .load-more-btn { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-color); padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 0.85rem; transition: 0.2s; } .load-more-btn:hover { background: var(--user-bubble); color: var(--text-main); }
         
-        #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: env(safe-area-inset-bottom); }
-        .setting-item { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; } .setting-item label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; } .setting-action-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.9rem; transition: background 0.2s; } .setting-action-btn:hover { background: var(--border-color); }
+        #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: 20px !important; }
+        #sidebar-bottom::before { content: "Impostazioni"; position: -webkit-sticky; position: sticky; top: -20px; display: block; background: var(--sidebar-bg); color: var(--accent); font-size: 0.95rem; font-weight: 800; letter-spacing: 1px; padding: 20px 0 15px 0; margin: -20px 0 15px 0; z-index: 10; }
+        
+        #sidebar-footer { background: var(--sidebar-bg); padding: 10px 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border-color); flex-shrink: 0; z-index: 20; }
+        
+        .setting-item { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; } .setting-item label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; } 
+        .setting-action-btn { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.9rem; transition: background 0.2s; } .setting-action-btn:hover { background: var(--border-color); }
+        
+        .bg-buttons-wrapper { display: flex; gap: 8px; width: 100%; }
+        #remove-bg-btn { background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 0 12px; color: #ff4444; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; }
+        #remove-bg-btn:hover { background: var(--border-color); }
         
         .theme-switch-wrapper { display: flex; align-items: center; justify-content: space-between; background: var(--input-bg); padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 8px; cursor: pointer; }
         .theme-switch-label { font-size: 0.9rem; color: var(--text-main); font-weight: 600; }
@@ -69,7 +82,7 @@
         .setting-item:has(#color-picker) { justify-content: center !important; margin-bottom: 8px !important; }
         .color-picker-container { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 5px; justify-content: center; } .color-circle { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); } .color-circle:hover { transform: scale(1.15); } .color-circle.active { border-color: var(--text-main); transform: scale(1.1); }
         
-        .logout-btn { background: #ff4444; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: auto; transition: 0.2s; width: 100%; flex-shrink: 0;} .logout-btn:hover { background: #cc0000; } .hidden-file-input { display: none; }
+        .logout-btn { background: #ff4444; color: white; border: none; padding: 10px !important; border-radius: 8px !important; cursor: pointer; font-weight: bold; margin: 0 !important; transition: 0.2s; width: 100%; flex-shrink: 0; position: static !important; box-shadow: none !important; } .logout-btn:hover { background: #cc0000; } .hidden-file-input { display: none; }
         
         #settings-user-avatar { background-image: none !important; background-color: var(--accent) !important; }
         .user-avatar { width: 35px; height: 35px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; cursor: default; text-transform: uppercase; }
@@ -211,7 +224,12 @@
 
                 <div class="setting-item">
                     <label>Interfaccia</label>
-                    <button class="setting-action-btn" onclick="DOM.bgInput.click()">Cambia sfondo chat</button>
+                    <div class="bg-buttons-wrapper">
+                        <button class="setting-action-btn" style="flex: 1;" onclick="DOM.bgInput.click()">Cambia sfondo chat</button>
+                        <button id="remove-bg-btn" title="Rimuovi sfondo personalizzato" onclick="removeCustomBg()">
+                            <svg viewBox="0 0 40 40" style="width: 18px; height: 18px;"><path fill="currentColor" d="M 10 10 H 30 V 34 C 30 35.1 29.1 36 28 36 H 12 C 10.9 36 10 35.1 10 34 V 10 Z" /><path d="M 8 10 H 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 10 V 6 C 16 4.9 16.9 4 18 4 H 22 C 23.1 4 24 4.9 24 6 V 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 16 V 30 M 24 16 V 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
                     <input type="file" id="bg-input" class="hidden-file-input" accept="image/*" onchange="handleBgUpload(event)">
                     
                     <div class="theme-switch-wrapper" id="custom-theme-switch" onclick="toggleThemeSwitch()">
@@ -231,7 +249,9 @@
                         <div class="color-circle" data-color="#2cf2c0" style="background: #2cf2c0;" onclick="handleColorChange('#2cf2c0')"></div>
                     </div>
                 </div>
+            </div>
 
+            <div id="sidebar-footer">
                 <button class="logout-btn" onclick="handleLogout()">Esci da LIME</button>
             </div>
         </div>
@@ -312,7 +332,7 @@
     let DOM = {};
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
-    let globalStream = null, chatVirtualObserver = null;
+    let globalStream = null, chatVirtualObserver = null, currentCustomBg = null, capturedChipTitle = null;
 
     const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
     const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
@@ -581,6 +601,10 @@
         if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
         let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
         
+        // Determiniamo il nuovo titolo catturando un eventuale click sui suggerimenti
+        let newChatTitle = capturedChipTitle ? capturedChipTitle : (query.substring(0, 35) || "Nuova Chat");
+        capturedChipTitle = null; // Reset immediato dopo l'acquisizione
+        
         isGenerating = true; if (window.setMascotThinking) window.setMascotThinking(true); DOM.sendBtn.disabled = true; 
         const exs = DOM.chatBox.querySelectorAll('.date-separator-text'); 
         if (exs.length === 0 || exs[exs.length - 1].innerText !== "Oggi") DOM.chatBox.appendChild(createDateSeparatorNode("Oggi"));
@@ -638,7 +662,7 @@
                 botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
                 if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom(); 
                 
-                if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: query.substring(0, 35) || "Nuova Chat" }]); loadHistory(); } 
+                if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
                 if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
             } else { 
                 const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = "", firstChunk = true; 
@@ -679,7 +703,7 @@
                                     } 
                                 } else if (data.event === 'message_end') { 
                                     botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
-                                    if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: query.substring(0, 35) || "Nuova Chat" }]); loadHistory(); } 
+                                    if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
                                     if(currentConversationId) { if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); } 
                                 } 
                             } catch (e) {} 
@@ -687,33 +711,22 @@
                     } 
                 } 
             } 
-            // --- INIZIO BLOCCO RIPOSIZIONAMENTO CHAT ---
-if (currentConversationId) {
-    // Converto sempre in stringa per evitare mismatch silenti (es: '123' vs 123)
-    const chatIndex = allChats.findIndex(c => String(c.dify_id) === String(currentConversationId));
-    
-    if (chatIndex > -1) {
-        // Chat già in memoria: la sposto istantaneamente all'inizio dell'array
-        const [activeChat] = allChats.splice(chatIndex, 1);
-        allChats.unshift(activeChat);
-        renderHistoryList();
-        
-        // Aggiorno asincronamente il database (con .then() per sparare effettivamente la query)
-        supabaseClient.from('conversations')
-            .update({ created_at: new Date().toISOString() })
-            .eq('dify_id', currentConversationId)
-            .then(({ error }) => { 
-                if (error) console.error("Errore fissaggio chat:", error.message); 
-            });
-    } else {
-        // Chat nuovissima: loadHistory() la sta già recuperando in background.
-        // Nel frattempo forziamo il prepending visivo per evitare latenze.
-        const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); 
-        if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
-    }
-}
-// --- FINE BLOCCO RIPOSIZIONAMENTO CHAT ---
-
+            
+            if (currentConversationId) {
+                const chatIndex = allChats.findIndex(c => String(c.dify_id) === String(currentConversationId));
+                if (chatIndex > -1) {
+                    const [activeChat] = allChats.splice(chatIndex, 1);
+                    allChats.unshift(activeChat);
+                    renderHistoryList();
+                    supabaseClient.from('conversations')
+                        .update({ created_at: new Date().toISOString() })
+                        .eq('dify_id', currentConversationId)
+                        .then(({ error }) => { if (error) console.error("Errore fissaggio chat:", error.message); });
+                } else {
+                    const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); 
+                    if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
+                }
+            }
             
         } catch (e) { 
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
@@ -728,19 +741,50 @@ if (currentConversationId) {
 
     function toggleSidebar() { DOM.sidebar.classList.toggle('hidden'); DOM.backdrop.classList.toggle('active'); }
 
+    function lightenColor(hex, percent) {
+        hex = hex.replace(/^#/, '');
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        let r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+        r = Math.round(r + (255 - r) * percent); g = Math.round(g + (255 - g) * percent); b = Math.round(b + (255 - b) * percent);
+        return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
+    }
+
+    function updateDefaultBackground() {
+        if (currentCustomBg || !DOM.chatBox) return;
+        const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
+        const lightColor = lightenColor(userColor, 0.40); 
+        const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 -100 1520 1520" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="margin: 0; display: block;">
+  <defs><g id="lime"><circle cx="0" cy="0" r="100" fill="${userColor}" /><circle cx="0" cy="0" r="92" fill="#FFFFFF" /><circle cx="0" cy="0" r="86" fill="${lightColor}" /><line x1="0" y1="-86" x2="0" y2="86" stroke="#FFFFFF" stroke-width="4" /><line x1="-86" y1="0" x2="86" y2="0" stroke="#FFFFFF" stroke-width="4" /><line x1="-60.8" y1="-60.8" x2="60.8" y2="60.8" stroke="#FFFFFF" stroke-width="4" /><line x1="-60.8" y1="60.8" x2="60.8" y2="-60.8" stroke="#FFFFFF" stroke-width="4" /><circle cx="0" cy="0" r="8" fill="#FFFFFF" /></g></defs>
+  <use href="#lime" transform="translate(300, 300) scale(3) rotate(45)" /><use href="#lime" transform="translate(800, 300) scale(2) rotate(112)" /><use href="#lime" transform="translate(800, 750) scale(2.5) rotate(17)" /><use href="#lime" transform="translate(300, 750) scale(1.5) rotate(260)" /><use href="#lime" transform="translate(860, -120) scale(4) rotate(88)" /><use href="#lime" transform="translate(1350, 300) scale(3.5) rotate(315)" /><use href="#lime" transform="translate(1650, 700) scale(1.5) rotate(53)" /><use href="#lime" transform="translate(1650, 1150) scale(3) rotate(194)" /><use href="#lime" transform="translate(-100, 750) scale(2.5) rotate(135)" /><use href="#lime" transform="translate(0, -100) scale(2) rotate(72)" /><use href="#lime" transform="translate(1830, -340) scale(4.5) rotate(220)" /><use href="#lime" transform="translate(1100, -50) scale(2.2) rotate(9)" /><use href="#lime" transform="translate(1250, 800) scale(1.8) rotate(166)" /><use href="#lime" transform="translate(550, 480) scale(1.1) rotate(290)" /><use href="#lime" transform="translate(500, 1050) scale(2.6) rotate(34)" /><use href="#lime" transform="translate(1000, 1150) scale(3.1) rotate(105)" /><use href="#lime" transform="translate(2000, 450) scale(2.8) rotate(275)" /><use href="#lime" transform="translate(80, 1100) scale(2) rotate(145)" /><use href="#lime" transform="translate(-150, 350) scale(1.7) rotate(310)" /><use href="#lime" transform="translate(1950, 950) scale(1.9) rotate(60)" /></svg>`;
+        const encodedSvg = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgMarkup);
+        DOM.chatBox.style.backgroundImage = `url("${encodedSvg}")`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed';
+    }
+
     function applyChatBackground(imageUrl) { 
+        currentCustomBg = imageUrl;
         if (DOM.chatBox) { 
             if (imageUrl) { DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(${imageUrl})`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed'; } 
-            else DOM.chatBox.style.backgroundImage = 'none'; 
+            else updateDefaultBackground(); 
         } 
     }
     
+    async function removeCustomBg() {
+        currentCustomBg = null; applyChatBackground(null);
+        if (userId) { try { const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; await supabaseClient.auth.updateUser({ data: { bg: null } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } catch (e) { console.error(e); } }
+    }
+
     function applyTheme(themeName) { if (themeName === 'light') document.body.classList.add('light-theme'); else document.body.classList.remove('light-theme'); }
     function toggleThemeSwitch() { const isLight = document.body.classList.contains('light-theme'); handleThemeChange(isLight ? 'dark' : 'light'); }
     async function handleThemeChange(themeName) { if (!userId) return; applyTheme(themeName); await supabaseClient.auth.updateUser({ data: { theme: themeName } }); }
     
     function updateColorCirclesUI(hex) { document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('active')); const activeCircle = document.querySelector(`.color-circle[data-color="${hex}"]`); if (activeCircle) activeCircle.classList.add('active'); }
-    async function handleColorChange(hex) { if (!userId) return; document.documentElement.style.setProperty('--accent', hex); document.documentElement.style.setProperty('--lime-accent', hex); updateColorCirclesUI(hex); await supabaseClient.auth.updateUser({ data: { color: hex } }); }
+    
+    async function handleColorChange(hex) { 
+        if (!userId) return; 
+        document.documentElement.style.setProperty('--accent', hex); document.documentElement.style.setProperty('--lime-accent', hex); updateColorCirclesUI(hex); 
+        if (!currentCustomBg) updateDefaultBackground();
+        await supabaseClient.auth.updateUser({ data: { color: hex } }); 
+    }
 
     function updateProfileUI(user) { 
         const avatarDivs = [document.getElementById('settings-user-avatar')]; 
@@ -757,12 +801,15 @@ if (currentConversationId) {
             if (cloudInst) { localStorage.setItem('lime_inst_type', cloudInst); if (DOM.instDropdown) DOM.instDropdown.value = cloudInst; }
             
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = initial; }); 
-            applyChatBackground(savedBg); applyTheme(savedTheme); document.documentElement.style.setProperty('--accent', savedColor); document.documentElement.style.setProperty('--lime-accent', savedColor); updateColorCirclesUI(savedColor); 
+            applyTheme(savedTheme); document.documentElement.style.setProperty('--accent', savedColor); document.documentElement.style.setProperty('--lime-accent', savedColor); updateColorCirclesUI(savedColor); 
+            applyChatBackground(savedBg); 
         } else { 
             nameSpans.forEach(span => span.innerText = ""); 
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
-            applyChatBackground(null); applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#c0f22c'); document.documentElement.style.setProperty('--lime-accent', '#c0f22c'); updateColorCirclesUI('#c0f22c'); 
+            applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#c0f22c'); document.documentElement.style.setProperty('--lime-accent', '#c0f22c'); updateColorCirclesUI('#c0f22c'); 
+            applyChatBackground(null); 
         } 
+        setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 50);
     }
 
     async function uploadToSupabaseStorage(file, pathPrefix) { const fileExt = file.name.split('.').pop(); const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); if (error) { alert("Errore caricamento immagine."); return null; } const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); return publicUrl; }
@@ -835,7 +882,10 @@ if (currentConversationId) {
         
         setTimeout(playBody, 2000); setTimeout(playBlink, 2500); setTimeout(look, 3000);
         
-        document.addEventListener('click', (e) => { if (e.target.classList.contains('lime-chip')) sendTrigger(e.target.getAttribute('data-trigger')); });
+        document.addEventListener('click', (e) => { 
+            const chip = e.target.closest('.lime-chip');
+            if (chip) { capturedChipTitle = chip.innerText.trim(); sendTrigger(chip.getAttribute('data-trigger')); }
+        }, true);
     }
 
     function setupViewportAnchoring() {
@@ -952,476 +1002,9 @@ if (currentConversationId) {
         
         if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', async (e) => { const level = e.target.value; localStorage.setItem('lime_edu_level', level); try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } catch (err) {} }); }
         if (DOM.instDropdown) { DOM.instDropdown.addEventListener('change', async (e) => { const inst = e.target.value; localStorage.setItem('lime_inst_type', inst); try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: inst } }); } catch (err) {} }); }
+        
+        setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
     });
-</script>
-
-
-
-
-
-
-
-
-
-<style>
-  /* 1. Spegniamo gli occhi originali quando legge */
-  .is-reading .lime-eye {
-      opacity: 0 !important; 
-  }
-
-  /* 2. Il gruppo di lettura (Occhiali + Occhi Finti) */
-  #lime-reading-group {
-      opacity: 0;
-      transform: translateY(-15px);
-      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-      pointer-events: none;
-  }
-  
-  /* 3. Quando inizia a leggere, l'intero blocco SCIVOLA IN BASSO sul naso */
-  .is-reading #lime-reading-group {
-      opacity: 1;
-      transform: translateY(14px); 
-  }
-
-  /* 4. Ritmo asimmetrico: lineare per un controllo assoluto dei tempi */
-  .reading-eye {
-      animation: lime-read-anim-eyes 1.8s linear infinite;
-  }
-
-  @keyframes lime-read-anim-eyes {
-      /* Parte a sinistra e fa una micro-pausa */
-      0%, 5% { transform: translate(-6px, 4px); }
-      
-      /* Corsa VELOCIZZATA da Sinistra verso Destra (impiega solo il 21% del ciclo) */
-      26% { transform: translate(6px, 4px); }
-      
-      /* Micro-pausa a destra per spezzare il ritmo e mettere a fuoco */
-      31% { transform: translate(6px, 4px); }
-      
-      /* Corsa LENTA da Destra verso Sinistra (impiega il 64% del ciclo) */
-      95%, 100% { transform: translate(-6px, 4px); }
-  }
-</style>
-
-<script>
-(function() {
-  const eyesGroup = document.getElementById('lime-eyes-group');
-  const mascotContainer = document.getElementById('lime-app-mascot');
-  
-  // Iniezione del gruppo (Occhiali + Occhi Neri finti)
-  if (eyesGroup && !document.getElementById('lime-reading-group')) {
-      const readingSVG = `
-          <g id="lime-reading-group">
-              <g fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round">
-                  <circle cx="65" cy="175" r="15" />
-                  <circle cx="135" cy="175" r="15" />
-                  <path d="M 80 175 Q 100 165 120 175" />
-              </g>
-              <g>
-                  <circle class="reading-eye" cx="65" cy="175" r="9" fill="#1a1a1a" />
-                  <circle class="reading-eye" cx="135" cy="175" r="9" fill="#1a1a1a" />
-              </g>
-          </g>
-      `;
-      eyesGroup.insertAdjacentHTML('afterend', readingSVG);
-  }
-
-  // Monkey Patching: Attiva/disattiva lo stato
-  if (typeof window.handleFileSelect === 'function') {
-      const originalHandleFileSelect = window.handleFileSelect;
-      window.handleFileSelect = function(e) {
-          originalHandleFileSelect.apply(this, arguments);
-          const fileInput = e.target;
-          if (fileInput && fileInput.files && fileInput.files.length > 0) {
-              if (mascotContainer) mascotContainer.classList.add('is-reading');
-          }
-      };
-  }
-
-  if (typeof window.clearAttachment === 'function') {
-      const originalClearAttachment = window.clearAttachment;
-      window.clearAttachment = function() {
-          originalClearAttachment.apply(this, arguments);
-          if (mascotContainer) mascotContainer.classList.remove('is-reading');
-      };
-  }
-})();
-</script>
-
-<style>
-  /* 1. Gruppo cuffie: nascosto di default */
-  #lime-headphones-group {
-      opacity: 0;
-      /* Parte dal'alto per l'effetto di indossamento */
-      transform: translateY(-20px);
-      transition: opacity 0.3s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      pointer-events: none;
-  }
-
-  /* 2. Attivazione microfono: entrano e restano immobili (nessuna fluttuazione) */
-  .is-listening #lime-headphones-group {
-      opacity: 1;
-      transform: translateY(0);
-  }
-  
-  /* 3. Occhi aperti e attenti durante l'ascolto */
-  .is-listening .lime-eye {
-      transform: scaleY(1) !important;
-  }
-</style>
-
-<script>
-(function() {
-  const bodyGroup = document.getElementById('lime-body-main');
-  const mascotContainer = document.getElementById('lime-app-mascot');
-  const timerDisplay = document.getElementById('recording-timer');
-  
-  if (bodyGroup && !document.getElementById('lime-headphones-group')) {
-      const headphonesSVG = `
-          <g id="lime-headphones-group">
-              <path d="M 29 159 C 29 74, 171 74, 171 159" fill="none" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round" />
-              
-              <rect x="20" y="154" width="18" height="42" rx="9" fill="#1a1a1a" />
-              
-              <rect x="162" y="154" width="18" height="42" rx="9" fill="#1a1a1a" />
-          </g>
-      `;
-      bodyGroup.insertAdjacentHTML('beforeend', headphonesSVG);
-  }
-
-  // Observer per intercettare l'attivazione del microfono
-  if (timerDisplay && mascotContainer) {
-      const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-              if (mutation.attributeName === 'class') {
-                  if (timerDisplay.classList.contains('hidden')) {
-                      mascotContainer.classList.remove('is-listening');
-                  } else {
-                      mascotContainer.classList.add('is-listening');
-                  }
-              }
-          });
-      });
-      
-      observer.observe(timerDisplay, { attributes: true });
-  }
-})();
-</script>
-
-
-
-    
-
-
-
-
-
-
-
-
-<style>
-  /* 1. Intestazione Chat */
-  #sidebar-top::before {
-      content: "Chat";
-      display: block;
-      color: var(--accent);
-      font-size: 0.95rem;
-      font-weight: 800;
-      letter-spacing: 1px;
-      padding: 20px 20px 5px 20px;
-      padding-top: calc(20px + env(safe-area-inset-top));
-      flex-shrink: 0;
-  }
-  .sidebar-header {
-      padding-top: 5px !important; 
-  }
-
-  /* 2. Intestazione Impostazioni */
-  #sidebar-bottom::before {
-      content: "Impostazioni";
-      position: -webkit-sticky;
-      position: sticky;
-      top: -20px;
-      display: block;
-      background: var(--sidebar-bg);
-      color: var(--accent);
-      font-size: 0.95rem;
-      font-weight: 800;
-      letter-spacing: 1px;
-      padding: 20px 0 15px 0;
-      margin: -20px 0 15px 0;
-      z-index: 10;
-  }
-  
-  #sidebar-bottom {
-      padding-bottom: 20px !important;
-  }
-
-  /* 3. Footer inamovibile: gestisce lui la safe-area, mantenendo il box ridotto e centrato */
-  #sidebar-footer {
-      background: var(--sidebar-bg);
-      padding: 10px 20px; /* Spazio simmetrico sopra e sotto il pulsante */
-      padding-bottom: calc(10px + env(safe-area-inset-bottom)); /* Aggiunge spazio solo se c'è la barra di sistema */
-      border-top: 1px solid var(--border-color);
-      flex-shrink: 0; 
-      z-index: 20;
-  }
-
-  /* Ripristiniamo la carrozzeria originale del pulsante */
-  .logout-btn {
-      position: static !important;
-      margin: 0 !important;
-      box-shadow: none !important;
-      padding: 10px !important; /* Dimensioni originali */
-      border-radius: 8px !important; /* Angoli originali intatti */
-  }
-</style>
-
-<script>
-  (function() {
-      const sidebar = document.getElementById('sidebar');
-      const logoutBtn = document.querySelector('.logout-btn');
-      
-      if (sidebar && logoutBtn && logoutBtn.parentElement.id === 'sidebar-bottom') {
-          const footer = document.createElement('div');
-          footer.id = 'sidebar-footer';
-          footer.appendChild(logoutBtn);
-          sidebar.appendChild(footer);
-      }
-  })();
-</script>
-
-
-
-
-
-
-    
-
-
-
-    
-<script>
-(function() {
-    let capturedChipTitle = null;
-
-    // Intercettiamo il click sui suggerimenti per catturare il testo scelto dall'utente
-    document.addEventListener('click', (e) => {
-        const chip = e.target.closest('.lime-chip');
-        if (chip) {
-            // Puliamo il testo da eventuali spazi o emoji per un titolo pulito
-            capturedChipTitle = chip.innerText.trim();
-        }
-    }, true);
-
-    // Eseguiamo il "monkey-patch" su Supabase per sostituire il titolo generico (@1, @2...)
-    // con il testo catturato dal chip solo durante il primo inserimento.
-    const originalFrom = supabaseClient.from;
-    supabaseClient.from = function(tableName) {
-        const queryBuilder = originalFrom.apply(this, arguments);
-        
-        if (tableName === 'conversations') {
-            const originalInsert = queryBuilder.insert;
-            queryBuilder.insert = function(records) {
-                // Se abbiamo un titolo catturato e stiamo creando una nuova riga
-                if (capturedChipTitle && records && records[0]) {
-                    records[0].title = capturedChipTitle;
-                    capturedChipTitle = null; // Reset immediato: deve capitare una volta sola
-                }
-                return originalInsert.apply(this, arguments);
-            };
-        }
-        return queryBuilder;
-    };
-})();
-</script>
-
-
-
-    
-
-    
-
-<script>
-(function() {
-    // 1. Funzione matematica per schiarire il colore esadecimale (miscelazione col bianco)
-    function lightenColor(hex, percent) {
-        hex = hex.replace(/^#/, '');
-        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-        
-        let r = parseInt(hex.slice(0, 2), 16);
-        let g = parseInt(hex.slice(2, 4), 16);
-        let b = parseInt(hex.slice(4, 6), 16);
-        
-        r = Math.round(r + (255 - r) * percent);
-        g = Math.round(g + (255 - g) * percent);
-        b = Math.round(b + (255 - b) * percent);
-        
-        return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
-    }
-
-    // 2. Funzione per generare e applicare l'SVG senza filtri
-    function updateDefaultBackground() {
-        if (window.currentCustomBg) return;
-
-        const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
-        const lightColor = lightenColor(userColor, 0.40); 
-
-        const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 -100 1520 1520" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="margin: 0; display: block;">
-  <defs>
-    <g id="lime">
-      <circle cx="0" cy="0" r="100" fill="${userColor}" />
-      <circle cx="0" cy="0" r="92" fill="#FFFFFF" />
-      <circle cx="0" cy="0" r="86" fill="${lightColor}" />
-      <line x1="0" y1="-86" x2="0" y2="86" stroke="#FFFFFF" stroke-width="4" />
-      <line x1="-86" y1="0" x2="86" y2="0" stroke="#FFFFFF" stroke-width="4" />
-      <line x1="-60.8" y1="-60.8" x2="60.8" y2="60.8" stroke="#FFFFFF" stroke-width="4" />
-      <line x1="-60.8" y1="60.8" x2="60.8" y2="-60.8" stroke="#FFFFFF" stroke-width="4" />
-      <circle cx="0" cy="0" r="8" fill="#FFFFFF" />
-    </g>
-  </defs>
-  <use href="#lime" transform="translate(300, 300) scale(3) rotate(45)" />
-  <use href="#lime" transform="translate(800, 300) scale(2) rotate(112)" />
-  <use href="#lime" transform="translate(800, 750) scale(2.5) rotate(17)" />
-  <use href="#lime" transform="translate(300, 750) scale(1.5) rotate(260)" />
-  <use href="#lime" transform="translate(860, -120) scale(4) rotate(88)" />
-  <use href="#lime" transform="translate(1350, 300) scale(3.5) rotate(315)" />
-  <use href="#lime" transform="translate(1650, 700) scale(1.5) rotate(53)" />
-  <use href="#lime" transform="translate(1650, 1150) scale(3) rotate(194)" />
-  <use href="#lime" transform="translate(-100, 750) scale(2.5) rotate(135)" />
-  <use href="#lime" transform="translate(0, -100) scale(2) rotate(72)" />
-  <use href="#lime" transform="translate(1830, -340) scale(4.5) rotate(220)" />
-  <use href="#lime" transform="translate(1100, -50) scale(2.2) rotate(9)" />
-  <use href="#lime" transform="translate(1250, 800) scale(1.8) rotate(166)" />
-  <use href="#lime" transform="translate(550, 480) scale(1.1) rotate(290)" />
-  <use href="#lime" transform="translate(500, 1050) scale(2.6) rotate(34)" />
-  <use href="#lime" transform="translate(1000, 1150) scale(3.1) rotate(105)" />
-  <use href="#lime" transform="translate(2000, 450) scale(2.8) rotate(275)" />
-  <use href="#lime" transform="translate(80, 1100) scale(2) rotate(145)" />
-  <use href="#lime" transform="translate(-150, 350) scale(1.7) rotate(310)" />
-  <use href="#lime" transform="translate(1950, 950) scale(1.9) rotate(60)" />
-</svg>`;
-
-        const encodedSvg = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgMarkup);
-        
-        if (DOM.chatBox) {
-            // BYPASS DEL FILTRO ORIGINALE: Nessun linear-gradient qui, solo l'SVG puro
-            DOM.chatBox.style.backgroundImage = `url("${encodedSvg}")`;
-            DOM.chatBox.style.backgroundSize = 'cover';
-            DOM.chatBox.style.backgroundPosition = 'center';
-            DOM.chatBox.style.backgroundRepeat = 'no-repeat';
-            DOM.chatBox.style.backgroundAttachment = 'fixed';
-        }
-    }
-
-    // 3. Iniezione DOM del pulsante Cestino a fianco del caricamento Sfondo
-    document.addEventListener('DOMContentLoaded', () => {
-        const bgBtn = document.querySelector('.setting-action-btn[onclick="DOM.bgInput.click()"]');
-        if (bgBtn && !document.getElementById('remove-bg-btn')) {
-            // Creiamo il wrapper per posizionarli orizzontalmente
-            const wrapper = document.createElement('div');
-            wrapper.style.display = 'flex';
-            wrapper.style.gap = '8px';
-            wrapper.style.width = '100%';
-
-            bgBtn.parentNode.insertBefore(wrapper, bgBtn);
-            bgBtn.style.flex = '1';
-            wrapper.appendChild(bgBtn);
-
-            const removeBtn = document.createElement('button');
-            removeBtn.id = 'remove-bg-btn';
-            removeBtn.title = 'Rimuovi sfondo personalizzato';
-            removeBtn.style.background = 'var(--input-bg)';
-            removeBtn.style.border = '1px solid var(--border-color)';
-            removeBtn.style.borderRadius = '8px';
-            removeBtn.style.padding = '0 12px';
-            removeBtn.style.color = '#ff4444';
-            removeBtn.style.cursor = 'pointer';
-            removeBtn.style.transition = 'background 0.2s';
-            removeBtn.style.display = 'flex';
-            removeBtn.style.alignItems = 'center';
-            removeBtn.style.justifyContent = 'center';
-            
-            // Icona del cestino identica a quella di cancellazione chat
-            removeBtn.innerHTML = `<svg viewBox="0 0 40 40" style="width: 18px; height: 18px;"><path fill="currentColor" d="M 10 10 H 30 V 34 C 30 35.1 29.1 36 28 36 H 12 C 10.9 36 10 35.1 10 34 V 10 Z" /><path d="M 8 10 H 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 10 V 6 C 16 4.9 16.9 4 18 4 H 22 C 23.1 4 24 4.9 24 6 V 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 16 V 30 M 24 16 V 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
-            
-            removeBtn.onmouseover = () => removeBtn.style.background = 'var(--border-color)';
-            removeBtn.onmouseout = () => removeBtn.style.background = 'var(--input-bg)';
-
-            // Azione di rimozione
-            removeBtn.onclick = async () => {
-                window.currentCustomBg = null;
-                applyChatBackground(null); // Richiama in automatico l'SVG di fallback
-                
-                // Aggiorniamo il db se siamo loggati
-                if (userId) {
-                    try {
-                        const { data: { user } } = await supabaseClient.auth.getUser();
-                        const oldUrl = user?.user_metadata?.bg;
-                        await supabaseClient.auth.updateUser({ data: { bg: null } });
-                        if (oldUrl && typeof deleteOldSupabaseFile === 'function') {
-                            await deleteOldSupabaseFile(oldUrl);
-                        }
-                    } catch (e) {
-                        console.error("Errore rimozione sfondo: ", e);
-                    }
-                }
-            };
-
-            wrapper.appendChild(removeBtn);
-        }
-    });
-
-    // 4. Intercettiamo l'impostazione degli sfondi per salvare lo stato
-    const originalApplyChatBackground = window.applyChatBackground;
-    window.applyChatBackground = function(imageUrl) {
-        window.currentCustomBg = imageUrl;
-        if (imageUrl) {
-            originalApplyChatBackground(imageUrl);
-        } else {
-            updateDefaultBackground();
-        }
-    };
-
-    // 5. Intercettiamo il cambio colore per forzare il ridisegno dell'SVG
-    const originalHandleColorChange = window.handleColorChange;
-    window.handleColorChange = async function(hex) {
-        if (originalHandleColorChange) await originalHandleColorChange(hex);
-        if (!window.currentCustomBg) updateDefaultBackground();
-    };
-
-    // 6. Intercettiamo il caricamento del profilo utente
-    const originalUpdateProfileUI = window.updateProfileUI;
-    window.updateProfileUI = function(user) {
-        if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-        setTimeout(() => {
-            if (!window.currentCustomBg) updateDefaultBackground();
-        }, 50);
-    };
-    
-    // Fallback di sicurezza all'avvio
-    setTimeout(() => {
-        if (!window.currentCustomBg) updateDefaultBackground();
-    }, 150);
-
-})();
-</script>
-
-
-
-
-    
-
-
-    
-
-
+</script>    
 </body>
 </html>
-
-
-
-
-
-
-
