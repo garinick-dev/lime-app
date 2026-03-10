@@ -10,13 +10,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"></script>
-
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js"></script>
-
+    
     <style>
         :root { --bg-color: #0e0e0e; --sidebar-bg: #151515; --accent: #c0f22c; --text-main: #e3e3e3; --text-muted: #666; --text-light: #aaa; --input-bg: #1e1e1e; --user-bubble: #2b2b2b; --border-color: #222; --sidebar-width: 280px; --chat-max-width: 800px; --bg-main-rgb: 14, 14, 14; --lime-accent: #c0f22c; --lime-bg-chip: #2b2b2b; --lime-chip-color: #e3e3e3; --lime-chip-border: #444; }
         body, html { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding: 0; height: 100dvh; background: var(--bg-color); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden !important; -webkit-tap-highlight-color: transparent; }
@@ -333,8 +327,10 @@
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
     let globalStream = null, chatVirtualObserver = null, currentCustomBg = null, capturedChipTitle = null;
+    let librariesLoaded = false; // Flag per il lazy loading
 
     const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
+    const MAX_CACHE_CHATS = 5; // Limite memoria cache
     const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
 
     const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
@@ -350,6 +346,44 @@
         mic: `<svg viewBox="0 0 40 40" style="width: 20px; height: 20px;"><path fill="currentColor" d="M 20 2 C 16.13 2, 13 5.13, 13 9 V 19 C 13 22.87, 16.13 26, 20 26 C 23.87 26, 27 22.87, 27 19 V 9 C 27 5.13, 23.87 2, 20 2 Z" /><path d="M 32 19 C 32 25.63, 26.63 31, 20 31 C 13.37 31, 8 25.63, 8 19" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M 20 31 V 37.5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>`,
         sendPlane: `<svg viewBox="0 0 24 24" style="width: 23px; height: 23px; transform: translate(0.5px, -0.5px);" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path transform="rotate(45 12 12) translate(12 12) scale(1 0.75) translate(-12 -12)" fill-rule="evenodd" clip-rule="evenodd" d="M12 2a1 1 0 0 1 .932.638l7 18a1 1 0 0 1-1.326 1.281L13 19.517V13a1 1 0 1 0-2 0v6.517l-5.606 2.402a1 1 0 0 1-1.326-1.281l7-18A1 1 0 0 1 12 2Z" /></svg>`
     };
+
+    // Lazy Loading delle librerie pesanti
+    async function loadHeavyLibraries() {
+        if (librariesLoaded) return;
+        librariesLoaded = true;
+        
+        const loadScript = (src) => new Promise((resolve, reject) => { 
+            const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.head.appendChild(s); 
+        });
+        const loadCSS = (href) => { 
+            const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; document.head.appendChild(l); 
+        };
+
+        try {
+            loadCSS("https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css");
+            await Promise.all([
+                loadScript("https://cdn.jsdelivr.net/npm/marked/marked.min.js"),
+                loadScript("https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.9/purify.min.js"),
+                loadScript("https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js")
+            ]);
+            await loadScript("https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js");
+            setupMathAndSanitization(); // Inizializza Marked e DOMPurify una volta scaricati
+        } catch (e) {
+            console.error("Errore caricamento librerie", e);
+        }
+    }
+
+    // Gestione Pulizia Memoria
+    function manageChatCache() {
+        const keys = Object.keys(chatCache);
+        if (keys.length > MAX_CACHE_CHATS) {
+            for (let i = 0; i < keys.length - MAX_CACHE_CHATS; i++) {
+                if (keys[i] !== currentConversationId) {
+                    delete chatCache[keys[i]]; // Distrugge i dati delle chat più vecchie dalla RAM
+                }
+            }
+        }
+    }
 
     function formatLaTeX(text) {
         if (!text) return "";
@@ -417,7 +451,7 @@
         toShow.forEach(chat => { 
             const div = document.createElement('div'); div.className = `history-item ${chat.dify_id === currentConversationId ? 'active-chat' : ''}`; 
             div.id = `chat-${chat.dify_id}`; div.onclick = () => handleChatClick(chat.dify_id); 
-            const safeTitle = DOMPurify.sanitize(chat.title || "Nuova conversazione", { ALLOWED_TAGS: [] }); 
+            const safeTitle = (window.DOMPurify) ? DOMPurify.sanitize(chat.title || "Nuova conversazione", { ALLOWED_TAGS: [] }) : (chat.title || "Nuova conversazione").replace(/</g, "&lt;"); 
             div.innerHTML = `<div class="chat-title">${safeTitle}</div><div class="chat-actions"><button class="action-btn" onclick="event.stopPropagation(); renameChat('${chat.dify_id}', '${chat.title}')">${SVG_ICONS.edit}</button><button class="action-btn" style="color:#ff4444" onclick="event.stopPropagation(); deleteChat('${chat.dify_id}')">${SVG_ICONS.delete}</button></div>`; 
             fragment.appendChild(div); 
         }); 
@@ -440,6 +474,8 @@
 
     async function loadChat(id) { 
         currentConversationId = id; if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
+        manageChatCache(); // Attiva la pulizia della cache
+
         if (chatCache[id]) { renderMessages(chatCache[id]); return; } 
         DOM.chatBox.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Recupero messaggi...</div>`; 
         if (window.updateGreetingVisibility) window.updateGreetingVisibility();
@@ -560,7 +596,8 @@
         if (role === 'bot') { 
             if (text === "...") { div.innerHTML = `<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`; } 
             else { 
-                let safeMathText = formatLaTeX(text || "..."); div.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : DOMPurify.sanitize(safeMathText); 
+                let safeMathText = formatLaTeX(text || "..."); 
+                div.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
                 div.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
             }
         } else { if (isHtml) div.innerHTML = text; else div.textContent = text; } 
@@ -640,7 +677,7 @@
         
         let fullAnswer = "", renderQueued = false, isThinkingLocal = true, lastRenderTime = 0;
         let attempt = 0;
-        const maxAttempts = 2; // Riprova silenziosamente 1 volta
+        const maxAttempts = 2;
         let success = false;
         let originalConversationId = currentConversationId; 
 
@@ -677,7 +714,7 @@
                         if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
                         if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                     } else {
-                        hasError = true; // Risposta vuota dal blocco
+                        hasError = true;
                     }
                 } else { 
                     const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = "", firstChunk = true; 
@@ -691,17 +728,21 @@
                                 try { 
                                     const data = JSON.parse(line.substring(6)); 
                                     if (data.event === 'error') {
-                                        hasError = true; // Dify invia un evento errore
+                                        hasError = true; 
                                     } else if (data.event === 'message') { 
                                         fullAnswer += data.answer; 
                                         if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
                                         
+                                        // Ottimizzazione dinamica del Rendering
+                                        // Aumenta il tempo di attesa tra i refresh man mano che il testo cresce per non affaticare il dispositivo
+                                        const throttleInterval = fullAnswer.length > 2000 ? 150 : (fullAnswer.length > 800 ? 100 : 50);
                                         const now = Date.now();
-                                        if (now - lastRenderTime > 50) {
+
+                                        if (now - lastRenderTime > throttleInterval) {
                                             lastRenderTime = now;
                                             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
                                             let safeMathText = formatLaTeX(fullAnswer);
-                                            botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : DOMPurify.sanitize(safeMathText); 
+                                            botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
                                             if(bottomBar) botDiv.appendChild(bottomBar); 
                                             scrollToBottom();
                                         } else if (!renderQueued) { 
@@ -711,11 +752,11 @@
                                                 requestAnimationFrame(() => { 
                                                     const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
                                                     let safeMathText = formatLaTeX(fullAnswer);
-                                                    botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : DOMPurify.sanitize(safeMathText); 
+                                                    botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
                                                     if(bottomBar) botDiv.appendChild(bottomBar); 
                                                     scrollToBottom(); 
                                                 });
-                                            }, 50); 
+                                            }, throttleInterval); 
                                         } 
                                     } else if (data.event === 'message_end') { 
                                         success = true;
@@ -726,27 +767,25 @@
                                 } catch (e) {} 
                             } 
                         } 
-                        if (hasError) break; // Interrompe il parsing se c'è un errore interno
+                        if (hasError) break; 
                     } 
-                    if (fullAnswer.trim().length === 0 && !success) hasError = true; // La bolla rimarrebbe vuota
+                    if (fullAnswer.trim().length === 0 && !success) hasError = true; 
                 } 
             } catch (e) {
-                hasError = true; // Fallimento di rete o fetch
+                hasError = true; 
             }
 
             if (hasError && attempt < maxAttempts) {
-                await new Promise(r => setTimeout(r, 1000)); // Attesa silenziosa prima del retry
+                await new Promise(r => setTimeout(r, 1000)); 
             }
-        } // Fine del ciclo while
+        } 
 
         if (!success) {
-            // Se anche il retry fallisce, attiviamo il Friendly Fallback e distruggiamo l'ID fasullo
             fullAnswer = "Scusa, ho avuto un piccolo vuoto di memoria! 😅 Potresti ripetermi la domanda?";
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
             botDiv.innerHTML = fullAnswer; 
             if(bottomBar) botDiv.appendChild(bottomBar); 
             
-            // Ripuliamo l'ID conversazione se si trattava del primo messaggio, per evitare il blocco a catena
             if (!originalConversationId && currentConversationId) {
                 supabaseClient.from('conversations').delete().eq('dify_id', currentConversationId).then(() => {
                     delete chatCache[currentConversationId];
@@ -956,14 +995,13 @@
     }
 
     function setupMathAndSanitization() {
+        if (!window.marked || !window.DOMPurify) return; // Se non caricate aspetta
         if (window.marked && window.markedKatex) marked.use(window.markedKatex({ throwOnError: false }), { breaks: true, gfm: true });
-        if (window.DOMPurify) {
-            const originalSanitize = window.DOMPurify.sanitize;
-            window.DOMPurify.sanitize = function(content, config) {
-                // Aggiunto supporto per tag <think> e parametri di stile per evitare schermate bianche
-                return originalSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, { ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g', 'think'], ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'] }));
-            };
-        }
+        
+        const originalSanitize = window.DOMPurify.sanitize;
+        window.DOMPurify.sanitize = function(content, config) {
+            return originalSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, { ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g', 'think'], ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'] }));
+        };
 
         function syncThumb(el, scrollbar) {
             const thumb = scrollbar.querySelector('.math-thumb'); if (!thumb) return;
@@ -1006,7 +1044,6 @@
         }
         
         setupViewportAnchoring();
-        setupMathAndSanitization();
         initLimeExtras();
         setupChatVirtualization();
 
@@ -1027,15 +1064,17 @@
             if (window.syncAnchoring) window.syncAnchoring();
             updateProfileUI(session.user); loadHistory(); 
             if (window.updateGreetingVisibility) window.updateGreetingVisibility();
+            await loadHeavyLibraries(); // Avvia il download differito
         }
         
-        supabaseClient.auth.onAuthStateChange((event, session) => { 
+        supabaseClient.auth.onAuthStateChange(async (event, session) => { 
             if (session) { 
                 userId = session.user.id; 
                 document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
                 if (window.syncAnchoring) window.syncAnchoring();
                 updateProfileUI(session.user); loadHistory(); 
                 if (window.updateGreetingVisibility) window.updateGreetingVisibility();
+                await loadHeavyLibraries(); // Avvia il download differito
             } else { 
                 userId = null; 
                 document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); 
