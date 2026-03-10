@@ -1238,8 +1238,6 @@
 
 
 
-
-
 <style>
     .bot-msg {
         z-index: 2 !important;
@@ -1282,7 +1280,7 @@
         margin-top: -20px;
         z-index: 1;
         position: relative;
-        will-change: grid-template-rows; 
+        will-change: grid-template-rows;
     }
     
     .translation-wrapper.open {
@@ -1311,12 +1309,10 @@
 (function() {
     const SVG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
 
-    // Set per una ricerca istantanea
     const itStopWords = new Set(['il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una', 'di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'e', 'ed', 'o', 'ma', 'se', 'che', 'non', 'mi', 'ti', 'si', 'ci', 'vi', 'sono', 'è', 'ha', 'hanno', 'come', 'più', 'questo', 'quello', 'ciao', 'buongiorno', 'bene', 'grazie']);
 
     function isMostlyForeign(text) {
         const words = text.toLowerCase().match(/\b[a-zàèéìòù]+\b/g);
-        // Abbassato il limite a 2 parole per facilitare i test rapidi
         if (!words || words.length < 2) return false; 
         
         let itCount = 0;
@@ -1324,14 +1320,16 @@
         for (let i = 0; i < len; i++) {
             if (itStopWords.has(words[i])) itCount++;
         }
-        // Se meno del 20% del messaggio usa stop-words italiane, è lingua straniera
         return (itCount / len) <= 0.20; 
     }
 
     async function fetchBackendTranslation(text) {
         try {
             const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
-            const res = await fetch('/api/translate', {
+            const edgeUrl = typeof EDGE_FUNCTION_URL !== 'undefined' ? EDGE_FUNCTION_URL : '/api/dify';
+            
+            // Chiamata identica a quella nativa di LIME, ma col path /translate
+            const res = await fetch(`${edgeUrl}?path=/translate`, {
                 method: 'POST',
                 headers: { ...authHeaders, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: text })
@@ -1339,7 +1337,9 @@
 
             if (!res.ok) throw new Error(`Errore Server: ${res.status}`);
             const data = await res.json();
-            return data?.translatedText || "⚠️ Errore: Traduzione non formattata correttamente dal server.";
+            
+            // Supporto flessibile per la risposta del tuo backend
+            return data?.translatedText || data?.answer || data?.text || "⚠️ Errore: Nessun testo restituito dal server.";
         } catch (e) {
             return "⚠️ Errore di comunicazione con il server di traduzione.";
         }
@@ -1353,21 +1353,22 @@
         if (wrappers.length === 0) return;
         
         wrappers.forEach(wrapper => {
-            wrapper.setAttribute('data-lang-checked', 'true'); 
             const botMsg = wrapper.querySelector('.bot-msg');
             const bottomBar = botMsg ? botMsg.querySelector('.msg-bottom-bar') : null;
             
+            // Sicurezza extra: se il nodo è stato svuotato momentaneamente dallo scroll, lo skippiamo senza marcarlo
             if (!botMsg || !bottomBar) return;
+            
+            wrapper.setAttribute('data-lang-checked', 'true'); 
 
             const clone = botMsg.cloneNode(true);
-            const toRemove = clone.querySelectorAll('pre, code, .msg-bottom-bar');
+            const toRemove = clone.querySelectorAll('pre, code, .msg-bottom-bar, .translation-wrapper');
             for(let i = 0; i < toRemove.length; i++) toRemove[i].remove();
             
-            // FIX: Usare textContent invece di innerText per leggere i nodi clonati "fuori schermo"
             const rawText = clone.textContent.trim();
 
             if (isMostlyForeign(rawText)) {
-                bottomBar.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione" data-raw-text="${encodeURIComponent(rawText)}">${SVG_EYE}</button>`);
+                bottomBar.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione">${SVG_EYE}</button>`);
                 
                 wrapper.insertAdjacentHTML('beforeend', `
                     <div class="translation-wrapper">
@@ -1403,7 +1404,13 @@
 
             if (isOpen && !transBox.hasAttribute('data-translated')) {
                 transBox.setAttribute('data-translated', 'true');
-                const rawText = decodeURIComponent(btn.getAttribute('data-raw-text'));
+                
+                // Estraiamo il testo al momento del click per non appesantire il DOM con attributi infiniti
+                const botMsg = wrapper.querySelector('.bot-msg');
+                const clone = botMsg.cloneNode(true);
+                clone.querySelectorAll('pre, code, .msg-bottom-bar, .translation-wrapper').forEach(el => el.remove());
+                const rawText = clone.textContent.trim();
+
                 const translatedText = await fetchBackendTranslation(rawText);
                 transBox.innerHTML = translatedText.replace(/\n/g, '<br>');
             }
@@ -1416,7 +1423,8 @@
             let shouldCheck = false;
             for(let i = 0; i < mutations.length; i++) {
                 const m = mutations[i];
-                if ((m.attributeName === 'class' && m.target.classList.contains('msg-complete')) || m.addedNodes.length > 0) {
+                // Ci attiviamo SOLO quando la classe "msg-complete" viene aggiunta. Nessun sovraccarico durante lo streaming testuale!
+                if (m.type === 'attributes' && m.attributeName === 'class' && m.target.classList.contains('msg-complete')) {
                     shouldCheck = true;
                     break;
                 }
@@ -1426,13 +1434,14 @@
                 debounceTimer = setTimeout(processTranslations, 150);
             }
         });
-        observer.observe(chatBox, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        
+        // Ascoltiamo solo gli attributi, ignorando i nodi testuali che cambiano continuamente
+        observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'] });
     }
 
     setTimeout(processTranslations, 500);
 })();
 </script>
-
 
 
 
@@ -1448,6 +1457,7 @@
 
 </body>
 </html>
+
 
 
 
