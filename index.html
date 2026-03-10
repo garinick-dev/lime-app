@@ -1238,10 +1238,221 @@
 
 
 
+
+
+
+<style>
+    .bot-msg {
+        z-index: 2 !important;
+        position: relative;
+    }
+
+    .translate-btn {
+        background: none;
+        border: none;
+        color: inherit;
+        opacity: 0.6;
+        cursor: pointer;
+        padding: 2px;
+        margin-left: 8px;
+        transition: opacity 0.2s, color 0.2s, transform 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        outline: none;
+    }
+    
+    .translate-btn:hover {
+        opacity: 1;
+        color: var(--accent);
+        transform: scale(1.15);
+    }
+    
+    .translate-btn.active {
+        opacity: 1;
+        color: var(--accent);
+    }
+
+    .translation-wrapper {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+        max-width: 85%;
+        align-self: flex-start;
+        margin-top: -20px;
+        z-index: 1;
+        position: relative;
+        will-change: grid-template-rows; /* Accelerazione GPU per uno scorrimento perfetto */
+    }
+    
+    .translation-wrapper.open {
+        grid-template-rows: 1fr;
+    }
+
+    .translation-inner {
+        overflow: hidden;
+    }
+
+    .translation-box {
+        background-color: #000000;
+        color: var(--accent);
+        padding: 28px 18px 12px 18px;
+        border-radius: 0 0 20px 20px;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        word-wrap: break-word;
+        border: 1px solid #222;
+        border-top: none;
+    }
+</style>
+
+<script>
+(function() {
+    const SVG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+
+    // Ricerca istantanea tramite Set
+    const itStopWords = new Set(['il', 'lo', 'la', 'i', 'gli', 'le', 'un', 'uno', 'una', 'di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'e', 'ed', 'o', 'ma', 'se', 'che', 'non', 'mi', 'ti', 'si', 'ci', 'vi', 'sono', 'è', 'ha', 'hanno', 'come', 'più', 'questo', 'quello']);
+
+    function isMostlyForeign(text) {
+        const words = text.toLowerCase().match(/\b[a-zàèéìòù]+\b/g);
+        if (!words || words.length < 4) return false; 
+        
+        let itCount = 0;
+        const len = words.length;
+        for (let i = 0; i < len; i++) {
+            if (itStopWords.has(words[i])) itCount++;
+        }
+        return (itCount / len) < 0.15; 
+    }
+
+    async function fetchBackendTranslation(text) {
+        try {
+            const authHeaders = typeof getAuthHeaders === 'function' ? await getAuthHeaders() : {};
+            const res = await fetch('/api/translate', {
+                method: 'POST',
+                headers: { ...authHeaders, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text })
+            });
+
+            if (!res.ok) throw new Error(`Errore Server: ${res.status}`);
+            const data = await res.json();
+            return data?.translatedText || "⚠️ Errore: Traduzione non formattata correttamente.";
+        } catch (e) {
+            return "⚠️ Errore di comunicazione con il server di traduzione.";
+        }
+    }
+
+    function processTranslations() {
+        const chatBox = document.getElementById('chat-box');
+        if (!chatBox) return;
+
+        const wrappers = chatBox.querySelectorAll('.bot-wrapper.msg-complete:not([data-lang-checked])');
+        if (wrappers.length === 0) return;
+        
+        wrappers.forEach(wrapper => {
+            wrapper.setAttribute('data-lang-checked', 'true'); 
+            const botMsg = wrapper.querySelector('.bot-msg');
+            const bottomBar = botMsg ? botMsg.querySelector('.msg-bottom-bar') : null;
+            
+            if (!botMsg || !bottomBar) return;
+
+            const clone = botMsg.cloneNode(true);
+            const toRemove = clone.querySelectorAll('pre, code, .msg-bottom-bar');
+            for(let i = 0; i < toRemove.length; i++) toRemove[i].remove();
+            
+            const rawText = clone.innerText.trim();
+
+            if (isMostlyForeign(rawText)) {
+                // Inserimento rapido senza createElement
+                bottomBar.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione" data-raw-text="${encodeURIComponent(rawText)}">${SVG_EYE}</button>`);
+                
+                wrapper.insertAdjacentHTML('beforeend', `
+                    <div class="translation-wrapper">
+                        <div class="translation-inner">
+                            <div class="translation-box">
+                                <span class="typing-indicator" style="display:inline-flex;">
+                                    <span class="typing-dot" style="background:var(--accent)"></span>
+                                    <span class="typing-dot" style="background:var(--accent)"></span>
+                                    <span class="typing-dot" style="background:var(--accent)"></span>
+                                </span> Elaborazione in corso...
+                            </div>
+                        </div>
+                    </div>
+                `);
+            }
+        });
+    }
+
+    const chatBox = document.getElementById('chat-box');
+    if (chatBox) {
+        // Event Delegation globale: un solo ascoltatore per tutti i bottoni
+        chatBox.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.translate-btn');
+            if (!btn) return;
+            
+            e.stopPropagation();
+            
+            const wrapper = btn.closest('.bot-wrapper');
+            const transWrapper = wrapper.querySelector('.translation-wrapper');
+            const transBox = transWrapper.querySelector('.translation-box');
+            
+            const isOpen = transWrapper.classList.toggle('open');
+            btn.classList.toggle('active');
+
+            // Usa un attributo per verificare se è già stato tradotto, evitando variabili di stato isolate
+            if (isOpen && !transBox.hasAttribute('data-translated')) {
+                transBox.setAttribute('data-translated', 'true');
+                const rawText = decodeURIComponent(btn.getAttribute('data-raw-text'));
+                const translatedText = await fetchBackendTranslation(rawText);
+                transBox.innerHTML = translatedText.replace(/\n/g, '<br>');
+            }
+            
+            setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 350);
+        });
+
+        // Debounce del MutationObserver per non rallentare l'inserimento di messaggi
+        let debounceTimer;
+        const observer = new MutationObserver((mutations) => {
+            let shouldCheck = false;
+            for(let i = 0; i < mutations.length; i++) {
+                const m = mutations[i];
+                if ((m.attributeName === 'class' && m.target.classList.contains('msg-complete')) || m.addedNodes.length > 0) {
+                    shouldCheck = true;
+                    break;
+                }
+            }
+            if (shouldCheck) {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(processTranslations, 150);
+            }
+        });
+        observer.observe(chatBox, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
+
+    setTimeout(processTranslations, 500);
+})();
+</script>
+
+    
+
+
+
+
+    
+    
+
+
+
+
+
+
     
 
 </body>
 </html>
+
 
 
 
