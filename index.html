@@ -1195,14 +1195,23 @@
         }, 150);
     });
 
-    // Gestione precisa dei tasti: Invio (Invia) vs Shift+Invio (A capo)
+    // Gestione precisa e cross-platform dei tasti
     textarea.addEventListener('keydown', (e) => {
+        // Riconoscimento rapido dell'ambiente mobile/touch
+        const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
         if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault(); // Blocca l'andare a capo non desiderato
-            if (typeof isRecording !== 'undefined' && isRecording) {
-                if (typeof toggleRecording === 'function') toggleRecording();
-            } else if (typeof isGenerating !== 'undefined' && !isGenerating) {
-                if (typeof sendMessage === 'function') sendMessage();
+            if (isMobile) {
+                // Su mobile, l'Invio nativo manda a capo il testo nella textarea
+                e.stopPropagation();
+            } else {
+                // Su desktop, l'Invio singolo spedisce il messaggio
+                e.preventDefault(); 
+                if (typeof isRecording !== 'undefined' && isRecording) {
+                    if (typeof toggleRecording === 'function') toggleRecording();
+                } else if (typeof isGenerating !== 'undefined' && !isGenerating) {
+                    if (typeof sendMessage === 'function') sendMessage();
+                }
             }
         }
     }, true);
@@ -1233,6 +1242,7 @@
 
 </body>
 </html>
+
 
 
 
