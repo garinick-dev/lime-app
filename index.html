@@ -1095,16 +1095,15 @@
 
     
 
-
-
+    
 
 <style>
-    /* Spingiamo gli elementi della barra verso il basso quando l'area si espande */
+    /* 1. Allineamento al fondo degli elementi nella barra quando si espande */
     .input-wrapper {
         align-items: flex-end !important;
     }
 
-    /* Stili per la nuova textarea mirati sull'ID originale per non rompere i riferimenti */
+    /* 2. Nuova textarea fluida e reattiva */
     textarea#user-input {
         flex: 1;
         min-width: 0;
@@ -1117,7 +1116,7 @@
         font-family: inherit;
         resize: none;
         line-height: 20px;
-        max-height: 120px; /* Consente fino a circa 5 righe (20px * 5 + 20px padding) */
+        max-height: 120px; /* Circa 5 righe visibili prima dello scroll */
         min-height: 40px;
         box-sizing: border-box;
         overflow-y: auto;
@@ -1129,9 +1128,14 @@
         display: none;
     }
 
-    /* Assicuriamo che i pulsanti restino allineati correttamente al fondo */
+    /* 3. Pulsanti laterali ancorati in basso per non saltare durante l'espansione */
     #attach-btn, #mic-btn {
         margin-bottom: 10px;
+    }
+
+    /* 4. Mantiene i ritorni a capo nativi e gli spazi nella bubble dell'utente */
+    .user-msg {
+        white-space: pre-wrap !important;
     }
 </style>
 
@@ -1140,7 +1144,7 @@
     const oldInput = document.getElementById('user-input');
     if (!oldInput) return;
 
-    // Assicuriamoci di non duplicare la textarea se ricarichiamo lo script
+    // Assicuriamoci di non duplicare la textarea in caso di ricaricamenti multipli
     const isAlreadyTextarea = oldInput.tagName.toLowerCase() === 'textarea';
     let textarea;
 
@@ -1149,34 +1153,34 @@
         textarea.className = oldInput.className;
         textarea.placeholder = oldInput.placeholder;
         textarea.setAttribute('rows', '1');
-        textarea.id = 'user-input'; // Manteniamo rigorosamente l'ID originale!
+        textarea.id = 'user-input'; // Manteniamo rigorosamente l'ID originale per LIME
         
         oldInput.parentNode.replaceChild(textarea, oldInput);
     } else {
         textarea = oldInput;
     }
 
-    // Aggiorniamo l'oggetto DOM nativo per sicurezza
+    // Aggiorniamo il riferimento DOM nativo di LIME
     if (typeof DOM !== 'undefined') {
         DOM.inputField = textarea;
     }
 
-    // Logica fluida per espansione e contrazione
+    // Logica fluida per espansione e contrazione bidirezionale
     const autoResize = () => {
         textarea.style.height = '40px'; 
         const requiredHeight = textarea.scrollHeight;
         textarea.style.height = Math.max(Math.min(requiredHeight, 120), 40) + 'px';
         
-        // Sincronizza l'ancoraggio della UI (chat e mascotte)
+        // Sincronizza l'ancoraggio della UI (chat e mascotte seguono la barra)
         if (window.syncAnchoring) window.syncAnchoring();
     };
 
-    // Intercettiamo i reset del testo (es. quando il messaggio viene inviato)
+    // Intercettiamo i reset del testo (es. pulizia dopo l'invio del messaggio)
     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
     Object.defineProperty(textarea, 'value', {
         set: function(val) {
             nativeInputValueSetter.call(this, val);
-            autoResize(); // Ricalcola immediatamente l'altezza per ritornare a 1 riga
+            autoResize();
         },
         get: function() {
             return Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").get.call(this);
@@ -1191,10 +1195,10 @@
         }, 150);
     });
 
-    // Gestione precisa dei tasti: Invio vs Shift+Invio
+    // Gestione precisa dei tasti: Invio (Invia) vs Shift+Invio (A capo)
     textarea.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault(); // Niente a capo se premo solo Invio
+            e.preventDefault(); // Blocca l'andare a capo non desiderato
             if (typeof isRecording !== 'undefined' && isRecording) {
                 if (typeof toggleRecording === 'function') toggleRecording();
             } else if (typeof isGenerating !== 'undefined' && !isGenerating) {
@@ -1203,21 +1207,17 @@
         }
     }, true);
 
-    // Blocchiamo il vecchio listener di LIME che non riconosceva lo Shift+Invio
+    // Blocchiamo il vecchio listener di LIME che intercettava l'invio in modo grezzo
     textarea.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.stopPropagation(); 
         }
     }, true);
 
-    // Setup iniziale
+    // Inizializzazione altezze all'avvio
     autoResize();
 })();
 </script>
-
-
-    
-
 
 
     
@@ -1233,6 +1233,7 @@
 
 </body>
 </html>
+
 
 
 
