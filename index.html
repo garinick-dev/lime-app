@@ -1242,6 +1242,120 @@ if (currentConversationId) {
 
     
 
+<script>
+(function() {
+    // 1. Funzione matematica per schiarire il colore esadecimale (miscelazione col bianco)
+    function lightenColor(hex, percent) {
+        hex = hex.replace(/^#/, '');
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        
+        let r = parseInt(hex.slice(0, 2), 16);
+        let g = parseInt(hex.slice(2, 4), 16);
+        let b = parseInt(hex.slice(4, 6), 16);
+        
+        // Aumenta la luminosità spingendo i valori verso 255 (bianco)
+        r = Math.round(r + (255 - r) * percent);
+        g = Math.round(g + (255 - g) * percent);
+        b = Math.round(b + (255 - b) * percent);
+        
+        return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
+    }
+
+    // 2. Funzione per generare e applicare l'SVG
+    function updateDefaultBackground() {
+        // Se l'utente ha caricato un'immagine personalizzata, la rispettiamo e ci fermiamo
+        if (window.currentCustomBg) return;
+
+        // Recuperiamo il colore principale attualmente in uso nell'app (fallback al lime di default)
+        const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
+        
+        // Calcoliamo la variante "schiarita leggermente" (40% più chiara)
+        const lightColor = lightenColor(userColor, 0.40); 
+
+        const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 -100 1520 1520" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="margin: 0; display: block;">
+  <defs>
+    <g id="lime">
+      <circle cx="0" cy="0" r="100" fill="${userColor}" />
+      <circle cx="0" cy="0" r="92" fill="#FFFFFF" />
+      <circle cx="0" cy="0" r="86" fill="${lightColor}" />
+      <line x1="0" y1="-86" x2="0" y2="86" stroke="#FFFFFF" stroke-width="4" />
+      <line x1="-86" y1="0" x2="86" y2="0" stroke="#FFFFFF" stroke-width="4" />
+      <line x1="-60.8" y1="-60.8" x2="60.8" y2="60.8" stroke="#FFFFFF" stroke-width="4" />
+      <line x1="-60.8" y1="60.8" x2="60.8" y2="-60.8" stroke="#FFFFFF" stroke-width="4" />
+      <circle cx="0" cy="0" r="8" fill="#FFFFFF" />
+    </g>
+  </defs>
+  <use href="#lime" transform="translate(300, 300) scale(3) rotate(45)" />
+  <use href="#lime" transform="translate(800, 300) scale(2) rotate(112)" />
+  <use href="#lime" transform="translate(800, 750) scale(2.5) rotate(17)" />
+  <use href="#lime" transform="translate(300, 750) scale(1.5) rotate(260)" />
+  <use href="#lime" transform="translate(860, -120) scale(4) rotate(88)" />
+  <use href="#lime" transform="translate(1350, 300) scale(3.5) rotate(315)" />
+  <use href="#lime" transform="translate(1650, 700) scale(1.5) rotate(53)" />
+  <use href="#lime" transform="translate(1650, 1150) scale(3) rotate(194)" />
+  <use href="#lime" transform="translate(-100, 750) scale(2.5) rotate(135)" />
+  <use href="#lime" transform="translate(0, -100) scale(2) rotate(72)" />
+  <use href="#lime" transform="translate(1830, -340) scale(4.5) rotate(220)" />
+  <use href="#lime" transform="translate(1100, -50) scale(2.2) rotate(9)" />
+  <use href="#lime" transform="translate(1250, 800) scale(1.8) rotate(166)" />
+  <use href="#lime" transform="translate(550, 480) scale(1.1) rotate(290)" />
+  <use href="#lime" transform="translate(500, 1050) scale(2.6) rotate(34)" />
+  <use href="#lime" transform="translate(1000, 1150) scale(3.1) rotate(105)" />
+  <use href="#lime" transform="translate(2000, 450) scale(2.8) rotate(275)" />
+  <use href="#lime" transform="translate(80, 1100) scale(2) rotate(145)" />
+  <use href="#lime" transform="translate(-150, 350) scale(1.7) rotate(310)" />
+  <use href="#lime" transform="translate(1950, 950) scale(1.9) rotate(60)" />
+</svg>`;
+
+        const encodedSvg = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgMarkup);
+        
+        if (DOM.chatBox) {
+            // Utilizzo --bg-main-rgb per l'overlay: fonde l'SVG con lo sfondo senza interferire con la logica dei temi
+            DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(var(--bg-main-rgb), 0.92), rgba(var(--bg-main-rgb), 0.92)), url("${encodedSvg}")`;
+            DOM.chatBox.style.backgroundSize = 'cover';
+            DOM.chatBox.style.backgroundPosition = 'center';
+            DOM.chatBox.style.backgroundRepeat = 'no-repeat';
+            DOM.chatBox.style.backgroundAttachment = 'fixed';
+        }
+    }
+
+    // 3. Intercettiamo l'impostazione degli sfondi per salvare lo stato
+    const originalApplyChatBackground = window.applyChatBackground;
+    window.applyChatBackground = function(imageUrl) {
+        window.currentCustomBg = imageUrl;
+        if (imageUrl) {
+            originalApplyChatBackground(imageUrl);
+        } else {
+            updateDefaultBackground();
+        }
+    };
+
+    // 4. Intercettiamo il cambio colore per forzare il ridisegno dell'SVG
+    const originalHandleColorChange = window.handleColorChange;
+    window.handleColorChange = async function(hex) {
+        if (originalHandleColorChange) await originalHandleColorChange(hex);
+        // Se non c'è un'immagine custom, aggiorniamo l'SVG per fargli prendere il nuovo colore
+        if (!window.currentCustomBg) updateDefaultBackground();
+    };
+
+    // 5. Intercettiamo il caricamento del profilo utente per dipingere lo sfondo al login
+    const originalUpdateProfileUI = window.updateProfileUI;
+    window.updateProfileUI = function(user) {
+        if (originalUpdateProfileUI) originalUpdateProfileUI(user);
+        
+        // Aspettiamo un istante che le variabili CSS si siano caricate nel DOM
+        setTimeout(() => {
+            if (!window.currentCustomBg) updateDefaultBackground();
+        }, 50);
+    };
+    
+    // Fallback di sicurezza all'avvio
+    setTimeout(() => {
+        if (!window.currentCustomBg) updateDefaultBackground();
+    }, 150);
+
+})();
+</script>
 
 
 
@@ -1249,8 +1363,12 @@ if (currentConversationId) {
     
 
 
+    
+
+
 </body>
 </html>
+
 
 
 
