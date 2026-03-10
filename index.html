@@ -1253,7 +1253,6 @@ if (currentConversationId) {
         let g = parseInt(hex.slice(2, 4), 16);
         let b = parseInt(hex.slice(4, 6), 16);
         
-        // Aumenta la luminosità spingendo i valori verso 255 (bianco)
         r = Math.round(r + (255 - r) * percent);
         g = Math.round(g + (255 - g) * percent);
         b = Math.round(b + (255 - b) * percent);
@@ -1261,15 +1260,11 @@ if (currentConversationId) {
         return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
     }
 
-    // 2. Funzione per generare e applicare l'SVG
+    // 2. Funzione per generare e applicare l'SVG senza filtri
     function updateDefaultBackground() {
-        // Se l'utente ha caricato un'immagine personalizzata, la rispettiamo e ci fermiamo
         if (window.currentCustomBg) return;
 
-        // Recuperiamo il colore principale attualmente in uso nell'app (fallback al lime di default)
         const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
-        
-        // Calcoliamo la variante "schiarita leggermente" (40% più chiara)
         const lightColor = lightenColor(userColor, 0.40); 
 
         const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 -100 1520 1520" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="margin: 0; display: block;">
@@ -1310,8 +1305,8 @@ if (currentConversationId) {
         const encodedSvg = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgMarkup);
         
         if (DOM.chatBox) {
-            // Utilizzo --bg-main-rgb per l'overlay: fonde l'SVG con lo sfondo senza interferire con la logica dei temi
-            DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(var(--bg-main-rgb), 0.92), rgba(var(--bg-main-rgb), 0.92)), url("${encodedSvg}")`;
+            // BYPASS DEL FILTRO ORIGINALE: Nessun linear-gradient qui, solo l'SVG puro
+            DOM.chatBox.style.backgroundImage = `url("${encodedSvg}")`;
             DOM.chatBox.style.backgroundSize = 'cover';
             DOM.chatBox.style.backgroundPosition = 'center';
             DOM.chatBox.style.backgroundRepeat = 'no-repeat';
@@ -1319,7 +1314,65 @@ if (currentConversationId) {
         }
     }
 
-    // 3. Intercettiamo l'impostazione degli sfondi per salvare lo stato
+    // 3. Iniezione DOM del pulsante Cestino a fianco del caricamento Sfondo
+    document.addEventListener('DOMContentLoaded', () => {
+        const bgBtn = document.querySelector('.setting-action-btn[onclick="DOM.bgInput.click()"]');
+        if (bgBtn && !document.getElementById('remove-bg-btn')) {
+            // Creiamo il wrapper per posizionarli orizzontalmente
+            const wrapper = document.createElement('div');
+            wrapper.style.display = 'flex';
+            wrapper.style.gap = '8px';
+            wrapper.style.width = '100%';
+
+            bgBtn.parentNode.insertBefore(wrapper, bgBtn);
+            bgBtn.style.flex = '1';
+            wrapper.appendChild(bgBtn);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.id = 'remove-bg-btn';
+            removeBtn.title = 'Rimuovi sfondo personalizzato';
+            removeBtn.style.background = 'var(--input-bg)';
+            removeBtn.style.border = '1px solid var(--border-color)';
+            removeBtn.style.borderRadius = '8px';
+            removeBtn.style.padding = '0 12px';
+            removeBtn.style.color = '#ff4444';
+            removeBtn.style.cursor = 'pointer';
+            removeBtn.style.transition = 'background 0.2s';
+            removeBtn.style.display = 'flex';
+            removeBtn.style.alignItems = 'center';
+            removeBtn.style.justifyContent = 'center';
+            
+            // Icona del cestino identica a quella di cancellazione chat
+            removeBtn.innerHTML = `<svg viewBox="0 0 40 40" style="width: 18px; height: 18px;"><path fill="currentColor" d="M 10 10 H 30 V 34 C 30 35.1 29.1 36 28 36 H 12 C 10.9 36 10 35.1 10 34 V 10 Z" /><path d="M 8 10 H 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 10 V 6 C 16 4.9 16.9 4 18 4 H 22 C 23.1 4 24 4.9 24 6 V 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 16 V 30 M 24 16 V 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+            
+            removeBtn.onmouseover = () => removeBtn.style.background = 'var(--border-color)';
+            removeBtn.onmouseout = () => removeBtn.style.background = 'var(--input-bg)';
+
+            // Azione di rimozione
+            removeBtn.onclick = async () => {
+                window.currentCustomBg = null;
+                applyChatBackground(null); // Richiama in automatico l'SVG di fallback
+                
+                // Aggiorniamo il db se siamo loggati
+                if (userId) {
+                    try {
+                        const { data: { user } } = await supabaseClient.auth.getUser();
+                        const oldUrl = user?.user_metadata?.bg;
+                        await supabaseClient.auth.updateUser({ data: { bg: null } });
+                        if (oldUrl && typeof deleteOldSupabaseFile === 'function') {
+                            await deleteOldSupabaseFile(oldUrl);
+                        }
+                    } catch (e) {
+                        console.error("Errore rimozione sfondo: ", e);
+                    }
+                }
+            };
+
+            wrapper.appendChild(removeBtn);
+        }
+    });
+
+    // 4. Intercettiamo l'impostazione degli sfondi per salvare lo stato
     const originalApplyChatBackground = window.applyChatBackground;
     window.applyChatBackground = function(imageUrl) {
         window.currentCustomBg = imageUrl;
@@ -1330,20 +1383,17 @@ if (currentConversationId) {
         }
     };
 
-    // 4. Intercettiamo il cambio colore per forzare il ridisegno dell'SVG
+    // 5. Intercettiamo il cambio colore per forzare il ridisegno dell'SVG
     const originalHandleColorChange = window.handleColorChange;
     window.handleColorChange = async function(hex) {
         if (originalHandleColorChange) await originalHandleColorChange(hex);
-        // Se non c'è un'immagine custom, aggiorniamo l'SVG per fargli prendere il nuovo colore
         if (!window.currentCustomBg) updateDefaultBackground();
     };
 
-    // 5. Intercettiamo il caricamento del profilo utente per dipingere lo sfondo al login
+    // 6. Intercettiamo il caricamento del profilo utente
     const originalUpdateProfileUI = window.updateProfileUI;
     window.updateProfileUI = function(user) {
         if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-        
-        // Aspettiamo un istante che le variabili CSS si siano caricate nel DOM
         setTimeout(() => {
             if (!window.currentCustomBg) updateDefaultBackground();
         }, 50);
@@ -1368,6 +1418,7 @@ if (currentConversationId) {
 
 </body>
 </html>
+
 
 
 
