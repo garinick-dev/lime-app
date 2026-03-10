@@ -1089,7 +1089,150 @@
     });
 </script>    
 
+
+
+
+
+    
+
+
+
+
+<style>
+    /* Spingiamo gli elementi della barra verso il basso quando l'area si espande */
+    .input-wrapper {
+        align-items: flex-end !important;
+    }
+
+    /* Stili per la nuova textarea mirati sull'ID originale per non rompere i riferimenti */
+    textarea#user-input {
+        flex: 1;
+        min-width: 0;
+        background: none;
+        border: none;
+        color: var(--text-main);
+        padding: 10px 0;
+        outline: none;
+        font-size: 16px;
+        font-family: inherit;
+        resize: none;
+        line-height: 20px;
+        max-height: 120px; /* Consente fino a circa 5 righe (20px * 5 + 20px padding) */
+        min-height: 40px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    textarea#user-input::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Assicuriamo che i pulsanti restino allineati correttamente al fondo */
+    #attach-btn, #mic-btn {
+        margin-bottom: 10px;
+    }
+</style>
+
+<script>
+(function() {
+    const oldInput = document.getElementById('user-input');
+    if (!oldInput) return;
+
+    // Assicuriamoci di non duplicare la textarea se ricarichiamo lo script
+    const isAlreadyTextarea = oldInput.tagName.toLowerCase() === 'textarea';
+    let textarea;
+
+    if (!isAlreadyTextarea) {
+        textarea = document.createElement('textarea');
+        textarea.className = oldInput.className;
+        textarea.placeholder = oldInput.placeholder;
+        textarea.setAttribute('rows', '1');
+        textarea.id = 'user-input'; // Manteniamo rigorosamente l'ID originale!
+        
+        oldInput.parentNode.replaceChild(textarea, oldInput);
+    } else {
+        textarea = oldInput;
+    }
+
+    // Aggiorniamo l'oggetto DOM nativo per sicurezza
+    if (typeof DOM !== 'undefined') {
+        DOM.inputField = textarea;
+    }
+
+    // Logica fluida per espansione e contrazione
+    const autoResize = () => {
+        textarea.style.height = '40px'; 
+        const requiredHeight = textarea.scrollHeight;
+        textarea.style.height = Math.max(Math.min(requiredHeight, 120), 40) + 'px';
+        
+        // Sincronizza l'ancoraggio della UI (chat e mascotte)
+        if (window.syncAnchoring) window.syncAnchoring();
+    };
+
+    // Intercettiamo i reset del testo (es. quando il messaggio viene inviato)
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+    Object.defineProperty(textarea, 'value', {
+        set: function(val) {
+            nativeInputValueSetter.call(this, val);
+            autoResize(); // Ricalcola immediatamente l'altezza per ritornare a 1 riga
+        },
+        get: function() {
+            return Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").get.call(this);
+        }
+    });
+
+    textarea.addEventListener('input', () => {
+        autoResize();
+        if (typeof inputDebounce !== 'undefined') clearTimeout(inputDebounce);
+        window.inputDebounce = setTimeout(() => { 
+            if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
+        }, 150);
+    });
+
+    // Gestione precisa dei tasti: Invio vs Shift+Invio
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault(); // Niente a capo se premo solo Invio
+            if (typeof isRecording !== 'undefined' && isRecording) {
+                if (typeof toggleRecording === 'function') toggleRecording();
+            } else if (typeof isGenerating !== 'undefined' && !isGenerating) {
+                if (typeof sendMessage === 'function') sendMessage();
+            }
+        }
+    }, true);
+
+    // Blocchiamo il vecchio listener di LIME che non riconosceva lo Shift+Invio
+    textarea.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.stopPropagation(); 
+        }
+    }, true);
+
+    // Setup iniziale
+    autoResize();
+})();
+</script>
+
+
+    
+
+
+
+    
+
+
+
+
+
+
+
+
+    
+
 </body>
 </html>
+
 
 
