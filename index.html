@@ -1238,10 +1238,198 @@
 
 
 
+
+
+
+
+
+
+
+<style>
+    /* Mantiene la gerarchia visiva per far scorrere la traduzione "sotto" la bubble */
+    .bot-msg {
+        z-index: 2 !important;
+        position: relative;
+    }
+
+    /* Stile del bottone a forma di occhio (Forzato per non sparire mai) */
+    .translate-btn {
+        background: none;
+        border: none;
+        color: inherit;
+        opacity: 0.6;
+        cursor: pointer;
+        padding: 2px;
+        margin-left: 8px;
+        transition: opacity 0.2s, transform 0.2s, color 0.2s;
+        display: flex !important; 
+        align-items: center;
+        justify-content: center;
+        outline: none;
+    }
+    
+    /* Quando è attivo o in hover si illumina, ma NON scompare */
+    .translate-btn:hover, .translate-btn.active {
+        opacity: 1;
+        color: var(--accent);
+        transform: scale(1.15);
+    }
+
+    /* Wrapper per l'animazione a scomparsa fluida via CSS Grid */
+    .translation-wrapper {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+        max-width: 85%;
+        align-self: flex-start;
+        margin-top: -20px;
+        z-index: 1;
+        position: relative;
+        will-change: grid-template-rows;
+    }
+    
+    .translation-wrapper.open {
+        grid-template-rows: 1fr;
+    }
+
+    .translation-inner {
+        overflow: hidden;
+    }
+
+    /* Il box nero con il testo in risalto */
+    .translation-box {
+        background-color: #000000;
+        color: var(--accent);
+        padding: 28px 18px 12px 18px;
+        border-radius: 0 0 20px 20px;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        word-wrap: break-word;
+        border: 1px solid #222;
+        border-top: none;
+    }
+</style>
+
+<script>
+(function() {
+    const SVG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+
+    function processTranslations() {
+        const chatBox = document.getElementById('chat-box');
+        if (!chatBox) return;
+
+        // Cerca i messaggi COMPLETATI che non sono ancora stati elaborati
+        const wrappers = chatBox.querySelectorAll('.bot-wrapper.msg-complete:not([data-lang-checked])');
+        if (wrappers.length === 0) return;
+        
+        wrappers.forEach(wrapper => {
+            const botMsg = wrapper.querySelector('.bot-msg');
+            if (!botMsg) return;
+            
+            // Marca il messaggio per non riprocessarlo all'infinito
+            wrapper.setAttribute('data-lang-checked', 'true'); 
+
+            // Estraiamo temporaneamente la "bottom bar" (quella con l'orario e il tasto copia) per non tagliarla
+            const bottomBar = botMsg.querySelector('.msg-bottom-bar');
+            if (bottomBar) bottomBar.remove();
+
+            // Pulizia preventiva in caso di glitch di ricaricamento del DOM
+            wrapper.querySelectorAll('.translation-wrapper').forEach(e => e.remove());
+
+            let htmlContent = botMsg.innerHTML;
+            
+            // CONDIZIONE STRICT: C'è il codice %tr% ?
+            if (htmlContent.includes('%tr%')) {
+                // Separiamo chirurgicamente il testo in due blocchi
+                const parts = htmlContent.split('%tr%');
+                const foreignText = parts[0].trim(); // Testo nativo
+                const italianText = parts[1].trim(); // Traduzione
+
+                // 1. ELIMINAZIONE: Rimettiamo nella bubble SOLTANTO il testo straniero (il codice %tr% sparisce nel nulla)
+                botMsg.innerHTML = foreignText;
+                
+                // 2. Reinseriamo la barra col timer e AGGIUNGIAMO L'OCCHIO
+                if (bottomBar) {
+                    botMsg.appendChild(bottomBar);
+                    bottomBar.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione">${SVG_EYE}</button>`);
+                }
+
+                // 3. Creiamo la bubble a comparsa nascosta, contenente la traduzione italiana
+                wrapper.insertAdjacentHTML('beforeend', `
+                    <div class="translation-wrapper">
+                        <div class="translation-inner">
+                            <div class="translation-box">${italianText}</div>
+                        </div>
+                    </div>
+                `);
+            } else {
+                // Se non c'è il tag %tr%, non facciamo ASSOLUTAMENTE NULLA, rimettiamo solo la barra col timer. Nessun occhio appare.
+                if (bottomBar) botMsg.appendChild(bottomBar);
+            }
+        });
+    }
+
+    // Gestore click globale super leggero per catturare i click sull'occhio
+    const chatBox = document.getElementById('chat-box');
+    if (chatBox) {
+        chatBox.addEventListener('click', (e) => {
+            const btn = e.target.closest('.translate-btn');
+            if (!btn) return;
+            
+            e.stopPropagation();
+            const wrapper = btn.closest('.bot-wrapper');
+            const transWrapper = wrapper.querySelector('.translation-wrapper');
+            
+            if (transWrapper) {
+                // Mostra/Nascondi il testo tradotto
+                transWrapper.classList.toggle('open');
+                // Accende/Spegne l'icona dell'occhio senza farla sparire
+                btn.classList.toggle('active');
+                
+                // Sincronizza l'ancoraggio (la mascotte si sposta assieme alla bubble)
+                setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 350);
+            }
+        });
+
+        // Osservatore che aspetta il completamento esatto del messaggio per far scattare l'elaborazione
+        let debounceTimer;
+        const observer = new MutationObserver((mutations) => {
+            let shouldCheck = false;
+            for(let i = 0; i < mutations.length; i++) {
+                const m = mutations[i];
+                // Controlla se la classe "msg-complete" è appena stata aggiunta dal codice madre
+                if (m.type === 'attributes' && m.attributeName === 'class' && m.target.classList.contains('msg-complete')) {
+                    shouldCheck = true;
+                    break;
+                }
+            }
+            if (shouldCheck) {
+                clearTimeout(debounceTimer);
+                // Taglia e formatta il testo in un lampo non appena smette di caricare
+                debounceTimer = setTimeout(processTranslations, 50); 
+            }
+        });
+        
+        observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
+
+    // Processa eventuali messaggi già completi presenti all'avvio (es. ricaricamento cronologia)
+    setTimeout(processTranslations, 500);
+})();
+</script>
+
+
+    
+
+
+
     
 
 </body>
 </html>
+
 
 
 
