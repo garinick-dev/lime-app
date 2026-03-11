@@ -1090,8 +1090,159 @@
 </script>    
 
 
+
+
+
+
+
+
+
+
+<style>
+    /* 1. Allineamento al fondo degli elementi nella barra quando si espande */
+    .input-wrapper {
+        align-items: flex-end !important;
+    }
+
+    /* 2. Nuova textarea fluida e reattiva */
+    textarea#user-input {
+        flex: 1;
+        min-width: 0;
+        background: none;
+        border: none;
+        color: var(--text-main);
+        padding: 10px 0;
+        outline: none;
+        font-size: 16px;
+        font-family: inherit;
+        resize: none;
+        line-height: 20px;
+        max-height: 120px;
+        min-height: 40px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    textarea#user-input::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* 3. Pulsanti laterali ancorati in basso */
+    #attach-btn, #mic-btn {
+        margin-bottom: 10px;
+    }
+
+    /* 4. Mantiene i ritorni a capo nativi e gli spazi nella bubble dell'utente */
+    .user-msg {
+        white-space: pre-wrap !important;
+    }
+</style>
+
+<script>
+(function() {
+    const oldInput = document.getElementById('user-input');
+    if (!oldInput) return;
+
+    const isAlreadyTextarea = oldInput.tagName.toLowerCase() === 'textarea';
+    let textarea;
+
+    if (!isAlreadyTextarea) {
+        textarea = document.createElement('textarea');
+        textarea.className = oldInput.className;
+        textarea.placeholder = oldInput.placeholder;
+        textarea.setAttribute('rows', '1');
+        textarea.id = 'user-input'; 
+        
+        oldInput.parentNode.replaceChild(textarea, oldInput);
+    } else {
+        textarea = oldInput;
+    }
+
+    if (typeof DOM !== 'undefined') {
+        DOM.inputField = textarea;
+    }
+
+    const autoResize = () => {
+        textarea.style.height = '40px'; 
+        const requiredHeight = textarea.scrollHeight;
+        textarea.style.height = Math.max(Math.min(requiredHeight, 120), 40) + 'px';
+        
+        if (window.syncAnchoring) window.syncAnchoring();
+    };
+
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+    Object.defineProperty(textarea, 'value', {
+        set: function(val) {
+            nativeInputValueSetter.call(this, val);
+            autoResize();
+        },
+        get: function() {
+            return Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").get.call(this);
+        }
+    });
+
+    textarea.addEventListener('input', () => {
+        autoResize();
+        if (typeof inputDebounce !== 'undefined') clearTimeout(inputDebounce);
+        window.inputDebounce = setTimeout(() => { 
+            if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
+        }, 150);
+    });
+
+    // Funzione rapida per scatenare l'invio
+    const triggerSend = () => {
+        if (typeof isRecording !== 'undefined' && isRecording) {
+            if (typeof toggleRecording === 'function') toggleRecording();
+        } else if (typeof isGenerating !== 'undefined' && !isGenerating) {
+            if (typeof sendMessage === 'function') sendMessage();
+        }
+    };
+
+    textarea.addEventListener('keydown', (e) => {
+        // FIX 1: Ripristina l'invio automatico se si clicca sulle "chip" del greeting
+        if (!e.isTrusted) {
+            e.preventDefault();
+            triggerSend();
+            return;
+        }
+
+        // FIX 2: Rilevamento stringente per soli dispositivi puramente mobile (salta i PC e i laptop touch)
+        const isStrictMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        if (e.key === 'Enter' && !e.shiftKey) {
+            if (isStrictMobile) {
+                // Da smartphone/tablet, l'Invio della tastiera virtuale va a capo e basta
+                e.stopPropagation();
+            } else {
+                // Da PC (tastiera fisica vera e propria), Invio spedisce, Maiusc+Invio va a capo
+                e.preventDefault(); 
+                triggerSend();
+            }
+        }
+    }, true);
+
+    // Blocchiamo il vecchio listener di LIME che intercettava l'invio in modo grezzo
+    textarea.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.stopPropagation(); 
+        }
+    }, true);
+
+    autoResize();
+})();
+</script>
+    
+
+
+
+
+    
+
 </body>
 </html>
+
 
 
 
