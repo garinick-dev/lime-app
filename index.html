@@ -1246,18 +1246,18 @@
 
 
 <style>
-    /* Mantiene la gerarchia visiva per far scorrere la traduzione "sotto" la bubble */
+    /* Necessario per posizionare l'occhio in modo assoluto e relativo alla bubble */
     .bot-msg {
         z-index: 2 !important;
-        position: relative; /* Fondamentale per posizionare l'occhio in modo assoluto */
+        position: relative; 
     }
 
-    /* Stile del bottone a forma di occhio: in sovraimpressione assoluta */
+    /* Stile del bottone a forma di occhio: in sovraimpressione assoluta in basso a destra */
     .translate-btn {
         position: absolute;
         bottom: 6px;
         right: 6px;
-        background: rgba(0, 0, 0, 0.1); /* Leggerissimo sfondo per staccarlo dal testo sottostante */
+        background: rgba(0, 0, 0, 0.15); /* Sfondo leggero per leggibilità in caso di sovrapposizione col testo */
         border: none;
         color: inherit;
         opacity: 0.6;
@@ -1270,49 +1270,26 @@
         justify-content: center;
         outline: none;
         z-index: 10;
-        backdrop-filter: blur(2px); /* Aiuta la leggibilità se finisce sopra al testo */
+        backdrop-filter: blur(2px); 
     }
     
-    /* Si ingrandisce ma NON cambia colore */
+    /* Feedback tattile (si ingrandisce ma NON cambia colore) */
     .translate-btn:hover, .translate-btn.active {
         opacity: 1;
         transform: scale(1.15);
     }
 
-    /* Wrapper per l'animazione a scomparsa fluida via CSS Grid */
-    .translation-wrapper {
-        display: grid;
-        grid-template-rows: 0fr;
-        transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        width: 100%;
-        max-width: 85%;
-        align-self: flex-start;
-        margin-top: -20px;
-        z-index: 1;
-        position: relative;
-        will-change: grid-template-rows;
+    /* Regole per l'alternanza del testo (Swap) */
+    .text-italian {
+        display: none; /* Nascosto di default */
     }
     
-    .translation-wrapper.open {
-        grid-template-rows: 1fr;
+    .bot-msg.show-translation .text-italian {
+        display: block; /* Mostra l'italiano quando è attivo lo swap */
     }
-
-    .translation-inner {
-        overflow: hidden;
-    }
-
-    /* Il box nero con il testo in risalto */
-    .translation-box {
-        background-color: #000000;
-        color: var(--accent);
-        padding: 28px 18px 12px 18px;
-        border-radius: 0 0 20px 20px;
-        font-size: 0.95rem;
-        line-height: 1.5;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        word-wrap: break-word;
-        border: 1px solid #222;
-        border-top: none;
+    
+    .bot-msg.show-translation .text-foreign {
+        display: none; /* Nasconde lo straniero quando è attivo lo swap */
     }
 </style>
 
@@ -1331,13 +1308,13 @@
             const botMsg = wrapper.querySelector('.bot-msg');
             if (!botMsg) return;
             
+            // Marca come processato
             wrapper.setAttribute('data-lang-checked', 'true'); 
 
             const bottomBar = botMsg.querySelector('.msg-bottom-bar');
             if (bottomBar) bottomBar.remove();
 
-            wrapper.querySelectorAll('.translation-wrapper').forEach(e => e.remove());
-
+            // Rimuovi il codice temporaneo di streaming (se presente)
             const hiddenSpan = botMsg.querySelector('.streaming-hidden');
             if (hiddenSpan) {
                 hiddenSpan.outerHTML = hiddenSpan.innerHTML;
@@ -1345,28 +1322,28 @@
 
             let htmlContent = botMsg.innerHTML;
             
+            // CONDIZIONE: Se c'è il codice %tr%
             if (htmlContent.includes('%tr%')) {
                 const parts = htmlContent.split('%tr%');
                 const foreignText = parts[0].trim(); 
                 const italianText = parts[1].trim(); 
 
-                botMsg.innerHTML = foreignText;
+                // Crea le due versioni del testo, impacchettate in span gestiti dal CSS
+                botMsg.innerHTML = `
+                    <span class="text-foreign">${foreignText}</span>
+                    <span class="text-italian">${italianText}</span>
+                `;
                 
+                // Rimette la barra in basso (timer/copia)
                 if (bottomBar) {
                     botMsg.appendChild(bottomBar);
                 }
                 
-                // Iniettiamo l'occhio direttamente nella bubble, con posizionamento assoluto
+                // Inietta l'occhio in sovraimpressione
                 botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione">${SVG_EYE}</button>`);
 
-                wrapper.insertAdjacentHTML('beforeend', `
-                    <div class="translation-wrapper">
-                        <div class="translation-inner">
-                            <div class="translation-box">${italianText}</div>
-                        </div>
-                    </div>
-                `);
             } else {
+                // Se non c'è il codice, si limita a rimettere la barra originaria. Niente occhio.
                 if (bottomBar) botMsg.appendChild(bottomBar);
             }
         });
@@ -1374,42 +1351,21 @@
 
     const chatBox = document.getElementById('chat-box');
     if (chatBox) {
+        // Ascoltatore Click per lo Swap del testo
         chatBox.addEventListener('click', (e) => {
             const btn = e.target.closest('.translate-btn');
             if (!btn) return;
             
             e.stopPropagation();
-            const wrapper = btn.closest('.bot-wrapper');
-            const transWrapper = wrapper.querySelector('.translation-wrapper');
+            const botMsg = btn.closest('.bot-msg');
             
-            if (transWrapper) {
-                transWrapper.classList.toggle('open');
+            if (botMsg) {
+                // Aggiungendo/togliendo questa classe, il CSS scambia istantaneamente i due testi
+                botMsg.classList.toggle('show-translation');
                 btn.classList.toggle('active');
                 
-                // Motore di spinta dinamica: sincronizza lo scroll con l'animazione CSS
-                const duration = 300; // ms dell'animazione CSS
-                const start = performance.now();
-                let lastScrollHeight = chatBox.scrollHeight;
-
-                const animateScroll = (time) => {
-                    const newScrollHeight = chatBox.scrollHeight;
-                    const diff = newScrollHeight - lastScrollHeight;
-                    
-                    if (diff !== 0) {
-                        chatBox.scrollTop += diff;
-                        lastScrollHeight = newScrollHeight;
-                        if (window.syncAnchoring) window.syncAnchoring();
-                    }
-                    
-                    if (time - start < duration) {
-                        requestAnimationFrame(animateScroll);
-                    } else {
-                        // Allineamento finale di sicurezza
-                        if (window.syncAnchoring) window.syncAnchoring();
-                    }
-                };
-                
-                requestAnimationFrame(animateScroll);
+                // Aggiorna la posizione della mascotte (nel caso in cui la traduzione sia più lunga/corta del testo originale)
+                setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 50);
             }
         });
 
@@ -1423,6 +1379,7 @@
                 }
             });
 
+            // GESTIONE STREAMING: Nasconde il %tr% e la traduzione mentre il bot sta ancora digitando
             const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
             streamingBots.forEach(botMsg => {
                 if (botMsg.innerHTML.includes('%tr%') && !botMsg.querySelector('.streaming-hidden')) {
@@ -1452,7 +1409,13 @@
 </script>
 
 
+
     
+
+
+
+    
+
 
 
 
@@ -1460,6 +1423,7 @@
 
 </body>
 </html>
+
 
 
 
