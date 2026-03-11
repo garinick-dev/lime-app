@@ -1257,7 +1257,7 @@
         position: absolute;
         bottom: 6px;
         right: 6px;
-        background: rgba(0, 0, 0, 0.15); /* Sfondo leggero per leggibilità in caso di sovrapposizione col testo */
+        background: rgba(0, 0, 0, 0.15); 
         border: none;
         color: inherit;
         opacity: 0.6;
@@ -1280,22 +1280,33 @@
     }
 
     /* Regole per l'alternanza del testo (Swap) */
-    .text-italian {
-        display: none; /* Nascosto di default */
+    div.text-italian {
+        display: none; 
     }
     
-    .bot-msg.show-translation .text-italian {
-        display: block; /* Mostra l'italiano quando è attivo lo swap */
+    .bot-msg.show-translation div.text-italian {
+        display: block; 
     }
     
-    .bot-msg.show-translation .text-foreign {
-        display: none; /* Nasconde lo straniero quando è attivo lo swap */
+    .bot-msg.show-translation div.text-foreign {
+        display: none; 
+    }
+    
+    /* Previene che i margini dei paragrafi del markdown rompano il layout */
+    .text-foreign p:last-child, .text-italian p:last-child {
+        margin-bottom: 0;
+    }
+    .text-foreign p:first-child, .text-italian p:first-child {
+        margin-top: 0;
     }
 </style>
 
 <script>
 (function() {
     const SVG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    
+    // Usiamo il marcatore esatto e rigoroso
+    const MARKER = '%tr%';
 
     function processTranslations() {
         const chatBox = document.getElementById('chat-box');
@@ -1308,13 +1319,11 @@
             const botMsg = wrapper.querySelector('.bot-msg');
             if (!botMsg) return;
             
-            // Marca come processato
             wrapper.setAttribute('data-lang-checked', 'true'); 
 
             const bottomBar = botMsg.querySelector('.msg-bottom-bar');
             if (bottomBar) bottomBar.remove();
 
-            // Rimuovi il codice temporaneo di streaming (se presente)
             const hiddenSpan = botMsg.querySelector('.streaming-hidden');
             if (hiddenSpan) {
                 hiddenSpan.outerHTML = hiddenSpan.innerHTML;
@@ -1322,28 +1331,31 @@
 
             let htmlContent = botMsg.innerHTML;
             
-            // CONDIZIONE: Se c'è il codice %tr%
-            if (htmlContent.includes('%tr%')) {
-                const parts = htmlContent.split('%tr%');
+            // CONDIZIONE STRICT: Se c'è l'esatto codice %tr%
+            if (htmlContent.includes(MARKER)) {
+                const parts = htmlContent.split(MARKER);
                 const foreignText = parts[0].trim(); 
-                const italianText = parts[1].trim(); 
+                const italianText = parts.slice(1).join(MARKER).trim(); // Raggruppa in caso di molteplici %tr% accidentali
 
-                // Crea le due versioni del testo, impacchettate in span gestiti dal CSS
-                botMsg.innerHTML = `
-                    <span class="text-foreign">${foreignText}</span>
-                    <span class="text-italian">${italianText}</span>
-                `;
+                const foreignDiv = document.createElement('div');
+                foreignDiv.className = 'text-foreign';
+                foreignDiv.innerHTML = foreignText; 
+
+                const italianDiv = document.createElement('div');
+                italianDiv.className = 'text-italian';
+                italianDiv.innerHTML = italianText;
+
+                botMsg.innerHTML = '';
+                botMsg.appendChild(foreignDiv);
+                botMsg.appendChild(italianDiv);
                 
-                // Rimette la barra in basso (timer/copia)
                 if (bottomBar) {
                     botMsg.appendChild(bottomBar);
                 }
                 
-                // Inietta l'occhio in sovraimpressione
                 botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione">${SVG_EYE}</button>`);
 
             } else {
-                // Se non c'è il codice, si limita a rimettere la barra originaria. Niente occhio.
                 if (bottomBar) botMsg.appendChild(bottomBar);
             }
         });
@@ -1351,7 +1363,6 @@
 
     const chatBox = document.getElementById('chat-box');
     if (chatBox) {
-        // Ascoltatore Click per lo Swap del testo
         chatBox.addEventListener('click', (e) => {
             const btn = e.target.closest('.translate-btn');
             if (!btn) return;
@@ -1360,11 +1371,9 @@
             const botMsg = btn.closest('.bot-msg');
             
             if (botMsg) {
-                // Aggiungendo/togliendo questa classe, il CSS scambia istantaneamente i due testi
                 botMsg.classList.toggle('show-translation');
                 btn.classList.toggle('active');
                 
-                // Aggiorna la posizione della mascotte (nel caso in cui la traduzione sia più lunga/corta del testo originale)
                 setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 50);
             }
         });
@@ -1379,16 +1388,17 @@
                 }
             });
 
-            // GESTIONE STREAMING: Nasconde il %tr% e la traduzione mentre il bot sta ancora digitando
+            // GESTIONE STREAMING STRICT: Nasconde l'esatto marcatore e il testo successivo in tempo reale
             const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
             streamingBots.forEach(botMsg => {
-                if (botMsg.innerHTML.includes('%tr%') && !botMsg.querySelector('.streaming-hidden')) {
+                if (botMsg.innerHTML.includes(MARKER) && !botMsg.querySelector('.streaming-hidden')) {
                     const bottomBar = botMsg.querySelector('.msg-bottom-bar');
                     if (bottomBar) bottomBar.remove();
 
-                    const parts = botMsg.innerHTML.split('%tr%');
+                    const parts = botMsg.innerHTML.split(MARKER);
+                    
                     if (parts.length > 1) {
-                        botMsg.innerHTML = parts[0] + '<span class="streaming-hidden" style="display: none; color: var(--accent);">%tr%' + parts.slice(1).join('%tr%') + '</span>';
+                        botMsg.innerHTML = parts[0] + '<span class="streaming-hidden" style="display: none;">' + MARKER + parts.slice(1).join(MARKER) + '</span>';
                     }
                     
                     if (bottomBar) botMsg.appendChild(bottomBar);
@@ -1410,6 +1420,7 @@
 
 
 
+
     
 
 
@@ -1423,6 +1434,7 @@
 
 </body>
 </html>
+
 
 
 
