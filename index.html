@@ -1289,13 +1289,13 @@
         transform-origin: right center;
         pointer-events: none;
         
-        /* Collasso: Curva morbida (ease) e tempo leggermente aumentato per ammortizzare i tocchi rapidi */
-        transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1); 
+        /* Collasso: ESATTAMENTE 0.5s lineari, hardcoded al timer JS */
+        transition: transform 0.5s linear; 
     }
 
     .bot-msg.is-inflated .translation-backdrop {
         transform: scaleX(1); 
-        /* Riempimento: graduale mentre l'utente tiene premuto */
+        /* Riempimento: graduale mentre l'utente tiene premuto (0.8s) */
         transition: transform 0.8s cubic-bezier(0.1, 0.9, 0.2, 1); 
     }
 
@@ -1418,11 +1418,11 @@
                 botMsg.classList.remove('is-inflated');
                 btn.classList.remove('active');
                 
-                // Countdown sincronizzato con l'animazione più morbida (600ms)
+                // Countdown di reset testuale hardcoded a 500ms (pari al CSS di sgonfiaggio)
                 botMsg.deflateTimeout = setTimeout(() => {
                     botMsg.classList.remove('is-translating');
                     setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
-                }, 600); 
+                }, 500); 
             }
             
             if (e.pointerId && btn.hasPointerCapture && btn.hasPointerCapture(e.pointerId)) {
@@ -1472,6 +1472,7 @@
 })();
 </script>
 
+
     
 
 
@@ -1481,6 +1482,7 @@
 
 </body>
 </html>
+
 
 
 
