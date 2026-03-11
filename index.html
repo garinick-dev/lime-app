@@ -1289,13 +1289,12 @@
         transform-origin: right center;
         pointer-events: none;
         
-        /* Collasso: ESATTAMENTE 0.5s lineari, hardcoded al timer JS */
+        /* Collasso: rapido, fluido e gestito interamente dal CSS */
         transition: transform 0.5s linear; 
     }
 
     .bot-msg.is-inflated .translation-backdrop {
         transform: scaleX(1); 
-        /* Riempimento: graduale mentre l'utente tiene premuto (0.8s) */
         transition: transform 0.8s cubic-bezier(0.1, 0.9, 0.2, 1); 
     }
 
@@ -1401,10 +1400,6 @@
                 botMsg.classList.add('is-inflated');
                 btn.classList.add('active');
                 
-                if (botMsg.deflateTimeout) {
-                    clearTimeout(botMsg.deflateTimeout);
-                    botMsg.deflateTimeout = null;
-                }
                 setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
             }
         });
@@ -1418,11 +1413,28 @@
                 botMsg.classList.remove('is-inflated');
                 btn.classList.remove('active');
                 
-                // Countdown di reset testuale hardcoded a 500ms (pari al CSS di sgonfiaggio)
-                botMsg.deflateTimeout = setTimeout(() => {
-                    botMsg.classList.remove('is-translating');
-                    setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
-                }, 500); 
+                const backdrop = botMsg.querySelector('.translation-backdrop');
+                if (backdrop) {
+                    // Puliamo eventuali listener precedenti per evitare accumuli
+                    if (botMsg.onDeflateEnd) {
+                        backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
+                    }
+                    
+                    // Il JS si iscrive all'evento di fine animazione del CSS
+                    botMsg.onDeflateEnd = (evt) => {
+                        if (evt.propertyName === 'transform' && !botMsg.classList.contains('is-inflated')) {
+                            botMsg.classList.remove('is-translating');
+                            setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
+                            backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
+                        }
+                    };
+                    backdrop.addEventListener('transitionend', botMsg.onDeflateEnd);
+
+                    // Misura di sicurezza: se la barra è troppo piccola (es. micro-tocco dove l'animazione non parte), spegniamo subito
+                    if (backdrop.getBoundingClientRect().width <= 1) {
+                        botMsg.classList.remove('is-translating');
+                    }
+                }
             }
             
             if (e.pointerId && btn.hasPointerCapture && btn.hasPointerCapture(e.pointerId)) {
@@ -1473,6 +1485,7 @@
 </script>
 
 
+
     
 
 
@@ -1482,6 +1495,7 @@
 
 </body>
 </html>
+
 
 
 
