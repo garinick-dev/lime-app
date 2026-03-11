@@ -1249,29 +1249,33 @@
     /* Mantiene la gerarchia visiva per far scorrere la traduzione "sotto" la bubble */
     .bot-msg {
         z-index: 2 !important;
-        position: relative;
+        position: relative; /* Fondamentale per posizionare l'occhio in modo assoluto */
     }
 
-    /* Stile del bottone a forma di occhio (Forzato per non sparire mai) */
+    /* Stile del bottone a forma di occhio: in sovraimpressione assoluta */
     .translate-btn {
-        background: none;
+        position: absolute;
+        bottom: 6px;
+        right: 6px;
+        background: rgba(0, 0, 0, 0.1); /* Leggerissimo sfondo per staccarlo dal testo sottostante */
         border: none;
         color: inherit;
         opacity: 0.6;
         cursor: pointer;
-        padding: 2px;
-        margin-left: 8px;
-        transition: opacity 0.2s, transform 0.2s, color 0.2s;
+        padding: 5px;
+        border-radius: 50%;
+        transition: opacity 0.2s, transform 0.2s;
         display: flex !important; 
         align-items: center;
         justify-content: center;
         outline: none;
+        z-index: 10;
+        backdrop-filter: blur(2px); /* Aiuta la leggibilità se finisce sopra al testo */
     }
     
-    /* Quando è attivo o in hover si illumina, ma NON scompare */
+    /* Si ingrandisce ma NON cambia colore */
     .translate-btn:hover, .translate-btn.active {
         opacity: 1;
-        color: var(--accent);
         transform: scale(1.15);
     }
 
@@ -1320,7 +1324,6 @@
         const chatBox = document.getElementById('chat-box');
         if (!chatBox) return;
 
-        // Cerca i messaggi COMPLETATI che non sono ancora stati elaborati
         const wrappers = chatBox.querySelectorAll('.bot-wrapper.msg-complete:not([data-lang-checked])');
         if (wrappers.length === 0) return;
         
@@ -1328,17 +1331,13 @@
             const botMsg = wrapper.querySelector('.bot-msg');
             if (!botMsg) return;
             
-            // Marca il messaggio per non riprocessarlo all'infinito
             wrapper.setAttribute('data-lang-checked', 'true'); 
 
-            // Estraiamo temporaneamente la "bottom bar" per non tagliarla
             const bottomBar = botMsg.querySelector('.msg-bottom-bar');
             if (bottomBar) bottomBar.remove();
 
-            // Pulizia preventiva
             wrapper.querySelectorAll('.translation-wrapper').forEach(e => e.remove());
 
-            // Se c'è il blocco nascosto (creato durante lo streaming), lo scompattiamo per poterlo elaborare
             const hiddenSpan = botMsg.querySelector('.streaming-hidden');
             if (hiddenSpan) {
                 hiddenSpan.outerHTML = hiddenSpan.innerHTML;
@@ -1346,23 +1345,20 @@
 
             let htmlContent = botMsg.innerHTML;
             
-            // CONDIZIONE STRICT: C'è il codice %tr% ?
             if (htmlContent.includes('%tr%')) {
-                // Separiamo chirurgicamente il testo in due blocchi
                 const parts = htmlContent.split('%tr%');
                 const foreignText = parts[0].trim(); 
                 const italianText = parts[1].trim(); 
 
-                // 1. ELIMINAZIONE: Rimettiamo nella bubble SOLTANTO il testo straniero puro (il %tr% sparisce)
                 botMsg.innerHTML = foreignText;
                 
-                // 2. Reinseriamo la barra col timer e AGGIUNGIAMO L'OCCHIO
                 if (bottomBar) {
                     botMsg.appendChild(bottomBar);
-                    bottomBar.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione">${SVG_EYE}</button>`);
                 }
+                
+                // Iniettiamo l'occhio direttamente nella bubble, con posizionamento assoluto
+                botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione">${SVG_EYE}</button>`);
 
-                // 3. Creiamo la bubble a comparsa nascosta con la traduzione
                 wrapper.insertAdjacentHTML('beforeend', `
                     <div class="translation-wrapper">
                         <div class="translation-inner">
@@ -1371,13 +1367,11 @@
                     </div>
                 `);
             } else {
-                // Se non c'è il tag %tr%, rimettiamo solo la barra col timer. Nessun occhio appare.
                 if (bottomBar) botMsg.appendChild(bottomBar);
             }
         });
     }
 
-    // Gestore click globale per catturare i click sull'occhio
     const chatBox = document.getElementById('chat-box');
     if (chatBox) {
         chatBox.addEventListener('click', (e) => {
@@ -1392,8 +1386,30 @@
                 transWrapper.classList.toggle('open');
                 btn.classList.toggle('active');
                 
-                // Sincronizza l'ancoraggio della mascotte
-                setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 350);
+                // Motore di spinta dinamica: sincronizza lo scroll con l'animazione CSS
+                const duration = 300; // ms dell'animazione CSS
+                const start = performance.now();
+                let lastScrollHeight = chatBox.scrollHeight;
+
+                const animateScroll = (time) => {
+                    const newScrollHeight = chatBox.scrollHeight;
+                    const diff = newScrollHeight - lastScrollHeight;
+                    
+                    if (diff !== 0) {
+                        chatBox.scrollTop += diff;
+                        lastScrollHeight = newScrollHeight;
+                        if (window.syncAnchoring) window.syncAnchoring();
+                    }
+                    
+                    if (time - start < duration) {
+                        requestAnimationFrame(animateScroll);
+                    } else {
+                        // Allineamento finale di sicurezza
+                        if (window.syncAnchoring) window.syncAnchoring();
+                    }
+                };
+                
+                requestAnimationFrame(animateScroll);
             }
         });
 
@@ -1407,7 +1423,6 @@
                 }
             });
 
-            // TRICK IN TEMPO REALE: Nascondi il marcatore e la traduzione MENTRE il bot digita
             const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
             streamingBots.forEach(botMsg => {
                 if (botMsg.innerHTML.includes('%tr%') && !botMsg.querySelector('.streaming-hidden')) {
@@ -1416,7 +1431,6 @@
 
                     const parts = botMsg.innerHTML.split('%tr%');
                     if (parts.length > 1) {
-                        // Trick utente: diamo al testo il colore var(--accent) e un display: none; invisibile senza alterare l'ingombro!
                         botMsg.innerHTML = parts[0] + '<span class="streaming-hidden" style="display: none; color: var(--accent);">%tr%' + parts.slice(1).join('%tr%') + '</span>';
                     }
                     
@@ -1430,7 +1444,6 @@
             }
         });
         
-        // L'osservatore ora "legge" anche l'inserimento del testo carattere per carattere
         observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true, characterData: true });
     }
 
@@ -1447,6 +1460,7 @@
 
 </body>
 </html>
+
 
 
 
