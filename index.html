@@ -1248,8 +1248,8 @@
     .bot-msg {
         z-index: 2 !important;
         position: relative; 
-        /* Transizione fluida e rapidissima per i colori */
-        transition: background-color 0.15s ease, box-shadow 0.15s ease; 
+        /* Fondamentale per intrappolare il palloncino dentro la forma della bubble */
+        overflow: hidden !important; 
     }
 
     .translate-btn {
@@ -1269,9 +1269,8 @@
         justify-content: center;
         outline: none;
         z-index: 10;
-        backdrop-filter: blur(2px);
+        backdrop-filter: blur(2px); 
         
-        /* Regole d'oro per evitare fastidi su mobile quando si tiene premuto */
         touch-action: none; 
         user-select: none;
         -webkit-user-select: none;
@@ -1283,24 +1282,49 @@
         transform: scale(1.15);
     }
 
+    /* IL PALLONCINO / TIMER VISIVO */
+    .translation-backdrop {
+        position: absolute;
+        /* Centrato perfettamente dietro l'icona dell'occhio */
+        bottom: 18px;
+        right: 18px;
+        width: 4px;
+        height: 4px;
+        margin-right: -2px;
+        margin-bottom: -2px;
+        background-color: #f5f5f5; /* Grigio chiarissimo / quasi bianco */
+        border-radius: 50%;
+        z-index: 0;
+        transform: scale(0);
+        pointer-events: none;
+        /* Sgonfiaggio: 2 secondi lineari, funge da clessidra */
+        transition: transform 2s linear; 
+    }
+
+    /* Quando teniamo premuto (o appena cliccato) */
+    .bot-msg.is-inflated .translation-backdrop {
+        /* Scala gigante per coprire tutta la bubble */
+        transform: scale(500); 
+        /* Gonfiaggio: rapidissimo e morbido */
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); 
+    }
+
+    /* Solleviamo il testo sopra il palloncino */
+    div.text-foreign, div.text-italian, .msg-bottom-bar {
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Swap dei testi */
     div.text-italian {
         display: none; 
     }
     
-    /* STILE DELLA BUBBLE QUANDO L'OCCHIO E' PREMUTO */
-    .bot-msg.show-translation {
-        background-color: #808080 !important; /* Grigio esattamente a metà */
-        /* Contorno interno per non aumentare le dimensioni fisiche della bubble */
-        box-shadow: inset 0 0 0 1.5px var(--accent) !important; 
-    }
-    
-    /* Colora il testo in italiano usando il colore scelto nelle impostazioni */
-    .bot-msg.show-translation div.text-italian {
+    .bot-msg.is-translating div.text-italian {
         display: block; 
-        color: var(--accent) !important; 
     }
     
-    .bot-msg.show-translation div.text-foreign {
+    .bot-msg.is-translating div.text-foreign {
         display: none; 
     }
     
@@ -1353,15 +1377,19 @@
                 italianDiv.className = 'text-italian';
                 italianDiv.innerHTML = italianText;
 
+                // Azzeriamo e ricostruiamo la bubble con i nuovi livelli
                 botMsg.innerHTML = '';
+                // 1. Il palloncino sul fondo
+                botMsg.insertAdjacentHTML('beforeend', `<div class="translation-backdrop"></div>`);
+                // 2. I testi in primo piano
                 botMsg.appendChild(foreignDiv);
                 botMsg.appendChild(italianDiv);
-                
+                // 3. La barra inferiore
                 if (bottomBar) {
                     botMsg.appendChild(bottomBar);
                 }
-                
-                botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Tieni premuto per tradurre">${SVG_EYE}</button>`);
+                // 4. L'occhio in sovraimpressione
+                botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Premi o tieni premuto">${SVG_EYE}</button>`);
 
             } else {
                 if (bottomBar) botMsg.appendChild(bottomBar);
@@ -1372,39 +1400,50 @@
     const chatBox = document.getElementById('chat-box');
     if (chatBox) {
         
-        // INTERAZIONE MONOSTABILE: Evento alla pressione del dito o del mouse
+        // INTERAZIONE: Pressione (Gonfia e mostra testo)
         chatBox.addEventListener('pointerdown', (e) => {
             const btn = e.target.closest('.translate-btn');
             if (!btn) return;
             
             e.stopPropagation();
             
-            // "Cattura" il puntatore: garantisce che il rilascio venga letto anche se il dito scivola fuori dall'icona
             if (e.pointerId && btn.setPointerCapture) {
                 btn.setPointerCapture(e.pointerId);
             }
 
             const botMsg = btn.closest('.bot-msg');
             if (botMsg) {
-                botMsg.classList.add('show-translation');
+                botMsg.classList.add('is-translating');
+                botMsg.classList.add('is-inflated');
                 btn.classList.add('active');
+                
+                // Se c'era un countdown attivo, lo blocchiamo per mantenere il palloncino gonfio
+                if (botMsg.deflateTimeout) {
+                    clearTimeout(botMsg.deflateTimeout);
+                    botMsg.deflateTimeout = null;
+                }
                 setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
             }
         });
 
-        // INTERAZIONE MONOSTABILE: Evento al rilascio o annullamento dell'input
+        // INTERAZIONE: Rilascio (Inizia sgonfiaggio e countdown di 2s)
         const releasePointer = (e) => {
             const btn = e.target.closest('.translate-btn');
             if (!btn) return;
             
             const botMsg = btn.closest('.bot-msg');
-            if (botMsg) {
-                botMsg.classList.remove('show-translation');
+            if (botMsg && botMsg.classList.contains('is-inflated')) {
+                // Rimuove la classe di gonfiaggio (il CSS inizierà la transizione lineare di 2 secondi verso zero)
+                botMsg.classList.remove('is-inflated');
                 btn.classList.remove('active');
-                setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
+                
+                // Avvia il timer di 2 secondi esatti. Allo scadere, il testo torna all'originale
+                botMsg.deflateTimeout = setTimeout(() => {
+                    botMsg.classList.remove('is-translating');
+                    setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
+                }, 2000); 
             }
             
-            // Rilascia la cattura
             if (e.pointerId && btn.hasPointerCapture && btn.hasPointerCapture(e.pointerId)) {
                 btn.releasePointerCapture(e.pointerId);
             }
@@ -1423,7 +1462,7 @@
                 }
             });
 
-            // GESTIONE STREAMING: Oscuramento magico di %tr% e traduzione
+            // TRICK STREAMING: Nasconde il marcatore durante la digitazione
             const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
             streamingBots.forEach(botMsg => {
                 if (botMsg.innerHTML.includes(MARKER) && !botMsg.querySelector('.streaming-hidden')) {
@@ -1452,7 +1491,6 @@
     setTimeout(processTranslations, 500);
 })();
 </script>
-
     
 
 
@@ -1471,6 +1509,7 @@
 
 </body>
 </html>
+
 
 
 
