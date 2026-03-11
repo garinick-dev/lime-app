@@ -1331,12 +1331,18 @@
             // Marca il messaggio per non riprocessarlo all'infinito
             wrapper.setAttribute('data-lang-checked', 'true'); 
 
-            // Estraiamo temporaneamente la "bottom bar" (quella con l'orario e il tasto copia) per non tagliarla
+            // Estraiamo temporaneamente la "bottom bar" per non tagliarla
             const bottomBar = botMsg.querySelector('.msg-bottom-bar');
             if (bottomBar) bottomBar.remove();
 
-            // Pulizia preventiva in caso di glitch di ricaricamento del DOM
+            // Pulizia preventiva
             wrapper.querySelectorAll('.translation-wrapper').forEach(e => e.remove());
+
+            // Se c'è il blocco nascosto (creato durante lo streaming), lo scompattiamo per poterlo elaborare
+            const hiddenSpan = botMsg.querySelector('.streaming-hidden');
+            if (hiddenSpan) {
+                hiddenSpan.outerHTML = hiddenSpan.innerHTML;
+            }
 
             let htmlContent = botMsg.innerHTML;
             
@@ -1344,10 +1350,10 @@
             if (htmlContent.includes('%tr%')) {
                 // Separiamo chirurgicamente il testo in due blocchi
                 const parts = htmlContent.split('%tr%');
-                const foreignText = parts[0].trim(); // Testo nativo
-                const italianText = parts[1].trim(); // Traduzione
+                const foreignText = parts[0].trim(); 
+                const italianText = parts[1].trim(); 
 
-                // 1. ELIMINAZIONE: Rimettiamo nella bubble SOLTANTO il testo straniero (il codice %tr% sparisce nel nulla)
+                // 1. ELIMINAZIONE: Rimettiamo nella bubble SOLTANTO il testo straniero puro (il %tr% sparisce)
                 botMsg.innerHTML = foreignText;
                 
                 // 2. Reinseriamo la barra col timer e AGGIUNGIAMO L'OCCHIO
@@ -1356,7 +1362,7 @@
                     bottomBar.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Mostra/Nascondi Traduzione">${SVG_EYE}</button>`);
                 }
 
-                // 3. Creiamo la bubble a comparsa nascosta, contenente la traduzione italiana
+                // 3. Creiamo la bubble a comparsa nascosta con la traduzione
                 wrapper.insertAdjacentHTML('beforeend', `
                     <div class="translation-wrapper">
                         <div class="translation-inner">
@@ -1365,13 +1371,13 @@
                     </div>
                 `);
             } else {
-                // Se non c'è il tag %tr%, non facciamo ASSOLUTAMENTE NULLA, rimettiamo solo la barra col timer. Nessun occhio appare.
+                // Se non c'è il tag %tr%, rimettiamo solo la barra col timer. Nessun occhio appare.
                 if (bottomBar) botMsg.appendChild(bottomBar);
             }
         });
     }
 
-    // Gestore click globale super leggero per catturare i click sull'occhio
+    // Gestore click globale per catturare i click sull'occhio
     const chatBox = document.getElementById('chat-box');
     if (chatBox) {
         chatBox.addEventListener('click', (e) => {
@@ -1383,39 +1389,51 @@
             const transWrapper = wrapper.querySelector('.translation-wrapper');
             
             if (transWrapper) {
-                // Mostra/Nascondi il testo tradotto
                 transWrapper.classList.toggle('open');
-                // Accende/Spegne l'icona dell'occhio senza farla sparire
                 btn.classList.toggle('active');
                 
-                // Sincronizza l'ancoraggio (la mascotte si sposta assieme alla bubble)
+                // Sincronizza l'ancoraggio della mascotte
                 setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 350);
             }
         });
 
-        // Osservatore che aspetta il completamento esatto del messaggio per far scattare l'elaborazione
         let debounceTimer;
         const observer = new MutationObserver((mutations) => {
-            let shouldCheck = false;
-            for(let i = 0; i < mutations.length; i++) {
-                const m = mutations[i];
-                // Controlla se la classe "msg-complete" è appena stata aggiunta dal codice madre
+            let shouldProcessComplete = false;
+
+            mutations.forEach(m => {
                 if (m.type === 'attributes' && m.attributeName === 'class' && m.target.classList.contains('msg-complete')) {
-                    shouldCheck = true;
-                    break;
+                    shouldProcessComplete = true;
                 }
-            }
-            if (shouldCheck) {
+            });
+
+            // TRICK IN TEMPO REALE: Nascondi il marcatore e la traduzione MENTRE il bot digita
+            const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
+            streamingBots.forEach(botMsg => {
+                if (botMsg.innerHTML.includes('%tr%') && !botMsg.querySelector('.streaming-hidden')) {
+                    const bottomBar = botMsg.querySelector('.msg-bottom-bar');
+                    if (bottomBar) bottomBar.remove();
+
+                    const parts = botMsg.innerHTML.split('%tr%');
+                    if (parts.length > 1) {
+                        // Trick utente: diamo al testo il colore var(--accent) e un display: none; invisibile senza alterare l'ingombro!
+                        botMsg.innerHTML = parts[0] + '<span class="streaming-hidden" style="display: none; color: var(--accent);">%tr%' + parts.slice(1).join('%tr%') + '</span>';
+                    }
+                    
+                    if (bottomBar) botMsg.appendChild(bottomBar);
+                }
+            });
+
+            if (shouldProcessComplete) {
                 clearTimeout(debounceTimer);
-                // Taglia e formatta il testo in un lampo non appena smette di caricare
                 debounceTimer = setTimeout(processTranslations, 50); 
             }
         });
         
-        observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'] });
+        // L'osservatore ora "legge" anche l'inserimento del testo carattere per carattere
+        observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true, characterData: true });
     }
 
-    // Processa eventuali messaggi già completi presenti all'avvio (es. ricaricamento cronologia)
     setTimeout(processTranslations, 500);
 })();
 </script>
@@ -1429,6 +1447,7 @@
 
 </body>
 </html>
+
 
 
 
