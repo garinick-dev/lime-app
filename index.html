@@ -1243,12 +1243,14 @@
 
 
 
+
+
     
+
 <style>
     .bot-msg {
         z-index: 2 !important;
         position: relative; 
-        /* Fondamentale per intrappolare il palloncino dentro la forma della bubble */
         overflow: hidden !important; 
     }
 
@@ -1285,37 +1287,32 @@
     /* IL PALLONCINO / TIMER VISIVO */
     .translation-backdrop {
         position: absolute;
-        /* Centrato perfettamente dietro l'icona dell'occhio */
         bottom: 18px;
         right: 18px;
         width: 4px;
         height: 4px;
         margin-right: -2px;
         margin-bottom: -2px;
-        background-color: #f5f5f5; /* Grigio chiarissimo / quasi bianco */
+        background-color: #f5f5f5; 
         border-radius: 50%;
         z-index: 0;
         transform: scale(0);
         pointer-events: none;
-        /* Sgonfiaggio: 2 secondi lineari, funge da clessidra */
-        transition: transform 2s linear; 
+        /* Sgonfiaggio: esattamente 1 secondo lineare */
+        transition: transform 1s linear; 
     }
 
-    /* Quando teniamo premuto (o appena cliccato) */
     .bot-msg.is-inflated .translation-backdrop {
-        /* Scala gigante per coprire tutta la bubble */
-        transform: scale(500); 
-        /* Gonfiaggio: rapidissimo e morbido */
-        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); 
+        /* Scala ridotta e tempistica ammorbidita per rendere l'espansione ben visibile e fluida */
+        transform: scale(250); 
+        transition: transform 0.8s cubic-bezier(0.1, 0.9, 0.2, 1); 
     }
 
-    /* Solleviamo il testo sopra il palloncino */
     div.text-foreign, div.text-italian, .msg-bottom-bar {
         position: relative;
         z-index: 1;
     }
 
-    /* Swap dei testi */
     div.text-italian {
         display: none; 
     }
@@ -1377,18 +1374,15 @@
                 italianDiv.className = 'text-italian';
                 italianDiv.innerHTML = italianText;
 
-                // Azzeriamo e ricostruiamo la bubble con i nuovi livelli
                 botMsg.innerHTML = '';
-                // 1. Il palloncino sul fondo
                 botMsg.insertAdjacentHTML('beforeend', `<div class="translation-backdrop"></div>`);
-                // 2. I testi in primo piano
                 botMsg.appendChild(foreignDiv);
                 botMsg.appendChild(italianDiv);
-                // 3. La barra inferiore
+                
                 if (bottomBar) {
                     botMsg.appendChild(bottomBar);
                 }
-                // 4. L'occhio in sovraimpressione
+                
                 botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Premi o tieni premuto">${SVG_EYE}</button>`);
 
             } else {
@@ -1400,7 +1394,6 @@
     const chatBox = document.getElementById('chat-box');
     if (chatBox) {
         
-        // INTERAZIONE: Pressione (Gonfia e mostra testo)
         chatBox.addEventListener('pointerdown', (e) => {
             const btn = e.target.closest('.translate-btn');
             if (!btn) return;
@@ -1417,7 +1410,6 @@
                 botMsg.classList.add('is-inflated');
                 btn.classList.add('active');
                 
-                // Se c'era un countdown attivo, lo blocchiamo per mantenere il palloncino gonfio
                 if (botMsg.deflateTimeout) {
                     clearTimeout(botMsg.deflateTimeout);
                     botMsg.deflateTimeout = null;
@@ -1426,22 +1418,20 @@
             }
         });
 
-        // INTERAZIONE: Rilascio (Inizia sgonfiaggio e countdown di 2s)
         const releasePointer = (e) => {
             const btn = e.target.closest('.translate-btn');
             if (!btn) return;
             
             const botMsg = btn.closest('.bot-msg');
             if (botMsg && botMsg.classList.contains('is-inflated')) {
-                // Rimuove la classe di gonfiaggio (il CSS inizierà la transizione lineare di 2 secondi verso zero)
                 botMsg.classList.remove('is-inflated');
                 btn.classList.remove('active');
                 
-                // Avvia il timer di 2 secondi esatti. Allo scadere, il testo torna all'originale
+                // Countdown di 1 secondo esatto (1000ms)
                 botMsg.deflateTimeout = setTimeout(() => {
                     botMsg.classList.remove('is-translating');
                     setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
-                }, 2000); 
+                }, 1000); 
             }
             
             if (e.pointerId && btn.hasPointerCapture && btn.hasPointerCapture(e.pointerId)) {
@@ -1462,7 +1452,6 @@
                 }
             });
 
-            // TRICK STREAMING: Nasconde il marcatore durante la digitazione
             const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
             streamingBots.forEach(botMsg => {
                 if (botMsg.innerHTML.includes(MARKER) && !botMsg.querySelector('.streaming-hidden')) {
@@ -1491,6 +1480,7 @@
     setTimeout(processTranslations, 500);
 })();
 </script>
+
     
 
 
@@ -1509,6 +1499,7 @@
 
 </body>
 </html>
+
 
 
 
