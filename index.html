@@ -494,6 +494,8 @@
             const result = await res.json();
 
             if (result.data && result.data.length > 0) {
+                isPrependInProgress = true; 
+
                 const oldScrollHeight = DOM.chatBox.scrollHeight;
                 const oldScrollTop = DOM.chatBox.scrollTop;
 
@@ -506,12 +508,13 @@
                 currentChatOldestMsgId = newMsgs[0].id || null;
                 chatOldestIdCache[currentConversationId] = currentChatOldestMsgId;
 
-                isPrependInProgress = true; 
                 renderMessages(chatCache[currentConversationId], false); 
 
                 requestAnimationFrame(() => {
-                    DOM.chatBox.scrollTop = (DOM.chatBox.scrollHeight - oldScrollHeight) + oldScrollTop;
-                    setTimeout(() => { isPrependInProgress = false; }, 50); 
+                    requestAnimationFrame(() => {
+                        DOM.chatBox.scrollTop = (DOM.chatBox.scrollHeight - oldScrollHeight) + oldScrollTop;
+                        setTimeout(() => { isPrependInProgress = false; }, 350); 
+                    });
                 });
             } else {
                 currentChatHasMore = false;
