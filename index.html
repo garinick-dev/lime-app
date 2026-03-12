@@ -312,7 +312,7 @@
                     <input type="file" id="file-input" class="hidden-file-input" onchange="handleFileSelect(event)" accept="image/*,.pdf,.txt">
                     
                     <span id="recording-timer" class="hidden">🔴 00:00</span>
-                    <textarea id="user-input" rows="1" placeholder="Chiedi qualsiasi cosa a LIME..."></textarea>
+                    <textarea id="user-input" rows="1" placeholder="Scrivi a LIME..."></textarea>
                     
                     <button id="mic-btn" onclick="toggleRecording()" title="Parla con LIME">
                         <svg viewBox="0 0 40 40" style="width: 20px; height: 20px;"><path fill="currentColor" d="M 20 2 C 16.13 2, 13 5.13, 13 9 V 19 C 13 22.87, 16.13 26, 20 26 C 23.87 26, 27 22.87, 27 19 V 9 C 27 5.13, 23.87 2, 20 2 Z" /><path d="M 32 19 C 32 25.63, 26.63 31, 20 31 C 13.37 31, 8 25.63, 8 19" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M 20 31 V 37.5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
@@ -674,7 +674,7 @@
 
     function resetInputUI(clearText = true) { 
         if (window.setMascotThinking) window.setMascotThinking(false); DOM.inputField.disabled = false; DOM.inputField.style.color = 'inherit'; 
-        if (clearText) DOM.inputField.value = ''; DOM.inputField.placeholder = "Chiedi qualsiasi cosa a LIME..."; 
+        if (clearText) DOM.inputField.value = ''; DOM.inputField.placeholder = "Scrivi a LIME..."; 
         DOM.sendBtn.innerHTML = SVG_ICONS.sendPlane; DOM.sendBtn.style.background = 'var(--accent)'; DOM.sendBtn.disabled = false; 
         if (DOM.micBtn) DOM.micBtn.classList.remove('hidden'); if (DOM.attachBtn) DOM.attachBtn.classList.remove('hidden'); if (DOM.timerDisplay) DOM.timerDisplay.classList.add('hidden'); clearInterval(recordingTimer); 
     }
@@ -1269,3 +1269,4 @@
 
 </body>
 </html>
+
