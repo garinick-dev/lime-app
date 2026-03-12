@@ -495,6 +495,7 @@
 
             if (result.data && result.data.length > 0) {
                 isPrependInProgress = true; 
+                DOM.chatBox.style.setProperty('scroll-behavior', 'auto', 'important'); // Disabilita l'animazione di scorrimento
 
                 const oldScrollHeight = DOM.chatBox.scrollHeight;
                 const oldScrollTop = DOM.chatBox.scrollTop;
@@ -510,11 +511,13 @@
 
                 renderMessages(chatCache[currentConversationId], false); 
 
+                // Applica lo scarto calcolato istantaneamente prima di qualsiasi ricaricamento grafico
+                DOM.chatBox.scrollTop = (DOM.chatBox.scrollHeight - oldScrollHeight) + oldScrollTop;
+
+                // Ripristina l'animazione CSS e lo sblocco logico
                 requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        DOM.chatBox.scrollTop = (DOM.chatBox.scrollHeight - oldScrollHeight) + oldScrollTop;
-                        setTimeout(() => { isPrependInProgress = false; }, 350); 
-                    });
+                    DOM.chatBox.style.removeProperty('scroll-behavior');
+                    setTimeout(() => { isPrependInProgress = false; }, 100); 
                 });
             } else {
                 currentChatHasMore = false;
