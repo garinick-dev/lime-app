@@ -43,6 +43,7 @@
         .history-item { padding: 12px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-light); transition: background 0.2s, color 0.2s; display: flex; justify-content: space-between; align-items: center; } .history-item:hover { background: var(--border-color); color: var(--text-main); }
         .active-chat { background: #2a2a2a; color: white; border-left: 3px solid var(--accent); border-radius: 4px 10px 10px 4px; }
         .chat-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; pointer-events: none; } .chat-actions { display: flex; gap: 12px; } .action-btn { background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.6; padding: 4px; transition: opacity 0.2s; pointer-events: auto; } .action-btn:hover { opacity: 1; }
+        
         .load-more-btn { background: var(--accent); color: #000; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 0.85rem; font-weight: 600; transition: filter 0.2s ease, transform 0.1s ease; } .load-more-btn:hover { filter: brightness(1.15); } .load-more-btn:active { transform: scale(0.98); }
         
         #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: 20px !important; }
@@ -98,7 +99,7 @@
         .msg-wrapper { width: 100%; max-width: var(--chat-max-width); display: flex; flex-direction: column; position: relative; z-index: 2; transition: min-height 0.2s; } 
         
         .msg { max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 1rem; position: relative; border: none !important; box-shadow: none !important; } 
-        .user-msg { align-self: flex-end; background: var(--user-bubble); padding: 12px 18px; border-radius: 20px 20px 4px 20px; color: #fff; transform: translateZ(0); } 
+        .user-msg { align-self: flex-end; background: var(--user-bubble); padding: 12px 18px; border-radius: 20px 20px 4px 20px; color: #fff; transform: translateZ(0); white-space: pre-wrap !important; } 
         
         .bot-msg { align-self: flex-start; background: var(--accent) !important; color: #000 !important; padding: 12px 18px; border-radius: 20px 20px 20px 4px; width: auto; transform-origin: bottom left; } 
         
@@ -111,9 +112,12 @@
         .input-area { position: absolute !important; bottom: 0; left: 0; width: 100%; background: transparent !important; background-color: transparent !important; border-top: transparent !important; box-shadow: none !important; z-index: 50; padding: 15px 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; flex-shrink: 0; transform: translateZ(0); } 
         #breath-area { position: absolute; bottom: 100%; left: 0; width: 100%; height: 95%; pointer-events: none; }
         
-        .input-wrapper { position: relative !important; width: 100%; max-width: var(--chat-max-width); background: var(--input-bg); border-radius: 30px; display: flex; padding: 8px 12px 8px 20px; align-items: center; border: 1px solid var(--border-color); box-shadow: 0 5px 20px rgba(0,0,0,0.5); transition: border-color 0.2s; pointer-events: auto; } .input-wrapper:focus-within { border-color: #555; }
-        #user-input { flex: 1; min-width: 0; background: none; border: none; color: var(--text-main); padding: 10px 0; outline: none; font-size: 16px; } 
+        .input-wrapper { position: relative !important; width: 100%; max-width: var(--chat-max-width); background: var(--input-bg); border-radius: 30px; display: flex; padding: 8px 12px 8px 20px; align-items: flex-end !important; border: 1px solid var(--border-color); box-shadow: 0 5px 20px rgba(0,0,0,0.5); transition: border-color 0.2s; pointer-events: auto; } .input-wrapper:focus-within { border-color: #555; }
         
+        textarea#user-input { flex: 1; min-width: 0; background: none; border: none; color: var(--text-main); padding: 10px 0; outline: none; font-size: 16px; font-family: inherit; resize: none; line-height: 20px; max-height: 120px; min-height: 40px; box-sizing: border-box; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+        textarea#user-input::-webkit-scrollbar { display: none; }
+        
+        #attach-btn, #mic-btn { margin-bottom: 10px; }
         #attach-btn, #mic-btn, #send-btn { color: var(--text-main); display: flex; align-items: center; justify-content: center; }
         #send-btn { background: var(--accent); color: inherit; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; transition: transform 0.2s; flex-shrink: 0; } #send-btn:active { transform: scale(0.9); } #send-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: scale(0.9); } 
         #attach-btn { background: none; border: none; padding: 0; margin-right: 12px; cursor: pointer; transition: 0.2s; filter: grayscale(100%); opacity: 0.6; outline: none; position: relative; flex-shrink: 0; } #attach-btn:hover, #attach-btn.active { opacity: 1; filter: grayscale(0%); } 
@@ -308,7 +312,7 @@
                     <input type="file" id="file-input" class="hidden-file-input" onchange="handleFileSelect(event)" accept="image/*,.pdf,.txt">
                     
                     <span id="recording-timer" class="hidden">🔴 00:00</span>
-                    <input type="text" id="user-input" placeholder="Chiedi qualsiasi cosa a LIME...">
+                    <textarea id="user-input" rows="1" placeholder="Chiedi qualsiasi cosa a LIME..."></textarea>
                     
                     <button id="mic-btn" onclick="toggleRecording()" title="Parla con LIME">
                         <svg viewBox="0 0 40 40" style="width: 20px; height: 20px;"><path fill="currentColor" d="M 20 2 C 16.13 2, 13 5.13, 13 9 V 19 C 13 22.87, 16.13 26, 20 26 C 23.87 26, 27 22.87, 27 19 V 9 C 27 5.13, 23.87 2, 20 2 Z" /><path d="M 32 19 C 32 25.63, 26.63 31, 20 31 C 13.37 31, 8 25.63, 8 19" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M 20 31 V 37.5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
@@ -328,12 +332,11 @@
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
     let globalStream = null, chatVirtualObserver = null, currentCustomBg = null, capturedChipTitle = null;
     let librariesLoaded = false; 
-    let isPrependInProgress = false; // Flag per impedire lo scroll durante il caricamento messaggi vecchi
+    let isPrependInProgress = false;
 
     const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
     const MAX_CACHE_CHATS = 5; 
     
-    // Variabili per la paginazione della chat
     const chatHasMoreCache = {};
     const chatOldestIdCache = {};
     let currentChatHasMore = false;
@@ -503,14 +506,12 @@
                 currentChatOldestMsgId = newMsgs[0].id || null;
                 chatOldestIdCache[currentConversationId] = currentChatOldestMsgId;
 
-                // Blocco l'observer dal forzare lo scroll verso il basso
                 isPrependInProgress = true; 
                 renderMessages(chatCache[currentConversationId], false); 
 
                 requestAnimationFrame(() => {
-                    // Imposta lo scroll esattamente dov'era prima dell'inserimento in alto
                     DOM.chatBox.scrollTop = (DOM.chatBox.scrollHeight - oldScrollHeight) + oldScrollTop;
-                    setTimeout(() => { isPrependInProgress = false; }, 50); // Sblocco l'observer
+                    setTimeout(() => { isPrependInProgress = false; }, 50); 
                 });
             } else {
                 currentChatHasMore = false;
@@ -1131,9 +1132,64 @@
             DOM.chatBox.addEventListener('scroll', () => { if (!scrollTimeout) { scrollTimeout = requestAnimationFrame(() => { isUserScrolling = (DOM.chatBox.scrollHeight - DOM.chatBox.scrollTop) > (DOM.chatBox.clientHeight + 100); scrollTimeout = null; }); } }, { passive: true });
             DOM.chatBox.addEventListener('click', (e) => { const copyBtn = e.target.closest('.copy-btn'); if (copyBtn) { const pre = copyBtn.closest('pre'); if(pre) { navigator.clipboard.writeText(pre.querySelector('code').innerText); copyBtn.innerText = 'Copiato!'; setTimeout(() => copyBtn.innerText = 'Copia', 2000); } } });
         }
+        
         if (DOM.inputField) {
-            DOM.inputField.addEventListener('input', () => { clearTimeout(inputDebounce); inputDebounce = setTimeout(() => { if (window.updateGreetingVisibility) window.updateGreetingVisibility(); }, 150); });
-            DOM.inputField.addEventListener('keypress', e => { if (e.key === 'Enter') { if (isRecording) toggleRecording(); else if (!isGenerating) sendMessage(); } });
+            const textarea = DOM.inputField;
+            
+            const autoResize = () => {
+                textarea.style.height = '40px'; 
+                const requiredHeight = textarea.scrollHeight;
+                textarea.style.height = Math.max(Math.min(requiredHeight, 120), 40) + 'px';
+                if (window.syncAnchoring) window.syncAnchoring();
+            };
+
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+            Object.defineProperty(textarea, 'value', {
+                set: function(val) {
+                    nativeInputValueSetter.call(this, val);
+                    autoResize();
+                },
+                get: function() {
+                    return Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").get.call(this);
+                }
+            });
+
+            textarea.addEventListener('input', () => {
+                autoResize();
+                clearTimeout(inputDebounce);
+                inputDebounce = setTimeout(() => { 
+                    if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
+                }, 150);
+            });
+
+            const triggerSend = () => {
+                if (isRecording) {
+                    toggleRecording();
+                } else if (!isGenerating) {
+                    sendMessage();
+                }
+            };
+
+            textarea.addEventListener('keydown', (e) => {
+                if (!e.isTrusted) {
+                    e.preventDefault();
+                    triggerSend();
+                    return;
+                }
+
+                const isStrictMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    if (isStrictMobile) {
+                        e.stopPropagation();
+                    } else {
+                        e.preventDefault(); 
+                        triggerSend();
+                    }
+                }
+            }, true);
+
+            autoResize();
         }
         
         setupViewportAnchoring();
@@ -1193,4 +1249,3 @@
 
 </body>
 </html>
-
