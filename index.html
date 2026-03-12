@@ -1486,6 +1486,30 @@
 
 
 
+
+
+
+<style>
+    #attachment-label {
+        width: fit-content !important; 
+        max-width: calc(100% - 40px) !important; /* Previene sbavature su schermi stretti */
+        background-color: var(--accent) !important; /* Eredita il colore scelto dall'utente */
+        color: #000000 !important; /* Testo scuro per un contrasto ottimale */
+        padding: 4px 14px !important;
+        border-radius: 20px !important;
+        margin-top: 10px !important;
+        margin-left: 20px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+        transition: background-color 0.3s ease !important;
+        
+        /* Mantiene il troncamento del testo nativo */
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+</style>
+
     
 
 
@@ -1495,6 +1519,7 @@
 
 </body>
 </html>
+
 
 
 
