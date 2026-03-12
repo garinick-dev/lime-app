@@ -755,7 +755,7 @@
 
         const botWrapper = createMessageNode('bot', "...", null); const botDiv = botWrapper.querySelector('.bot-msg'); DOM.chatBox.appendChild(botWrapper); 
         
-        let fullAnswer = "", renderQueued = false, isThinkingLocal = true, lastRenderTime = 0;
+        let fullAnswer = "", renderQueued = false, isThinkingLocal = true;
         let attempt = 0;
         const maxAttempts = 2;
         let success = false;
@@ -766,6 +766,9 @@
             fullAnswer = "";
             let hasError = false;
             isThinkingLocal = true;
+            
+            const controller = new AbortController();
+            let streamTimeout = setTimeout(() => controller.abort(), 15000); 
 
             try {
                 const reqMode = isImage ? "blocking" : "streaming"; 
@@ -774,13 +777,19 @@
                 if (filePayload.length > 0) Object.assign(reqBody, { files: filePayload });
                 
                 const authHeaders = await getAuthHeaders(); 
-                const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) });
+                const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { 
+                    method: 'POST', 
+                    headers: { ...authHeaders, 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(reqBody),
+                    signal: controller.signal
+                });
 
                 if (!res.ok) throw new Error(`Errore Server: ${res.status}`);
 
                 if (reqMode === "blocking") { 
+                    clearTimeout(streamTimeout);
                     const data = await res.json(); 
-                    if (data.answer) {
+                    if (data.answer && data.answer.trim().length > 0) {
                         if (window.setMascotThinking) window.setMascotThinking(false);
                         fullAnswer = data.answer; 
                         success = true;
@@ -800,11 +809,14 @@
                         hasError = true;
                     }
                 } else { 
-                    const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = "", firstChunk = true; 
+                    const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = ""; 
                     while (true) { 
+                        clearTimeout(streamTimeout);
+                        streamTimeout = setTimeout(() => controller.abort(), 10000); 
+                        
                         const { done, value } = await reader.read(); 
-                        if (done) break; 
-                        if (firstChunk) { firstChunk = false; } 
+                        if (done) { clearTimeout(streamTimeout); break; } 
+                        
                         buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n\n'); buffer = lines.pop(); 
                         for (const line of lines) { 
                             if (line.startsWith('data: ')) { 
@@ -816,46 +828,38 @@
                                         fullAnswer += data.answer; 
                                         if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
                                         
-                                        const throttleInterval = fullAnswer.length > 2000 ? 150 : (fullAnswer.length > 800 ? 100 : 50);
-                                        const now = Date.now();
-
-                                        if (now - lastRenderTime > throttleInterval) {
-                                            lastRenderTime = now;
-                                            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                                            let safeMathText = formatLaTeX(fullAnswer);
-                                            botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
-                                            if(bottomBar) botDiv.appendChild(bottomBar); 
-                                            scrollToBottom();
-                                        } else if (!renderQueued) { 
+                                        if (!renderQueued) { 
                                             renderQueued = true; 
-                                            setTimeout(() => { 
-                                                renderQueued = false; lastRenderTime = Date.now();
-                                                requestAnimationFrame(() => { 
-                                                    const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                                                    let safeMathText = formatLaTeX(fullAnswer);
-                                                    botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
-                                                    if(bottomBar) botDiv.appendChild(bottomBar); 
-                                                    scrollToBottom(); 
-                                                });
-                                            }, throttleInterval); 
+                                            requestAnimationFrame(() => { 
+                                                renderQueued = false; 
+                                                const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
+                                                let safeMathText = formatLaTeX(fullAnswer);
+                                                botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
+                                                if(bottomBar) botDiv.appendChild(bottomBar); 
+                                                scrollToBottom(); 
+                                            });
                                         } 
                                     } else if (data.event === 'message_end') { 
-                                        success = true;
-                                        botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
-                                        if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
-                                        if(currentConversationId) { 
-                                            if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
-                                            chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
-                                        } 
+                                        if (fullAnswer.trim().length > 0) {
+                                            success = true;
+                                            requestAnimationFrame(() => { botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); }); 
+                                            if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
+                                            if(currentConversationId) { 
+                                                if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
+                                                chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
+                                            }
+                                        } else {
+                                            hasError = true; 
+                                        }
                                     } 
                                 } catch (e) {} 
                             } 
                         } 
-                        if (hasError) break; 
+                        if (hasError) { clearTimeout(streamTimeout); break; } 
                     } 
-                    if (fullAnswer.trim().length === 0 && !success) hasError = true; 
                 } 
             } catch (e) {
+                clearTimeout(streamTimeout);
                 hasError = true; 
             }
 
@@ -863,6 +867,8 @@
                 await new Promise(r => setTimeout(r, 1000)); 
             }
         } 
+        
+        if (fullAnswer.trim().length === 0) success = false;
 
         if (!success) {
             fullAnswer = "Scusa, ho avuto un piccolo vuoto di memoria! 😅 Potresti ripetermi la domanda?";
