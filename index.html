@@ -395,6 +395,14 @@
             }
         }
     }
+    
+    function trimCurrentChatCache() {
+        if (currentConversationId && chatCache[currentConversationId] && chatCache[currentConversationId].length > 20) {
+            chatCache[currentConversationId] = chatCache[currentConversationId].slice(-20);
+            chatHasMoreCache[currentConversationId] = true;
+            chatOldestIdCache[currentConversationId] = chatCache[currentConversationId][0].id;
+        }
+    }
 
     function formatLaTeX(text) {
         if (!text) return "";
@@ -451,6 +459,7 @@
 
     function handleChatClick(id) { 
         if (currentConversationId === id && !isGenerating) return; 
+        trimCurrentChatCache();
         isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; 
         document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-chat')); 
         const clickedItem = document.getElementById(`chat-${id}`); if (clickedItem) clickedItem.classList.add('active-chat'); 
@@ -477,6 +486,7 @@
     async function deleteChat(id) { if (confirm("Vuoi eliminare questa chat?")) { await supabaseClient.from('conversations').delete().eq('dify_id', id); delete chatCache[id]; if (currentConversationId === id) startNewChat(); else loadHistory(); } }
     
     function startNewChat() { 
+        trimCurrentChatCache();
         isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; currentConversationId = null; DOM.chatBox.innerHTML = ""; 
         if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
         document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-chat')); 
@@ -495,7 +505,7 @@
 
             if (result.data && result.data.length > 0) {
                 isPrependInProgress = true; 
-                DOM.chatBox.style.setProperty('scroll-behavior', 'auto', 'important'); // Disabilita l'animazione di scorrimento
+                DOM.chatBox.style.setProperty('scroll-behavior', 'auto', 'important'); 
 
                 const oldScrollHeight = DOM.chatBox.scrollHeight;
                 const oldScrollTop = DOM.chatBox.scrollTop;
@@ -511,10 +521,8 @@
 
                 renderMessages(chatCache[currentConversationId], false); 
 
-                // Applica lo scarto calcolato istantaneamente prima di qualsiasi ricaricamento grafico
                 DOM.chatBox.scrollTop = (DOM.chatBox.scrollHeight - oldScrollHeight) + oldScrollTop;
 
-                // Ripristina l'animazione CSS e lo sblocco logico
                 requestAnimationFrame(() => {
                     DOM.chatBox.style.removeProperty('scroll-behavior');
                     setTimeout(() => { isPrependInProgress = false; }, 100); 
