@@ -1510,7 +1510,288 @@
     }
 </style>
 
+
+
+
+
+
+
+
+<style>
+    #lime-graph-overlay {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
+        background: rgba(14, 14, 14, 0.95); /* In linea con il tuo --bg-color dark */
+        backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        z-index: 50000; display: flex; justify-content: center; align-items: center;
+        opacity: 0; visibility: hidden; pointer-events: none;
+        transition: opacity 0.2s ease, visibility 0.2s ease; touch-action: none;
+    }
+    #lime-graph-overlay.active {
+        opacity: 1; visibility: visible; pointer-events: auto;
+    }
+    #lime-graph-canvas {
+        width: 100%; height: 100%; cursor: grab;
+    }
+    #lime-graph-canvas:active { cursor: grabbing; }
     
+    #lime-graph-close {
+        position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 20px;
+        background: var(--input-bg); color: var(--text-main);
+        border: 1px solid var(--border-color); border-radius: 50%;
+        width: 44px; height: 44px; font-size: 24px; cursor: pointer;
+        z-index: 50001; display: flex; justify-content: center; align-items: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: transform 0.2s;
+    }
+    #lime-graph-close:active { transform: scale(0.9); }
+
+    .lime-graph-btn {
+        background: var(--user-bubble); color: var(--text-main);
+        border: 1px solid var(--accent); padding: 10px 16px;
+        border-radius: 14px; font-weight: 600; cursor: pointer;
+        display: inline-flex; align-items: center; gap: 8px;
+        margin-top: 10px; font-size: 0.9rem; transition: background 0.2s;
+    }
+    .lime-graph-btn:hover { background: var(--border-color); }
+    .lime-graph-btn svg { color: var(--accent); }
+</style>
+
+<div id="lime-graph-overlay">
+    <button id="lime-graph-close" onclick="window.closeLimeGraph()">&times;</button>
+    <canvas id="lime-graph-canvas"></canvas>
+</div>
+
+<script>
+(() => {
+    const overlay = document.getElementById('lime-graph-overlay');
+    const canvas = document.getElementById('lime-graph-canvas');
+    const ctx = canvas.getContext('2d', { alpha: false }); // Ottimizzazione performance
+
+    let currentExpr = "";
+    let scale = 60; // Zoom iniziale (pixel per unità intera)
+    let offsetX = 0, offsetY = 0;
+    let isDragging = false, dragStartX = 0, dragStartY = 0;
+    let lastTouchDist = 0;
+    let animationFrameId = null;
+
+    // Adatta il canvas alla finestra reale
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        if (overlay.classList.contains('active')) requestDraw();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Compilatore matematico sicuro e leggero
+    function compileMathExpression(expr) {
+        // Pulisce e trasforma la sintassi (es. sin(x) -> Math.sin(x), x^2 -> x**2)
+        let safeExpr = expr.toLowerCase()
+            .replace(/[^a-z0-9+\-*/().^\s]/g, '') // Rimuove caratteri pericolosi
+            .replace(/([a-z]+)/g, match => {
+                if (match === 'x') return 'x';
+                if (['sin', 'cos', 'tan', 'log', 'exp', 'sqrt', 'abs'].includes(match)) return `Math.${match}`;
+                if (match === 'pi') return 'Math.PI';
+                if (match === 'e') return 'Math.E';
+                return match;
+            })
+            .replace(/\^/g, '**'); 
+            
+        try { return new Function('x', `return ${safeExpr};`); } 
+        catch (e) { return null; }
+    }
+
+    // Motore di Rendering
+    function drawGraph() {
+        // Sfondo dinamico in base al tema
+        const isLight = document.body.classList.contains('light-theme');
+        ctx.fillStyle = isLight ? '#f0f2f5' : '#0e0e0e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const fn = compileMathExpression(currentExpr);
+        if (!fn) {
+            ctx.fillStyle = isLight ? '#ff4444' : '#ff5e5e';
+            ctx.font = '16px sans-serif';
+            ctx.fillText("Impossibile generare il grafico. Formula non valida.", 20, 50);
+            return;
+        }
+
+        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
+        const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+        const axesColor = isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)';
+
+        const left = -offsetX / scale;
+        const right = (canvas.width - offsetX) / scale;
+        const top = -offsetY / scale;
+        const bottom = (canvas.height - offsetY) / scale;
+
+        // Disegna Griglia
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = gridColor;
+        ctx.beginPath();
+        for (let x = Math.floor(left); x <= Math.ceil(right); x++) {
+            const px = x * scale + offsetX;
+            ctx.moveTo(px, 0); ctx.lineTo(px, canvas.height);
+        }
+        for (let y = Math.floor(top); y <= Math.ceil(bottom); y++) {
+            const py = y * scale + offsetY;
+            ctx.moveTo(0, py); ctx.lineTo(canvas.width, py);
+        }
+        ctx.stroke();
+
+        // Disegna Assi Cartesiani (X, Y)
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = axesColor;
+        ctx.beginPath();
+        ctx.moveTo(0, offsetY); ctx.lineTo(canvas.width, offsetY); // Asse X
+        ctx.moveTo(offsetX, 0); ctx.lineTo(offsetX, canvas.height); // Asse Y
+        ctx.stroke();
+
+        // Disegna la Funzione
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        let firstPoint = true;
+
+        // Step = 2 pixel per raddoppiare le performance senza perdere troppa qualità visiva
+        for (let px = 0; px < canvas.width; px += 2) { 
+            let x = (px - offsetX) / scale;
+            let y = fn(x);
+            
+            if (typeof y === 'number' && !isNaN(y) && isFinite(y)) {
+                let py = -y * scale + offsetY;
+                // Previene che linee asintotiche schizzino a valori infiniti distruggendo il canvas
+                if (py > -10000 && py < canvas.height + 10000) { 
+                    if (firstPoint) { ctx.moveTo(px, py); firstPoint = false; }
+                    else { ctx.lineTo(px, py); }
+                } else {
+                    firstPoint = true;
+                }
+            } else {
+                firstPoint = true; // Spezza la linea se il valore è indefinito (es. sqrt di un negativo)
+            }
+        }
+        ctx.stroke();
+    }
+
+    function requestDraw() {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        animationFrameId = requestAnimationFrame(drawGraph);
+    }
+
+    // Gestione Eventi Mouse (Desktop)
+    canvas.addEventListener('mousedown', e => { 
+        isDragging = true; 
+        dragStartX = e.clientX - offsetX; dragStartY = e.clientY - offsetY; 
+    });
+    window.addEventListener('mousemove', e => { 
+        if (!isDragging) return;
+        offsetX = e.clientX - dragStartX; offsetY = e.clientY - dragStartY; 
+        requestDraw(); 
+    });
+    window.addEventListener('mouseup', () => isDragging = false);
+    
+    // Gestione Eventi Rotellina (Zoom)
+    canvas.addEventListener('wheel', e => {
+        e.preventDefault(); // Blocca lo scroll della pagina
+        const zoomRate = Math.exp(-e.deltaY * 0.003);
+        const mouseX = e.clientX; const mouseY = e.clientY;
+        
+        // Mantiene il centro dello zoom sotto il cursore
+        offsetX = mouseX - (mouseX - offsetX) * zoomRate;
+        offsetY = mouseY - (mouseY - offsetY) * zoomRate;
+        scale *= zoomRate;
+        requestDraw();
+    }, { passive: false });
+
+    // Gestione Eventi Touch (Mobile)
+    canvas.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) {
+            isDragging = true; 
+            dragStartX = e.touches[0].clientX - offsetX; dragStartY = e.touches[0].clientY - offsetY;
+        } else if (e.touches.length === 2) {
+            lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        }
+    }, { passive: false });
+    
+    canvas.addEventListener('touchmove', e => {
+        e.preventDefault(); // Evita il pull-to-refresh o lo scroll
+        if (e.touches.length === 1 && isDragging) {
+            offsetX = e.touches[0].clientX - dragStartX; offsetY = e.touches[0].clientY - dragStartY; 
+            requestDraw();
+        } else if (e.touches.length === 2) {
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            const zoomRate = dist / lastTouchDist;
+            
+            // Centro del "pizzico" (pinch)
+            const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            
+            offsetX = cx - (cx - offsetX) * zoomRate;
+            offsetY = cy - (cy - offsetY) * zoomRate;
+            scale *= zoomRate;
+            lastTouchDist = dist;
+            requestDraw();
+        }
+    }, { passive: false });
+    
+    canvas.addEventListener('touchend', () => isDragging = false);
+
+    // API Esposte
+    window.openLimeGraph = function(expr) {
+        currentExpr = expr;
+        scale = 60; 
+        // Centra l'origine (0,0) nello schermo
+        offsetX = window.innerWidth / 2; 
+        offsetY = window.innerHeight / 2; 
+        overlay.classList.add('active');
+        resizeCanvas();
+    };
+
+    window.closeLimeGraph = function() {
+        overlay.classList.remove('active');
+        // Libera il canvas per recuperare RAM
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+    };
+
+    // Parser invisibile dei messaggi (Cerca il tag [--- GRAFICO: f(x) ---])
+    const chatObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) {
+                    const botMsgs = node.classList.contains('bot-msg') ? [node] : node.querySelectorAll('.bot-msg');
+                    botMsgs.forEach(msg => {
+                        const regex = /\[---\s*GRAFICO:\s*(.*?)\s*---\]/g;
+                        if (regex.test(msg.innerHTML)) {
+                            msg.innerHTML = msg.innerHTML.replace(regex, (match, expr) => {
+                                const cleanExpr = expr.replace(/'/g, "\\'").replace(/"/g, '\\"');
+                                return `<div style="margin-top: 10px;">
+                                    <button class="lime-graph-btn" onclick="window.openLimeGraph('${cleanExpr}')">
+                                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M3 15h18"></path><path d="M9 3v18"></path></svg>
+                                        Mostra: ${expr}
+                                    </button>
+                                </div>`;
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Inizializza l'observer sul chat-box se esiste
+    const chatBox = document.getElementById('chat-box');
+    if (chatBox) chatObserver.observe(chatBox, { childList: true, subtree: true });
+
+})();
+</script>
+
+
+
+    
+
+    
+
 
 
 
@@ -1519,6 +1800,7 @@
 
 </body>
 </html>
+
 
 
 
