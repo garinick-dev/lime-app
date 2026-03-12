@@ -327,10 +327,10 @@
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
     let globalStream = null, chatVirtualObserver = null, currentCustomBg = null, capturedChipTitle = null;
-    let librariesLoaded = false; // Flag per il lazy loading
+    let librariesLoaded = false; 
 
     const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
-    const MAX_CACHE_CHATS = 5; // Limite memoria cache
+    const MAX_CACHE_CHATS = 5; 
     const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
 
     const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
@@ -347,7 +347,6 @@
         sendPlane: `<svg viewBox="0 0 24 24" style="width: 23px; height: 23px; transform: translate(0.5px, -0.5px);" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path transform="rotate(45 12 12) translate(12 12) scale(1 0.75) translate(-12 -12)" fill-rule="evenodd" clip-rule="evenodd" d="M12 2a1 1 0 0 1 .932.638l7 18a1 1 0 0 1-1.326 1.281L13 19.517V13a1 1 0 1 0-2 0v6.517l-5.606 2.402a1 1 0 0 1-1.326-1.281l7-18A1 1 0 0 1 12 2Z" /></svg>`
     };
 
-    // Lazy Loading delle librerie pesanti
     async function loadHeavyLibraries() {
         if (librariesLoaded) return;
         librariesLoaded = true;
@@ -367,19 +366,18 @@
                 loadScript("https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js")
             ]);
             await loadScript("https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js");
-            setupMathAndSanitization(); // Inizializza Marked e DOMPurify una volta scaricati
+            setupMathAndSanitization(); 
         } catch (e) {
             console.error("Errore caricamento librerie", e);
         }
     }
 
-    // Gestione Pulizia Memoria
     function manageChatCache() {
         const keys = Object.keys(chatCache);
         if (keys.length > MAX_CACHE_CHATS) {
             for (let i = 0; i < keys.length - MAX_CACHE_CHATS; i++) {
                 if (keys[i] !== currentConversationId) {
-                    delete chatCache[keys[i]]; // Distrugge i dati delle chat più vecchie dalla RAM
+                    delete chatCache[keys[i]]; 
                 }
             }
         }
@@ -472,26 +470,50 @@
         if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
     }
 
-    async function loadChat(id) { 
+    async function loadChat(id, firstId = null) { 
         currentConversationId = id; if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
-        manageChatCache(); // Attiva la pulizia della cache
+        manageChatCache(); 
 
-        if (chatCache[id]) { renderMessages(chatCache[id]); return; } 
-        DOM.chatBox.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Recupero messaggi...</div>`; 
-        if (window.updateGreetingVisibility) window.updateGreetingVisibility();
+        if (!firstId && chatCache[id]) { renderMessages(chatCache[id], chatCache[id].hasMore); return; } 
+        if (!firstId) { DOM.chatBox.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Recupero messaggi...</div>`; if (window.updateGreetingVisibility) window.updateGreetingVisibility(); }
         
         const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 10000); 
         try { 
-            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}`, { headers: await getAuthHeaders(), signal: controller.signal }); 
+            let url = `${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}&limit=30`;
+            if (firstId) url += `&first_id=${firstId}`;
+
+            const res = await fetch(url, { headers: await getAuthHeaders(), signal: controller.signal }); 
             clearTimeout(timeoutId); const result = await res.json(); 
+
             if (result.data && result.data.length > 0) { 
-                const sorted = result.data.sort((a, b) => a.created_at - b.created_at); chatCache[id] = sorted; renderMessages(sorted); 
-            } else startNewChat(); 
-        } catch (e) { clearTimeout(timeoutId); DOM.chatBox.innerHTML = `<div style="color:#ff4444; text-align:center; width:100%;">Impossibile recuperare la chat. Riprova.</div>`; } 
+                const sorted = result.data.sort((a, b) => a.created_at - b.created_at); 
+                if (firstId) { chatCache[id] = [...sorted, ...chatCache[id]]; } 
+                else { chatCache[id] = sorted; }
+                chatCache[id].hasMore = result.has_more;
+
+                renderMessages(chatCache[id], result.has_more, !!firstId); 
+            } else if (!firstId) startNewChat(); 
+        } catch (e) { clearTimeout(timeoutId); if (!firstId) DOM.chatBox.innerHTML = `<div style="color:#ff4444; text-align:center; width:100%;">Impossibile recuperare la chat. Riprova.</div>`; } 
     }
     
-    function renderMessages(messages) { 
-        DOM.chatBox.innerHTML = ""; const fragment = document.createDocumentFragment(); let lastDate = null; 
+    function renderMessages(messages, hasMore = false, isPagination = false) { 
+        let oldScrollHeight = DOM.chatBox.scrollHeight;
+        let oldScrollTop = DOM.chatBox.scrollTop;
+
+        DOM.chatBox.innerHTML = ""; const fragment = document.createDocumentFragment(); 
+
+        if (hasMore && messages.length > 0) {
+            const btn = document.createElement('button');
+            btn.className = "load-more-btn";
+            btn.style.width = "auto";
+            btn.style.margin = "10px auto";
+            btn.style.display = "block";
+            btn.innerText = "Carica messaggi precedenti";
+            btn.onclick = () => loadChat(currentConversationId, messages[0].id);
+            fragment.appendChild(btn);
+        }
+
+        let lastDate = null; 
         messages.forEach(m => { 
             const md = formatDateSeparator(m.created_at); if (md !== lastDate) { fragment.appendChild(createDateSeparatorNode(md)); lastDate = md; } 
             let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
@@ -501,7 +523,15 @@
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
             fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
         }); 
-        DOM.chatBox.appendChild(fragment); scrollToBottom(true); 
+        DOM.chatBox.appendChild(fragment); 
+
+        if (isPagination) {
+            requestAnimationFrame(() => {
+                DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight - oldScrollHeight + oldScrollTop;
+            });
+        } else {
+            scrollToBottom(true); 
+        }
         
         DOM.chatBox.querySelectorAll('.msg-wrapper').forEach(wrapper => { wrapper.classList.add('msg-complete'); if (chatVirtualObserver) chatVirtualObserver.observe(wrapper); });
         if(window.updateGreetingVisibility) window.updateGreetingVisibility(); 
@@ -705,816 +735,4 @@
                         fullAnswer = data.answer; 
                         success = true;
                         
-                        const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                        let safeMathText = formatLaTeX(fullAnswer);
-                        botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : DOMPurify.sanitize(safeMathText); 
-                        botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
-                        if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom(); 
-                        
-                        if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
-                        if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
-                    } else {
-                        hasError = true;
-                    }
-                } else { 
-                    const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = "", firstChunk = true; 
-                    while (true) { 
-                        const { done, value } = await reader.read(); 
-                        if (done) break; 
-                        if (firstChunk) { firstChunk = false; } 
-                        buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n\n'); buffer = lines.pop(); 
-                        for (const line of lines) { 
-                            if (line.startsWith('data: ')) { 
-                                try { 
-                                    const data = JSON.parse(line.substring(6)); 
-                                    if (data.event === 'error') {
-                                        hasError = true; 
-                                    } else if (data.event === 'message') { 
-                                        fullAnswer += data.answer; 
-                                        if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
-                                        
-                                        // Ottimizzazione dinamica del Rendering
-                                        // Aumenta il tempo di attesa tra i refresh man mano che il testo cresce per non affaticare il dispositivo
-                                        const throttleInterval = fullAnswer.length > 2000 ? 150 : (fullAnswer.length > 800 ? 100 : 50);
-                                        const now = Date.now();
-
-                                        if (now - lastRenderTime > throttleInterval) {
-                                            lastRenderTime = now;
-                                            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                                            let safeMathText = formatLaTeX(fullAnswer);
-                                            botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
-                                            if(bottomBar) botDiv.appendChild(bottomBar); 
-                                            scrollToBottom();
-                                        } else if (!renderQueued) { 
-                                            renderQueued = true; 
-                                            setTimeout(() => { 
-                                                renderQueued = false; lastRenderTime = Date.now();
-                                                requestAnimationFrame(() => { 
-                                                    const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                                                    let safeMathText = formatLaTeX(fullAnswer);
-                                                    botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
-                                                    if(bottomBar) botDiv.appendChild(bottomBar); 
-                                                    scrollToBottom(); 
-                                                });
-                                            }, throttleInterval); 
-                                        } 
-                                    } else if (data.event === 'message_end') { 
-                                        success = true;
-                                        botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
-                                        if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
-                                        if(currentConversationId) { if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); } 
-                                    } 
-                                } catch (e) {} 
-                            } 
-                        } 
-                        if (hasError) break; 
-                    } 
-                    if (fullAnswer.trim().length === 0 && !success) hasError = true; 
-                } 
-            } catch (e) {
-                hasError = true; 
-            }
-
-            if (hasError && attempt < maxAttempts) {
-                await new Promise(r => setTimeout(r, 1000)); 
-            }
-        } 
-
-        if (!success) {
-            fullAnswer = "Scusa, ho avuto un piccolo vuoto di memoria! 😅 Potresti ripetermi la domanda?";
-            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-            botDiv.innerHTML = fullAnswer; 
-            if(bottomBar) botDiv.appendChild(bottomBar); 
-            
-            if (!originalConversationId && currentConversationId) {
-                supabaseClient.from('conversations').delete().eq('dify_id', currentConversationId).then(() => {
-                    delete chatCache[currentConversationId];
-                    currentConversationId = null;
-                    loadHistory();
-                });
-            } else if (!originalConversationId) {
-                currentConversationId = null;
-            }
-        }
-
-        if (success && currentConversationId) {
-            const chatIndex = allChats.findIndex(c => String(c.dify_id) === String(currentConversationId));
-            if (chatIndex > -1) {
-                const [activeChat] = allChats.splice(chatIndex, 1);
-                allChats.unshift(activeChat);
-                renderHistoryList();
-                supabaseClient.from('conversations')
-                    .update({ created_at: new Date().toISOString() })
-                    .eq('dify_id', currentConversationId)
-                    .then(({ error }) => { if (error) console.error("Errore fissaggio chat:", error.message); });
-            } else {
-                const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); 
-                if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
-            }
-        }
-
-        isGenerating = false; 
-        if (window.setMascotThinking) window.setMascotThinking(false); 
-        DOM.sendBtn.disabled = false; scrollToBottom(true); 
-        userWrapper.classList.add('msg-complete'); botWrapper.classList.add('msg-complete');
-        if (chatVirtualObserver) { chatVirtualObserver.observe(userWrapper); chatVirtualObserver.observe(botWrapper); }
-    }
-
-    function toggleSidebar() { DOM.sidebar.classList.toggle('hidden'); DOM.backdrop.classList.toggle('active'); }
-
-    function lightenColor(hex, percent) {
-        hex = hex.replace(/^#/, '');
-        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-        let r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
-        r = Math.round(r + (255 - r) * percent); g = Math.round(g + (255 - g) * percent); b = Math.round(b + (255 - b) * percent);
-        return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1);
-    }
-
-    function updateDefaultBackground() {
-        if (currentCustomBg || !DOM.chatBox) return;
-        const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
-        const lightColor = lightenColor(userColor, 0.40); 
-        const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 -100 1520 1520" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="margin: 0; display: block;">
-  <defs><g id="lime"><circle cx="0" cy="0" r="100" fill="${userColor}" /><circle cx="0" cy="0" r="92" fill="#FFFFFF" /><circle cx="0" cy="0" r="86" fill="${lightColor}" /><line x1="0" y1="-86" x2="0" y2="86" stroke="#FFFFFF" stroke-width="4" /><line x1="-86" y1="0" x2="86" y2="0" stroke="#FFFFFF" stroke-width="4" /><line x1="-60.8" y1="-60.8" x2="60.8" y2="60.8" stroke="#FFFFFF" stroke-width="4" /><line x1="-60.8" y1="60.8" x2="60.8" y2="-60.8" stroke="#FFFFFF" stroke-width="4" /><circle cx="0" cy="0" r="8" fill="#FFFFFF" /></g></defs>
-  <use href="#lime" transform="translate(300, 300) scale(3) rotate(45)" /><use href="#lime" transform="translate(800, 300) scale(2) rotate(112)" /><use href="#lime" transform="translate(800, 750) scale(2.5) rotate(17)" /><use href="#lime" transform="translate(300, 750) scale(1.5) rotate(260)" /><use href="#lime" transform="translate(860, -120) scale(4) rotate(88)" /><use href="#lime" transform="translate(1350, 300) scale(3.5) rotate(315)" /><use href="#lime" transform="translate(1650, 700) scale(1.5) rotate(53)" /><use href="#lime" transform="translate(1650, 1150) scale(3) rotate(194)" /><use href="#lime" transform="translate(-100, 750) scale(2.5) rotate(135)" /><use href="#lime" transform="translate(0, -100) scale(2) rotate(72)" /><use href="#lime" transform="translate(1830, -340) scale(4.5) rotate(220)" /><use href="#lime" transform="translate(1100, -50) scale(2.2) rotate(9)" /><use href="#lime" transform="translate(1250, 800) scale(1.8) rotate(166)" /><use href="#lime" transform="translate(550, 480) scale(1.1) rotate(290)" /><use href="#lime" transform="translate(500, 1050) scale(2.6) rotate(34)" /><use href="#lime" transform="translate(1000, 1150) scale(3.1) rotate(105)" /><use href="#lime" transform="translate(2000, 450) scale(2.8) rotate(275)" /><use href="#lime" transform="translate(80, 1100) scale(2) rotate(145)" /><use href="#lime" transform="translate(-150, 350) scale(1.7) rotate(310)" /><use href="#lime" transform="translate(1950, 950) scale(1.9) rotate(60)" /></svg>`;
-        const encodedSvg = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgMarkup);
-        DOM.chatBox.style.backgroundImage = `url("${encodedSvg}")`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed';
-    }
-
-    function applyChatBackground(imageUrl) { 
-        currentCustomBg = imageUrl;
-        if (DOM.chatBox) { 
-            if (imageUrl) { DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(${imageUrl})`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed'; } 
-            else updateDefaultBackground(); 
-        } 
-    }
-    
-    async function removeCustomBg() {
-        currentCustomBg = null; applyChatBackground(null);
-        if (userId) { try { const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; await supabaseClient.auth.updateUser({ data: { bg: null } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } catch (e) { console.error(e); } }
-    }
-
-    function applyTheme(themeName) { if (themeName === 'light') document.body.classList.add('light-theme'); else document.body.classList.remove('light-theme'); }
-    function toggleThemeSwitch() { const isLight = document.body.classList.contains('light-theme'); handleThemeChange(isLight ? 'dark' : 'light'); }
-    async function handleThemeChange(themeName) { if (!userId) return; applyTheme(themeName); await supabaseClient.auth.updateUser({ data: { theme: themeName } }); }
-    
-    function updateColorCirclesUI(hex) { document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('active')); const activeCircle = document.querySelector(`.color-circle[data-color="${hex}"]`); if (activeCircle) activeCircle.classList.add('active'); }
-    
-    async function handleColorChange(hex) { 
-        if (!userId) return; 
-        document.documentElement.style.setProperty('--accent', hex); document.documentElement.style.setProperty('--lime-accent', hex); updateColorCirclesUI(hex); 
-        if (!currentCustomBg) updateDefaultBackground();
-        await supabaseClient.auth.updateUser({ data: { color: hex } }); 
-    }
-
-    function updateProfileUI(user) { 
-        const avatarDivs = [document.getElementById('settings-user-avatar')]; 
-        const nameSpans = [document.getElementById('settings-user-name')]; 
-        
-        if (user && user.email) { 
-            const fullName = user.user_metadata?.full_name || user.email.split('@')[0], initial = fullName.charAt(0).toUpperCase(); 
-            nameSpans.forEach(span => span.innerText = fullName); 
-            
-            const savedTheme = user.user_metadata?.theme || 'dark'; const savedColor = user.user_metadata?.color || '#c0f22c'; const savedBg = user.user_metadata?.bg; 
-            const cloudLevel = user.user_metadata?.lime_edu_level; const cloudInst = user.user_metadata?.lime_inst_type;
-
-            if (cloudLevel) { localStorage.setItem('lime_edu_level', cloudLevel); if (DOM.eduDropdown) DOM.eduDropdown.value = cloudLevel; }
-            if (cloudInst) { localStorage.setItem('lime_inst_type', cloudInst); if (DOM.instDropdown) DOM.instDropdown.value = cloudInst; }
-            
-            avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = initial; }); 
-            applyTheme(savedTheme); document.documentElement.style.setProperty('--accent', savedColor); document.documentElement.style.setProperty('--lime-accent', savedColor); updateColorCirclesUI(savedColor); 
-            applyChatBackground(savedBg); 
-        } else { 
-            nameSpans.forEach(span => span.innerText = ""); 
-            avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
-            applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#c0f22c'); document.documentElement.style.setProperty('--lime-accent', '#c0f22c'); updateColorCirclesUI('#c0f22c'); 
-            applyChatBackground(null); 
-        } 
-        setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 50);
-    }
-
-    async function uploadToSupabaseStorage(file, pathPrefix) { const fileExt = file.name.split('.').pop(); const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); if (error) { alert("Errore caricamento immagine."); return null; } const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); return publicUrl; }
-    async function deleteOldSupabaseFile(oldUrl) { if (!oldUrl) return; try { const bucketMarker = '/lime-assets/'; const index = oldUrl.indexOf(bucketMarker); if (index !== -1) { const filePath = oldUrl.substring(index + bucketMarker.length); await supabaseClient.storage.from('lime-assets').remove([filePath]); } } catch (e) {} }
-    async function handleBgUpload(event) { if (!userId) return; const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { applyChatBackground(e.target.result); }; reader.readAsDataURL(file); const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); if (publicUrl) { await supabaseClient.auth.updateUser({ data: { bg: publicUrl } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } } }
-
-    function initLimeExtras() {
-        const bodyM = document.getElementById('lime-body-main'), eyesM = document.querySelectorAll('.lime-eye'); 
-        const eyesGroup = document.getElementById('lime-eyes-group');
-        let isThinking = false, expressionTimeout, failsafeTimeout, activeObserver = null, stavaPensandoDavvero = false, thinkingStopTimeout = null;
-        
-        window.updateGreetingVisibility = () => {
-            if (!DOM.greetingBox) return;
-            const messageCount = DOM.chatBox ? DOM.chatBox.querySelectorAll('.msg-wrapper').length : 0;
-            const hasText = DOM.inputField ? DOM.inputField.value.trim().length > 0 : false;
-            if (messageCount === 0 && !hasText && !currentConversationId) DOM.greetingBox.classList.remove('hidden-greeting');
-            else DOM.greetingBox.classList.add('hidden-greeting');
-        };
-
-        const sendTrigger = (code) => { if (!DOM.inputField) return; DOM.inputField.value = code; DOM.inputField.dispatchEvent(new Event('input', { bubbles: true })); const e = { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', keyCode: 13, which: 13 }; DOM.inputField.dispatchEvent(new KeyboardEvent('keydown', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keypress', e)); DOM.inputField.dispatchEvent(new KeyboardEvent('keyup', e)); };
-        
-        window.setMascotThinking = (state) => { 
-            isThinking = state; 
-            if (state) {
-                stavaPensandoDavvero = true; eyesM.forEach(e => e.classList.add('eyes-closed'));
-                clearTimeout(expressionTimeout); clearTimeout(failsafeTimeout); clearTimeout(thinkingStopTimeout);
-                if (eyesGroup) eyesGroup.classList.remove('show-stars', 'show-x');
-                if (activeObserver) { activeObserver.disconnect(); activeObserver = null; }
-            } else {
-                if (!stavaPensandoDavvero) { eyesM.forEach(e => e.classList.remove('eyes-closed')); return; }
-                stavaPensandoDavvero = false;
-                thinkingStopTimeout = setTimeout(() => {
-                    const botMsgs = document.querySelectorAll('.bot-msg');
-                    if (botMsgs.length === 0) { eyesM.forEach(e => e.classList.remove('eyes-closed')); return; }
-                    
-                    const lastMsg = botMsgs[botMsgs.length - 1];
-                    const checkText = () => {
-                        const text = lastMsg.innerText.toLowerCase().substring(0, 80); if (text.length < 2) return false;
-                        let flagEspressione = null;
-                        if (/\b(sbagliato|errato|no|non|errore|purtroppo)\b/.test(text)) flagEspressione = 'show-x';
-                        else if (/\b(esatto|giusto|corretto|ottimo|perfetto|bravo|sì|si|eccellente|certamente)\b/.test(text)) flagEspressione = 'show-stars';
-
-                        if (flagEspressione && eyesGroup) {
-                            eyesGroup.classList.add(flagEspressione);
-                            expressionTimeout = setTimeout(() => eyesGroup.classList.remove(flagEspressione), 1500);
-                            if (activeObserver) { activeObserver.disconnect(); activeObserver = null; }
-                            return true;
-                        } return false;
-                    };
-
-                    if (!checkText()) {
-                        activeObserver = new MutationObserver(checkText); activeObserver.observe(lastMsg, { childList: true, subtree: true, characterData: true });
-                        failsafeTimeout = setTimeout(() => { if (activeObserver) { activeObserver.disconnect(); activeObserver = null; } }, 8000);
-                    }
-                    eyesM.forEach(e => e.classList.remove('eyes-closed'));
-                }, 50); 
-            }
-        };
-        
-        if (DOM.chatBox) { 
-            new MutationObserver((mutations) => { 
-                if (window.updateGreetingVisibility) window.updateGreetingVisibility();
-                mutations.forEach((m) => { if (m.addedNodes.length > 0) m.addedNodes.forEach((n) => { if (n.nodeType === 1) { const t = n.innerText || ""; if (t.includes('@1') || t.includes('@2') || t.includes('@3') || t.includes('@4')) n.classList.add('ghost-hidden'); } }); }); 
-            }).observe(DOM.chatBox, { childList: true, subtree: true }); 
-        }
-        
-        function playBody() { if (document.hidden) return setTimeout(playBody, 2000); if (isThinking) return setTimeout(playBody, 1000); const r = Math.random() * 100, a = r < 60 ? 'anim-squeeze' : r < 90 ? 'anim-roll' : 'anim-jump'; bodyM.classList.add(a); bodyM.addEventListener('animationend', () => { bodyM.classList.remove(a); setTimeout(playBody, Math.random() * 4000 + 3000); }, { once: true }); }
-        function playBlink() { if (document.hidden) return setTimeout(playBlink, 2000); if (!isThinking) { eyesM.forEach(e => e.classList.add('anim-blink')); setTimeout(() => eyesM.forEach(e => e.classList.remove('anim-blink')), 150); } setTimeout(playBlink, Math.random() * 5000 + 2000); }
-        function look() { if (document.hidden) return setTimeout(look, 2000); if (isThinking) return setTimeout(look, 1000); const dirs = [{x:0,y:0},{x:0,y:-4},{x:0,y:4},{x:4,y:0},{x:-4,y:0},{x:3,y:-3},{x:-3,y:-3},{x:3,y:3},{x:-3,y:3}]; const d = dirs[Math.floor(Math.random() * dirs.length)]; eyesM.forEach(e => { e.style.setProperty('--lx', d.x+'px'); e.style.setProperty('--ly', d.y+'px'); e.style.transform = `translate(${d.x}px, ${d.y}px)`; }); setTimeout(look, Math.random() * 3000 + 2000); }
-        
-        setTimeout(playBody, 2000); setTimeout(playBlink, 2500); setTimeout(look, 3000);
-        
-        document.addEventListener('click', (e) => { 
-            const chip = e.target.closest('.lime-chip');
-            if (chip) { capturedChipTitle = chip.innerText.trim(); sendTrigger(chip.getAttribute('data-trigger')); }
-        }, true);
-    }
-
-    function setupViewportAnchoring() {
-        const mascotSvg = document.querySelector('#lime-app-mascot svg');
-        let lastMsgPadding = -1, lockedWidth = window.innerWidth, lockedHeight = window.innerHeight;
-
-        function lockDimensions() { document.body.style.height = lockedHeight + 'px'; document.documentElement.style.height = lockedHeight + 'px'; }
-        lockDimensions();
-
-        window.syncAnchoring = function() {
-            const breathArea = document.getElementById('breath-area');
-            if (breathArea) { const breathRect = breathArea.getBoundingClientRect(), viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight, requiredPadding = Math.max(0, viewportHeight - breathRect.top); document.documentElement.style.setProperty('--breath-padding', requiredPadding + 'px'); }
-            if (DOM.chatBox) { const targetY = mascotSvg ? (mascotSvg.getBoundingClientRect().top + (mascotSvg.getBoundingClientRect().height / 2)) : lockedHeight / 2; const boxRect = DOM.chatBox.getBoundingClientRect(), requiredPadding = Math.max(0, boxRect.bottom - targetY); if (Math.abs(requiredPadding - lastMsgPadding) > 1) lastMsgPadding = requiredPadding; }
-        };
-        
-        window.syncAnchoring();
-        window.addEventListener('resize', () => { if (window.innerWidth !== lockedWidth) { lockedWidth = window.innerWidth; lockedHeight = window.innerHeight; lockDimensions(); } window.syncAnchoring(); }, { passive: true });
-
-        if (window.visualViewport) {
-            function trickKeyboard() { const vvHeight = window.visualViewport.height, vvOffset = window.visualViewport.offsetTop, keyboardHeight = Math.max(0, lockedHeight - (vvHeight + vvOffset)), shiftY = `translateY(-${keyboardHeight}px)`; if (DOM.inputArea) DOM.inputArea.style.transform = `${shiftY} translateZ(0)`; if (DOM.chatBox) DOM.chatBox.style.transform = shiftY; if (DOM.greetingBox) DOM.greetingBox.style.transform = shiftY; window.scrollTo(0, 0); window.syncAnchoring(); }
-            window.visualViewport.addEventListener('resize', trickKeyboard, { passive: true }); window.visualViewport.addEventListener('scroll', trickKeyboard, { passive: true });
-        }
-
-        window.scrollToBottom = function(force = false) { if (DOM.chatBox && (!window.isUserScrolling || force)) DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight; };
-        if (DOM.chatBox) new MutationObserver((m) => { let shouldScroll = false; m.forEach(x => { if (x.addedNodes.length > 0) shouldScroll = true; }); if (shouldScroll) requestAnimationFrame(() => { window.syncAnchoring(); if (window.scrollToBottom) window.scrollToBottom(true); }); }).observe(DOM.chatBox, { childList: true });
-    }
-
-    function setupMathAndSanitization() {
-        if (!window.marked || !window.DOMPurify) return; // Se non caricate aspetta
-        if (window.marked && window.markedKatex) marked.use(window.markedKatex({ throwOnError: false }), { breaks: true, gfm: true });
-        
-        const originalSanitize = window.DOMPurify.sanitize;
-        window.DOMPurify.sanitize = function(content, config) {
-            return originalSanitize.call(window.DOMPurify, content, Object.assign({}, config || {}, { ADD_TAGS: ['math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mtable', 'mtr', 'mtd', 'mspace', 'mtext', 'path', 'line', 'svg', 'g', 'think'], ADD_ATTR: ['xmlns', 'display', 'aria-hidden', 'style', 'class', 'd', 'viewBox', 'preserveAspectRatio', 'x', 'y', 'width', 'height'] }));
-        };
-
-        function syncThumb(el, scrollbar) {
-            const thumb = scrollbar.querySelector('.math-thumb'); if (!thumb) return;
-            const scrollableWidth = el.scrollWidth - el.clientWidth; if (scrollableWidth <= 0) return;
-            const scrollRatio = el.scrollLeft / scrollableWidth, thumbPercent = Math.max(15, (el.clientWidth / el.scrollWidth) * 100);
-            thumb.style.width = thumbPercent + '%'; thumb.style.left = `calc(${scrollRatio} * (100% - ${thumbPercent}%))`;
-        }
-
-        const resizeObserver = new ResizeObserver(entries => {
-            for (let entry of entries) {
-                const el = entry.target; let scrollbar = el.nextElementSibling;
-                if (!scrollbar || !scrollbar.classList.contains('math-scrollbar')) {
-                    scrollbar = document.createElement('div'); scrollbar.className = 'math-scrollbar';
-                    scrollbar.innerHTML = `<div class="math-arrow left"></div><div class="math-track"><div class="math-thumb"></div></div><div class="math-arrow right"></div>`;
-                    el.insertAdjacentElement('afterend', scrollbar); el.addEventListener('scroll', () => syncThumb(el, scrollbar), { passive: true });
-                }
-                const isOverflowing = el.scrollWidth > el.clientWidth + 2; scrollbar.style.display = isOverflowing ? 'flex' : 'none';
-                if (isOverflowing) syncThumb(el, scrollbar);
-            }
-        });
-
-        const mutationObserver = new MutationObserver((mutations) => { mutations.forEach((m) => { m.addedNodes.forEach((n) => { if (n.nodeType === 1) { if (n.classList.contains('katex-display')) resizeObserver.observe(n); const mathBlocks = n.querySelectorAll ? n.querySelectorAll('.katex-display') : []; mathBlocks.forEach(b => resizeObserver.observe(b)); } }); }); });
-        if (DOM.chatBox) mutationObserver.observe(DOM.chatBox, { childList: true, subtree: true });
-    }
-
-    document.addEventListener('DOMContentLoaded', async () => {
-        
-        DOM = {
-            chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area'), micBtn: document.getElementById('mic-btn'), attachBtn: document.getElementById('attach-btn'), timerDisplay: document.getElementById('recording-timer'), attachmentLabel: document.getElementById('attachment-label'), fileInput: document.getElementById('file-input'), eduDropdown: document.getElementById('edu-dropdown'), instDropdown: document.getElementById('inst-dropdown'), bgInput: document.getElementById('bg-input')
-        };
-
-        let inputDebounce, scrollTimeout; 
-        if (DOM.chatBox) {
-            DOM.chatBox.addEventListener('scroll', () => { if (!scrollTimeout) { scrollTimeout = requestAnimationFrame(() => { isUserScrolling = (DOM.chatBox.scrollHeight - DOM.chatBox.scrollTop) > (DOM.chatBox.clientHeight + 100); scrollTimeout = null; }); } }, { passive: true });
-            DOM.chatBox.addEventListener('click', (e) => { const copyBtn = e.target.closest('.copy-btn'); if (copyBtn) { const pre = copyBtn.closest('pre'); if(pre) { navigator.clipboard.writeText(pre.querySelector('code').innerText); copyBtn.innerText = 'Copiato!'; setTimeout(() => copyBtn.innerText = 'Copia', 2000); } } });
-        }
-        if (DOM.inputField) {
-            DOM.inputField.addEventListener('input', () => { clearTimeout(inputDebounce); inputDebounce = setTimeout(() => { if (window.updateGreetingVisibility) window.updateGreetingVisibility(); }, 150); });
-            DOM.inputField.addEventListener('keypress', e => { if (e.key === 'Enter') { if (isRecording) toggleRecording(); else if (!isGenerating) sendMessage(); } });
-        }
-        
-        setupViewportAnchoring();
-        initLimeExtras();
-        setupChatVirtualization();
-
-        async function fetchFreshData() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session && session.user) {
-                const { data: { user }, error } = await supabaseClient.auth.getUser();
-                if (!error && user) { updateProfileUI(user); await supabaseClient.auth.refreshSession(); }
-            }
-        }
-        
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchFreshData(); });
-
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (session) { 
-            userId = session.user.id; 
-            document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
-            if (window.syncAnchoring) window.syncAnchoring();
-            updateProfileUI(session.user); loadHistory(); 
-            if (window.updateGreetingVisibility) window.updateGreetingVisibility();
-            await loadHeavyLibraries(); // Avvia il download differito
-        }
-        
-        supabaseClient.auth.onAuthStateChange(async (event, session) => { 
-            if (session) { 
-                userId = session.user.id; 
-                document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
-                if (window.syncAnchoring) window.syncAnchoring();
-                updateProfileUI(session.user); loadHistory(); 
-                if (window.updateGreetingVisibility) window.updateGreetingVisibility();
-                await loadHeavyLibraries(); // Avvia il download differito
-            } else { 
-                userId = null; 
-                document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); 
-                updateProfileUI(null); 
-            } 
-        });
-        
-        if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', async (e) => { const level = e.target.value; localStorage.setItem('lime_edu_level', level); try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } catch (err) {} }); }
-        if (DOM.instDropdown) { DOM.instDropdown.addEventListener('change', async (e) => { const inst = e.target.value; localStorage.setItem('lime_inst_type', inst); try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: inst } }); } catch (err) {} }); }
-        
-        setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
-    });
-</script>    
-
-
-
-
-
-
-
-
-
-
-<style>
-    /* 1. Allineamento al fondo degli elementi nella barra quando si espande */
-    .input-wrapper {
-        align-items: flex-end !important;
-    }
-
-    /* 2. Nuova textarea fluida e reattiva */
-    textarea#user-input {
-        flex: 1;
-        min-width: 0;
-        background: none;
-        border: none;
-        color: var(--text-main);
-        padding: 10px 0;
-        outline: none;
-        font-size: 16px;
-        font-family: inherit;
-        resize: none;
-        line-height: 20px;
-        max-height: 120px;
-        min-height: 40px;
-        box-sizing: border-box;
-        overflow-y: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-
-    textarea#user-input::-webkit-scrollbar {
-        display: none;
-    }
-
-    /* 3. Pulsanti laterali ancorati in basso */
-    #attach-btn, #mic-btn {
-        margin-bottom: 10px;
-    }
-
-    /* 4. Mantiene i ritorni a capo nativi e gli spazi nella bubble dell'utente */
-    .user-msg {
-        white-space: pre-wrap !important;
-    }
-</style>
-
-<script>
-(function() {
-    const oldInput = document.getElementById('user-input');
-    if (!oldInput) return;
-
-    const isAlreadyTextarea = oldInput.tagName.toLowerCase() === 'textarea';
-    let textarea;
-
-    if (!isAlreadyTextarea) {
-        textarea = document.createElement('textarea');
-        textarea.className = oldInput.className;
-        textarea.placeholder = oldInput.placeholder;
-        textarea.setAttribute('rows', '1');
-        textarea.id = 'user-input'; 
-        
-        oldInput.parentNode.replaceChild(textarea, oldInput);
-    } else {
-        textarea = oldInput;
-    }
-
-    if (typeof DOM !== 'undefined') {
-        DOM.inputField = textarea;
-    }
-
-    const autoResize = () => {
-        textarea.style.height = '40px'; 
-        const requiredHeight = textarea.scrollHeight;
-        textarea.style.height = Math.max(Math.min(requiredHeight, 120), 40) + 'px';
-        
-        if (window.syncAnchoring) window.syncAnchoring();
-    };
-
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-    Object.defineProperty(textarea, 'value', {
-        set: function(val) {
-            nativeInputValueSetter.call(this, val);
-            autoResize();
-        },
-        get: function() {
-            return Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").get.call(this);
-        }
-    });
-
-    textarea.addEventListener('input', () => {
-        autoResize();
-        if (typeof inputDebounce !== 'undefined') clearTimeout(inputDebounce);
-        window.inputDebounce = setTimeout(() => { 
-            if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
-        }, 150);
-    });
-
-    // Funzione rapida per scatenare l'invio
-    const triggerSend = () => {
-        if (typeof isRecording !== 'undefined' && isRecording) {
-            if (typeof toggleRecording === 'function') toggleRecording();
-        } else if (typeof isGenerating !== 'undefined' && !isGenerating) {
-            if (typeof sendMessage === 'function') sendMessage();
-        }
-    };
-
-    textarea.addEventListener('keydown', (e) => {
-        // FIX 1: Ripristina l'invio automatico se si clicca sulle "chip" del greeting
-        if (!e.isTrusted) {
-            e.preventDefault();
-            triggerSend();
-            return;
-        }
-
-        // FIX 2: Rilevamento stringente per soli dispositivi puramente mobile (salta i PC e i laptop touch)
-        const isStrictMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-        if (e.key === 'Enter' && !e.shiftKey) {
-            if (isStrictMobile) {
-                // Da smartphone/tablet, l'Invio della tastiera virtuale va a capo e basta
-                e.stopPropagation();
-            } else {
-                // Da PC (tastiera fisica vera e propria), Invio spedisce, Maiusc+Invio va a capo
-                e.preventDefault(); 
-                triggerSend();
-            }
-        }
-    }, true);
-
-    // Blocchiamo il vecchio listener di LIME che intercettava l'invio in modo grezzo
-    textarea.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            e.stopPropagation(); 
-        }
-    }, true);
-
-    autoResize();
-})();
-</script>
-    
-
-
-
-
-
-<style>
-    .bot-msg {
-        z-index: 2 !important;
-        position: relative; 
-        overflow: hidden !important; 
-    }
-
-    .translate-btn {
-        position: absolute;
-        bottom: 6px;
-        right: 6px;
-        background: rgba(0, 0, 0, 0.15); 
-        border: none;
-        color: inherit;
-        opacity: 0.6;
-        cursor: pointer;
-        padding: 5px;
-        border-radius: 50%;
-        transition: opacity 0.2s, transform 0.2s;
-        display: flex !important; 
-        align-items: center;
-        justify-content: center;
-        outline: none;
-        z-index: 10;
-        backdrop-filter: blur(2px); 
-        
-        touch-action: none; 
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
-    }
-    
-    .translate-btn:hover, .translate-btn.active {
-        opacity: 1;
-        transform: scale(1.15);
-    }
-
-    /* LA BARRA DI CARICAMENTO / TIMER VISIVO */
-    .translation-backdrop {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: #f5f5f5; 
-        z-index: 0;
-        transform: scaleX(0);
-        transform-origin: right center;
-        pointer-events: none;
-        
-        /* Collasso: rapido, fluido e gestito interamente dal CSS */
-        transition: transform 0.5s linear; 
-    }
-
-    .bot-msg.is-inflated .translation-backdrop {
-        transform: scaleX(1); 
-        transition: transform 0.8s cubic-bezier(0.1, 0.9, 0.2, 1); 
-    }
-
-    div.text-foreign, div.text-italian, .msg-bottom-bar {
-        position: relative;
-        z-index: 1;
-    }
-
-    div.text-italian {
-        display: none; 
-    }
-    
-    .bot-msg.is-translating div.text-italian {
-        display: block; 
-    }
-    
-    .bot-msg.is-translating div.text-foreign {
-        display: none; 
-    }
-    
-    .text-foreign p:last-child, .text-italian p:last-child {
-        margin-bottom: 0;
-    }
-    .text-foreign p:first-child, .text-italian p:first-child {
-        margin-top: 0;
-    }
-</style>
-
-<script>
-(function() {
-    const SVG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-    const MARKER = '%tr%';
-
-    function processTranslations() {
-        const chatBox = document.getElementById('chat-box');
-        if (!chatBox) return;
-
-        const wrappers = chatBox.querySelectorAll('.bot-wrapper.msg-complete:not([data-lang-checked])');
-        if (wrappers.length === 0) return;
-        
-        wrappers.forEach(wrapper => {
-            const botMsg = wrapper.querySelector('.bot-msg');
-            if (!botMsg) return;
-            
-            wrapper.setAttribute('data-lang-checked', 'true'); 
-
-            const bottomBar = botMsg.querySelector('.msg-bottom-bar');
-            if (bottomBar) bottomBar.remove();
-
-            const hiddenSpan = botMsg.querySelector('.streaming-hidden');
-            if (hiddenSpan) {
-                hiddenSpan.outerHTML = hiddenSpan.innerHTML;
-            }
-
-            let htmlContent = botMsg.innerHTML;
-            
-            if (htmlContent.includes(MARKER)) {
-                const parts = htmlContent.split(MARKER);
-                const foreignText = parts[0].trim(); 
-                const italianText = parts.slice(1).join(MARKER).trim(); 
-
-                const foreignDiv = document.createElement('div');
-                foreignDiv.className = 'text-foreign';
-                foreignDiv.innerHTML = foreignText; 
-
-                const italianDiv = document.createElement('div');
-                italianDiv.className = 'text-italian';
-                italianDiv.innerHTML = italianText;
-
-                botMsg.innerHTML = '';
-                botMsg.insertAdjacentHTML('beforeend', `<div class="translation-backdrop"></div>`);
-                botMsg.appendChild(foreignDiv);
-                botMsg.appendChild(italianDiv);
-                
-                if (bottomBar) {
-                    botMsg.appendChild(bottomBar);
-                }
-                
-                botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Tieni premuto per tradurre">${SVG_EYE}</button>`);
-
-            } else {
-                if (bottomBar) botMsg.appendChild(bottomBar);
-            }
-        });
-    }
-
-    const chatBox = document.getElementById('chat-box');
-    if (chatBox) {
-        
-        chatBox.addEventListener('pointerdown', (e) => {
-            const btn = e.target.closest('.translate-btn');
-            if (!btn) return;
-            
-            e.stopPropagation();
-            
-            if (e.pointerId && btn.setPointerCapture) {
-                btn.setPointerCapture(e.pointerId);
-            }
-
-            const botMsg = btn.closest('.bot-msg');
-            if (botMsg) {
-                botMsg.classList.add('is-translating');
-                botMsg.classList.add('is-inflated');
-                btn.classList.add('active');
-                
-                setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
-            }
-        });
-
-        const releasePointer = (e) => {
-            const btn = e.target.closest('.translate-btn');
-            if (!btn) return;
-            
-            const botMsg = btn.closest('.bot-msg');
-            if (botMsg && botMsg.classList.contains('is-inflated')) {
-                botMsg.classList.remove('is-inflated');
-                btn.classList.remove('active');
-                
-                const backdrop = botMsg.querySelector('.translation-backdrop');
-                if (backdrop) {
-                    // Puliamo eventuali listener precedenti per evitare accumuli
-                    if (botMsg.onDeflateEnd) {
-                        backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
-                    }
-                    
-                    // Il JS si iscrive all'evento di fine animazione del CSS
-                    botMsg.onDeflateEnd = (evt) => {
-                        if (evt.propertyName === 'transform' && !botMsg.classList.contains('is-inflated')) {
-                            botMsg.classList.remove('is-translating');
-                            setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
-                            backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
-                        }
-                    };
-                    backdrop.addEventListener('transitionend', botMsg.onDeflateEnd);
-
-                    // Misura di sicurezza: se la barra è troppo piccola (es. micro-tocco dove l'animazione non parte), spegniamo subito
-                    if (backdrop.getBoundingClientRect().width <= 1) {
-                        botMsg.classList.remove('is-translating');
-                    }
-                }
-            }
-            
-            if (e.pointerId && btn.hasPointerCapture && btn.hasPointerCapture(e.pointerId)) {
-                btn.releasePointerCapture(e.pointerId);
-            }
-        };
-
-        chatBox.addEventListener('pointerup', releasePointer);
-        chatBox.addEventListener('pointercancel', releasePointer);
-
-        let debounceTimer;
-        const observer = new MutationObserver((mutations) => {
-            let shouldProcessComplete = false;
-
-            mutations.forEach(m => {
-                if (m.type === 'attributes' && m.attributeName === 'class' && m.target.classList.contains('msg-complete')) {
-                    shouldProcessComplete = true;
-                }
-            });
-
-            const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
-            streamingBots.forEach(botMsg => {
-                if (botMsg.innerHTML.includes(MARKER) && !botMsg.querySelector('.streaming-hidden')) {
-                    const bottomBar = botMsg.querySelector('.msg-bottom-bar');
-                    if (bottomBar) bottomBar.remove();
-
-                    const parts = botMsg.innerHTML.split(MARKER);
-                    
-                    if (parts.length > 1) {
-                        botMsg.innerHTML = parts[0] + '<span class="streaming-hidden" style="display: none;">' + MARKER + parts.slice(1).join(MARKER) + '</span>';
-                    }
-                    
-                    if (bottomBar) botMsg.appendChild(bottomBar);
-                }
-            });
-
-            if (shouldProcessComplete) {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(processTranslations, 50); 
-            }
-        });
-        
-        observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true, characterData: true });
-    }
-
-    setTimeout(processTranslations, 500);
-})();
-</script>
-
-
-
-    
-
-
-
-
-    
-
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                        const bottomBar = botDiv.querySelector('.msg-bottom-bar
