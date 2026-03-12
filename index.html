@@ -328,6 +328,7 @@
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
     let globalStream = null, chatVirtualObserver = null, currentCustomBg = null, capturedChipTitle = null;
     let librariesLoaded = false; 
+    let isPrependInProgress = false; // Flag per impedire lo scroll durante il caricamento messaggi vecchi
 
     const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
     const MAX_CACHE_CHATS = 5; 
@@ -491,6 +492,7 @@
 
             if (result.data && result.data.length > 0) {
                 const oldScrollHeight = DOM.chatBox.scrollHeight;
+                const oldScrollTop = DOM.chatBox.scrollTop;
 
                 const newMsgs = result.data.sort((a, b) => a.created_at - b.created_at);
                 chatCache[currentConversationId] = [...newMsgs, ...chatCache[currentConversationId]];
@@ -501,10 +503,14 @@
                 currentChatOldestMsgId = newMsgs[0].id || null;
                 chatOldestIdCache[currentConversationId] = currentChatOldestMsgId;
 
+                // Blocco l'observer dal forzare lo scroll verso il basso
+                isPrependInProgress = true; 
                 renderMessages(chatCache[currentConversationId], false); 
 
                 requestAnimationFrame(() => {
-                    DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight - oldScrollHeight;
+                    // Imposta lo scroll esattamente dov'era prima dell'inserimento in alto
+                    DOM.chatBox.scrollTop = (DOM.chatBox.scrollHeight - oldScrollHeight) + oldScrollTop;
+                    setTimeout(() => { isPrependInProgress = false; }, 50); // Sblocco l'observer
                 });
             } else {
                 currentChatHasMore = false;
@@ -1068,7 +1074,17 @@
         }
 
         window.scrollToBottom = function(force = false) { if (DOM.chatBox && (!window.isUserScrolling || force)) DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight; };
-        if (DOM.chatBox) new MutationObserver((m) => { let shouldScroll = false; m.forEach(x => { if (x.addedNodes.length > 0) shouldScroll = true; }); if (shouldScroll) requestAnimationFrame(() => { window.syncAnchoring(); if (window.scrollToBottom) window.scrollToBottom(true); }); }).observe(DOM.chatBox, { childList: true });
+        
+        if (DOM.chatBox) new MutationObserver((m) => { 
+            let shouldScroll = false; 
+            m.forEach(x => { if (x.addedNodes.length > 0) shouldScroll = true; }); 
+            if (shouldScroll) {
+                requestAnimationFrame(() => { 
+                    window.syncAnchoring(); 
+                    if (!isPrependInProgress && window.scrollToBottom) window.scrollToBottom(true); 
+                }); 
+            }
+        }).observe(DOM.chatBox, { childList: true });
     }
 
     function setupMathAndSanitization() {
@@ -1140,7 +1156,6 @@
             document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
             if (window.syncAnchoring) window.syncAnchoring();
             
-            // Forza il fetch dai server Supabase per l'allineamento tra i vari dispositivi alla prima apertura
             const { data: { user } } = await supabaseClient.auth.getUser();
             updateProfileUI(user || session.user); 
             
@@ -1155,7 +1170,6 @@
                 document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
                 if (window.syncAnchoring) window.syncAnchoring();
                 
-                // Anche qui manteniamo l'allineamento forzato in caso di refresh/cambio tab
                 const { data: { user } } = await supabaseClient.auth.getUser();
                 updateProfileUI(user || session.user); 
                 
