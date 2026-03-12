@@ -1494,10 +1494,6 @@
     
 
 
-
-    
-
-
 <style>
     #lime-graph-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
@@ -1536,6 +1532,7 @@
     .lime-graph-btn:hover { background: var(--border-color); }
     .lime-graph-btn svg { color: var(--accent); flex-shrink: 0; }
     
+    /* Mantiene il testo degli assi pulito e visibile */
     .JXGtext { color: var(--text-main) !important; font-family: inherit !important; }
 </style>
 
@@ -1551,6 +1548,7 @@
     let board = null;
     let jsxgraphLoaded = false;
 
+    // Caricamento differito (Lazy Loading) della libreria
     async function loadJSXGraph() {
         if (jsxgraphLoaded) return;
         return new Promise((resolve, reject) => {
@@ -1579,8 +1577,10 @@
             const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
             const axisColor = isLight ? '#333333' : '#cccccc';
             
+            // Inizializza la lavagna con il limite invalicabile (maxboundingbox)
             board = JXG.JSXGraph.initBoard('jxgbox', {
-                boundingbox: [-10, 10, 10, -10], 
+                boundingbox: [-10, 10, 10, -10], // Visuale di partenza
+                maxboundingbox: [-100, 100, 100, -100], // Limite massimo di zoom e panning
                 axis: true,
                 showCopyright: false,
                 showNavigation: false, 
@@ -1593,7 +1593,7 @@
                 }
             });
 
-            // Compilatore JS Nativo per evitare i limiti di rendering
+            // Compilatore JS Nativo per prestazioni massime e costanti
             let safeExpr = expr.toLowerCase()
                 .replace(/[^a-z0-9+\-*/().^\s]/g, '')
                 .replace(/([a-z]+)/g, match => {
@@ -1607,6 +1607,7 @@
 
             const fn = new Function('x', `return ${safeExpr};`);
 
+            // Disegna la funzione convertita
             board.create('functiongraph', [fn], {
                 strokeColor: accentColor,
                 strokeWidth: 3,
@@ -1629,6 +1630,7 @@
         }
     };
 
+    // Parser infallibile: Cerca il tag [--- GRAFICO: f(x) ---] nel flusso della chat
     const chatObserver = new MutationObserver(() => {
         requestAnimationFrame(() => {
             const botMsgs = document.querySelectorAll('.bot-msg');
@@ -1657,6 +1659,10 @@
 
     
 
+
+
+    
+
     
 
 
@@ -1667,6 +1673,7 @@
 
 </body>
 </html>
+
 
 
 
