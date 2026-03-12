@@ -1489,50 +1489,32 @@
 
 
 
-<style>
-    #attachment-label {
-        width: fit-content !important; 
-        max-width: calc(100% - 40px) !important; /* Previene sbavature su schermi stretti */
-        background-color: var(--accent) !important; /* Eredita il colore scelto dall'utente */
-        color: #000000 !important; /* Testo scuro per un contrasto ottimale */
-        padding: 4px 14px !important;
-        border-radius: 20px !important;
-        margin-top: 10px !important;
-        margin-left: 20px !important;
-        font-weight: 600 !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
-        transition: background-color 0.3s ease !important;
-        
-        /* Mantiene il troncamento del testo nativo */
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        text-overflow: ellipsis !important;
-    }
-</style>
+
+
+    
 
 
 
-
-
-
+    
 
 
 <style>
     #lime-graph-overlay {
         position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh;
-        background: rgba(14, 14, 14, 0.95);
-        backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        background: var(--bg-color); /* Sfondo coerente col tema */
         z-index: 50000; display: flex; justify-content: center; align-items: center;
         opacity: 0; visibility: hidden; pointer-events: none;
-        transition: opacity 0.2s ease, visibility 0.2s ease; touch-action: none;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
     }
     #lime-graph-overlay.active {
         opacity: 1; visibility: visible; pointer-events: auto;
     }
-    #lime-graph-canvas {
-        width: 100%; height: 100%; cursor: grab;
+    
+    /* Contenitore per JSXGraph */
+    #jxgbox {
+        width: 100%; height: 100%;
+        background-color: transparent !important; /* Gestito dall'overlay */
     }
-    #lime-graph-canvas:active { cursor: grabbing; }
     
     #lime-graph-close {
         position: absolute; top: calc(20px + env(safe-area-inset-top)); right: 20px;
@@ -1554,195 +1536,107 @@
     }
     .lime-graph-btn:hover { background: var(--border-color); }
     .lime-graph-btn svg { color: var(--accent); flex-shrink: 0; }
+    
+    /* Nascondi il logo di default di JSXGraph per mantenere l'UI pulita */
+    .JXGtext { color: var(--text-main) !important; font-family: inherit !important; }
 </style>
 
 <div id="lime-graph-overlay">
     <button id="lime-graph-close" onclick="window.closeLimeGraph()">&times;</button>
-    <canvas id="lime-graph-canvas"></canvas>
+    <div id="jxgbox" class="jxgbox"></div>
 </div>
 
 <script>
 (() => {
     const overlay = document.getElementById('lime-graph-overlay');
-    const canvas = document.getElementById('lime-graph-canvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const jxgbox = document.getElementById('jxgbox');
+    let board = null;
+    let jsxgraphLoaded = false;
 
-    let currentExpr = "";
-    let scale = 60; 
-    let offsetX = 0, offsetY = 0;
-    let isDragging = false, dragStartX = 0, dragStartY = 0;
-    let lastTouchDist = 0;
-    let animationFrameId = null;
+    // Caricamento differito (Lazy Loading) della libreria
+    async function loadJSXGraph() {
+        if (jsxgraphLoaded) return;
+        return new Promise((resolve, reject) => {
+            // CSS
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraph.css';
+            document.head.appendChild(link);
 
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        if (overlay.classList.contains('active')) requestDraw();
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    function compileMathExpression(expr) {
-        let safeExpr = expr.toLowerCase()
-            .replace(/[^a-z0-9+\-*/().^\s]/g, '') 
-            .replace(/([a-z]+)/g, match => {
-                if (match === 'x') return 'x';
-                if (['sin', 'cos', 'tan', 'log', 'exp', 'sqrt', 'abs'].includes(match)) return `Math.${match}`;
-                if (match === 'pi') return 'Math.PI';
-                if (match === 'e') return 'Math.E';
-                return match;
-            })
-            .replace(/\^/g, '**'); 
-            
-        try { return new Function('x', `return ${safeExpr};`); } 
-        catch (e) { return null; }
+            // JS
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraphcore.js';
+            script.onload = () => { jsxgraphLoaded = true; resolve(); };
+            script.onerror = () => { reject(new Error("Errore caricamento libreria grafica")); };
+            document.head.appendChild(script);
+        });
     }
 
-    function drawGraph() {
-        const isLight = document.body.classList.contains('light-theme');
-        ctx.fillStyle = isLight ? '#f0f2f5' : '#0e0e0e';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const fn = compileMathExpression(currentExpr);
-        if (!fn) {
-            ctx.fillStyle = isLight ? '#ff4444' : '#ff5e5e';
-            ctx.font = '16px sans-serif';
-            ctx.fillText("Impossibile generare il grafico. Formula non valida.", 20, 50);
-            return;
-        }
-
-        const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
-        const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
-        const axesColor = isLight ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)';
-
-        const left = -offsetX / scale;
-        const right = (canvas.width - offsetX) / scale;
-        const top = -offsetY / scale;
-        const bottom = (canvas.height - offsetY) / scale;
-
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = gridColor;
-        ctx.beginPath();
-        for (let x = Math.floor(left); x <= Math.ceil(right); x++) {
-            const px = x * scale + offsetX;
-            ctx.moveTo(px, 0); ctx.lineTo(px, canvas.height);
-        }
-        for (let y = Math.floor(top); y <= Math.ceil(bottom); y++) {
-            const py = y * scale + offsetY;
-            ctx.moveTo(0, py); ctx.lineTo(canvas.width, py);
-        }
-        ctx.stroke();
-
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = axesColor;
-        ctx.beginPath();
-        ctx.moveTo(0, offsetY); ctx.lineTo(canvas.width, offsetY); 
-        ctx.moveTo(offsetX, 0); ctx.lineTo(offsetX, canvas.height); 
-        ctx.stroke();
-
-        ctx.strokeStyle = accentColor;
-        ctx.lineWidth = 3;
-        ctx.lineJoin = 'round';
-        ctx.beginPath();
-        let firstPoint = true;
-
-        for (let px = 0; px < canvas.width; px += 2) { 
-            let x = (px - offsetX) / scale;
-            let y = fn(x);
-            
-            if (typeof y === 'number' && !isNaN(y) && isFinite(y)) {
-                let py = -y * scale + offsetY;
-                if (py > -10000 && py < canvas.height + 10000) { 
-                    if (firstPoint) { ctx.moveTo(px, py); firstPoint = false; }
-                    else { ctx.lineTo(px, py); }
-                } else {
-                    firstPoint = true;
-                }
-            } else {
-                firstPoint = true; 
-            }
-        }
-        ctx.stroke();
-    }
-
-    function requestDraw() {
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        animationFrameId = requestAnimationFrame(drawGraph);
-    }
-
-    canvas.addEventListener('mousedown', e => { 
-        isDragging = true; 
-        dragStartX = e.clientX - offsetX; dragStartY = e.clientY - offsetY; 
-    });
-    window.addEventListener('mousemove', e => { 
-        if (!isDragging) return;
-        offsetX = e.clientX - dragStartX; offsetY = e.clientY - dragStartY; 
-        requestDraw(); 
-    });
-    window.addEventListener('mouseup', () => isDragging = false);
-    
-    canvas.addEventListener('wheel', e => {
-        e.preventDefault(); 
-        const zoomRate = Math.exp(-e.deltaY * 0.003);
-        const mouseX = e.clientX; const mouseY = e.clientY;
-        
-        offsetX = mouseX - (mouseX - offsetX) * zoomRate;
-        offsetY = mouseY - (mouseY - offsetY) * zoomRate;
-        scale *= zoomRate;
-        requestDraw();
-    }, { passive: false });
-
-    canvas.addEventListener('touchstart', e => {
-        if (e.touches.length === 1) {
-            isDragging = true; 
-            dragStartX = e.touches[0].clientX - offsetX; dragStartY = e.touches[0].clientY - offsetY;
-        } else if (e.touches.length === 2) {
-            lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        }
-    }, { passive: false });
-    
-    canvas.addEventListener('touchmove', e => {
-        e.preventDefault(); 
-        if (e.touches.length === 1 && isDragging) {
-            offsetX = e.touches[0].clientX - dragStartX; offsetY = e.touches[0].clientY - dragStartY; 
-            requestDraw();
-        } else if (e.touches.length === 2) {
-            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            const zoomRate = dist / lastTouchDist;
-            const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-            
-            offsetX = cx - (cx - offsetX) * zoomRate;
-            offsetY = cy - (cy - offsetY) * zoomRate;
-            scale *= zoomRate;
-            lastTouchDist = dist;
-            requestDraw();
-        }
-    }, { passive: false });
-    
-    canvas.addEventListener('touchend', () => isDragging = false);
-
-    window.openLimeGraph = function(expr) {
-        currentExpr = expr;
-        scale = 60; 
-        offsetX = window.innerWidth / 2; 
-        offsetY = window.innerHeight / 2; 
+    window.openLimeGraph = async function(expr) {
         overlay.classList.add('active');
-        resizeCanvas();
+        jxgbox.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:var(--text-muted); font-weight:600;">Caricamento motore grafico...</div>`;
+        
+        try {
+            await loadJSXGraph();
+            jxgbox.innerHTML = ""; // Pulisce il messaggio di caricamento
+            
+            const isLight = document.body.classList.contains('light-theme');
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
+            const axisColor = isLight ? '#333333' : '#cccccc';
+            
+            // Inizializza la lavagna matematica (Board)
+            board = JXG.JSXGraph.initBoard('jxgbox', {
+                boundingbox: [-10, 10, 10, -10], // Visuale iniziale
+                axis: true,
+                showCopyright: false,
+                showNavigation: false, // Disabilita i pulsantini a schermo per una UI più pulita
+                keepaspectratio: true,
+                zoom: {
+                    factorX: 1.25, factorY: 1.25,
+                    wheel: true, needshift: false // Permette lo zoom con rotellina senza premere Shift
+                },
+                pan: {
+                    enabled: true, needtwofingers: false // Permette il panning con un dito/mouse
+                },
+                defaultAxes: {
+                    x: { name: 'x', withLabel: true, label: {position: 'rt', offset: [-10, 15]}, strokeColor: axisColor },
+                    y: { name: 'y', withLabel: true, label: {position: 'rt', offset: [15, -10]}, strokeColor: axisColor }
+                }
+            });
+
+            // Trasforma la stringa in una funzione comprensibile e la disegna
+            // Sostituiamo ^ con ** o gestiamo la sintassi per sicurezza
+            let jxgExpr = expr.replace(/\*\*/g, '^'); 
+            
+            // Crea il grafico della funzione
+            board.create('functiongraph', [board.jc.snippet(jxgExpr, true, 'x', true)], {
+                strokeColor: accentColor,
+                strokeWidth: 3,
+                highlightStrokeColor: accentColor,
+                highlightStrokeWidth: 4
+            });
+
+        } catch (error) {
+            console.error(error);
+            jxgbox.innerHTML = `<div style="display:flex; height:100%; align-items:center; justify-content:center; color:#ff4444; font-weight:600;">Impossibile elaborare il grafico. Controlla la formula.</div>`;
+        }
     };
 
     window.closeLimeGraph = function() {
         overlay.classList.remove('active');
-        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        if (board) {
+            // Distrugge il board per liberare la memoria RAM
+            JXG.JSXGraph.freeBoard(board);
+            board = null;
+            jxgbox.innerHTML = "";
+        }
     };
 
-    // Parser invisibile infallibile (aggiornato)
+    // Parser infallibile: Intercetta [--- GRAFICO: f(x) ---] e inietta il pulsante
     const chatObserver = new MutationObserver(() => {
-        // Usa requestAnimationFrame per non interferire con il ciclo di rendering della chat principale
         requestAnimationFrame(() => {
             const botMsgs = document.querySelectorAll('.bot-msg');
             botMsgs.forEach(msg => {
-                // Se individua il tag non elaborato...
                 if (msg.innerHTML.includes('[--- GRAFICO:')) {
                     const regex = /\[---\s*GRAFICO:\s*(.*?)\s*---\]/g;
                     msg.innerHTML = msg.innerHTML.replace(regex, (match, expr) => {
@@ -1750,7 +1644,7 @@
                         return `<div style="margin-top: 10px; display: block;">
                             <button class="lime-graph-btn" onclick="window.openLimeGraph('${cleanExpr}')">
                                 <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M3 15h18"></path><path d="M9 3v18"></path></svg>
-                                Mostra: ${expr}
+                                Grafico: ${expr}
                             </button>
                         </div>`;
                     });
@@ -1764,6 +1658,10 @@
 
 })();
 </script>
+
+    
+
+
 
 
 
@@ -1779,6 +1677,7 @@
 
 </body>
 </html>
+
 
 
 
