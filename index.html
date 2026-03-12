@@ -43,7 +43,7 @@
         .history-item { padding: 12px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-light); transition: background 0.2s, color 0.2s; display: flex; justify-content: space-between; align-items: center; } .history-item:hover { background: var(--border-color); color: var(--text-main); }
         .active-chat { background: #2a2a2a; color: white; border-left: 3px solid var(--accent); border-radius: 4px 10px 10px 4px; }
         .chat-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; pointer-events: none; } .chat-actions { display: flex; gap: 12px; } .action-btn { background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.6; padding: 4px; transition: opacity 0.2s; pointer-events: auto; } .action-btn:hover { opacity: 1; }
-        .load-more-btn { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-color); padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 0.85rem; transition: 0.2s; } .load-more-btn:hover { background: var(--user-bubble); color: var(--text-main); }
+        .load-more-btn { background: var(--accent); color: #000; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 0.85rem; font-weight: 600; transition: filter 0.2s ease, transform 0.1s ease; } .load-more-btn:hover { filter: brightness(1.15); } .load-more-btn:active { transform: scale(0.98); }
         
         #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: 20px !important; }
         #sidebar-bottom::before { content: "Impostazioni"; position: -webkit-sticky; position: sticky; top: -20px; display: block; background: var(--sidebar-bg); color: var(--accent); font-size: 0.95rem; font-weight: 800; letter-spacing: 1px; padding: 20px 0 15px 0; margin: -20px 0 15px 0; z-index: 10; }
@@ -1193,3 +1193,4 @@
 
 </body>
 </html>
+
