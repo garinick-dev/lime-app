@@ -418,7 +418,8 @@
         if (typeof resource === 'string' && resource.includes('/chat-messages') && config && config.body) {
             try {
                 let bodyData = JSON.parse(config.body); if (!bodyData.inputs) bodyData.inputs = {};
-                const eduLevel = localStorage.getItem('lime_edu_level'); const instType = localStorage.getItem('lime_inst_type');
+                const eduLevel = document.getElementById('edu-dropdown') ? document.getElementById('edu-dropdown').value : null; 
+                const instType = document.getElementById('inst-dropdown') ? document.getElementById('inst-dropdown').value : null;
                 if (eduLevel) bodyData.inputs['classe_frequentata'] = eduLevel; if (instType) bodyData.inputs['tipo_istituto'] = instType;
                 config.body = JSON.stringify(bodyData);
             } catch (e) {}
@@ -971,7 +972,7 @@
         await supabaseClient.auth.updateUser({ data: { color: hex } }); 
     }
 
-    function updateProfileUI(user) { 
+    window.updateProfileUI = function(user) { 
         const avatarDivs = [document.getElementById('settings-user-avatar')]; 
         const nameSpans = [document.getElementById('settings-user-name')]; 
         
@@ -982,8 +983,8 @@
             const savedTheme = user.user_metadata?.theme || 'dark'; const savedColor = user.user_metadata?.color || '#c0f22c'; const savedBg = user.user_metadata?.bg; 
             const cloudLevel = user.user_metadata?.lime_edu_level; const cloudInst = user.user_metadata?.lime_inst_type;
 
-            if (cloudLevel) { localStorage.setItem('lime_edu_level', cloudLevel); if (DOM.eduDropdown) DOM.eduDropdown.value = cloudLevel; }
-            if (cloudInst) { localStorage.setItem('lime_inst_type', cloudInst); if (DOM.instDropdown) DOM.instDropdown.value = cloudInst; }
+            if (cloudLevel && DOM.eduDropdown) { DOM.eduDropdown.value = cloudLevel; }
+            if (cloudInst && DOM.instDropdown) { DOM.instDropdown.value = cloudInst; }
             
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = initial; }); 
             applyTheme(savedTheme); document.documentElement.style.setProperty('--accent', savedColor); document.documentElement.style.setProperty('--lime-accent', savedColor); updateColorCirclesUI(savedColor); 
@@ -1220,11 +1221,17 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session && session.user) {
                 const { data: { user }, error } = await supabaseClient.auth.getUser();
-                if (!error && user) { updateProfileUI(user); await supabaseClient.auth.refreshSession(); }
+                if (!error && user) {
+                    if (window.updateProfileUI) window.updateProfileUI(user);
+                    await supabaseClient.auth.refreshSession();
+                }
             }
         }
         
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchFreshData(); });
+        window.addEventListener('load', fetchFreshData);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') fetchFreshData();
+        });
 
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { 
@@ -1259,276 +1266,11 @@
             } 
         });
         
-        if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', async (e) => { const level = e.target.value; localStorage.setItem('lime_edu_level', level); try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } catch (err) {} }); }
-        if (DOM.instDropdown) { DOM.instDropdown.addEventListener('change', async (e) => { const inst = e.target.value; localStorage.setItem('lime_inst_type', inst); try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: inst } }); } catch (err) {} }); }
+        if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', async (e) => { const level = e.target.value; try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } catch (err) {} }); }
+        if (DOM.instDropdown) { DOM.instDropdown.addEventListener('change', async (e) => { const inst = e.target.value; try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: inst } }); } catch (err) {} }); }
         
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
     });
-</script>    
-   
-
-
-
-
-
-<style>
-    .bot-msg {
-        z-index: 2 !important;
-        position: relative; 
-        overflow: hidden !important; 
-    }
-
-    .translate-btn {
-        position: absolute;
-        bottom: 6px;
-        right: 6px;
-        background: rgba(0, 0, 0, 0.15); 
-        border: none;
-        color: inherit;
-        opacity: 0.6;
-        cursor: pointer;
-        padding: 5px;
-        border-radius: 50%;
-        transition: opacity 0.2s, transform 0.2s;
-        display: flex !important; 
-        align-items: center;
-        justify-content: center;
-        outline: none;
-        z-index: 10;
-        backdrop-filter: blur(2px); 
-        
-        touch-action: none; 
-        user-select: none;
-        -webkit-user-select: none;
-        -webkit-touch-callout: none;
-    }
-    
-    .translate-btn:hover, .translate-btn.active {
-        opacity: 1;
-        transform: scale(1.15);
-    }
-
-    /* LA BARRA DI CARICAMENTO / TIMER VISIVO */
-    .translation-backdrop {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: #f5f5f5; 
-        z-index: 0;
-        transform: scaleX(0);
-        transform-origin: right center;
-        pointer-events: none;
-        
-        /* Collasso: rapido, fluido e gestito interamente dal CSS */
-        transition: transform 0.5s linear; 
-    }
-
-    .bot-msg.is-inflated .translation-backdrop {
-        transform: scaleX(1); 
-        transition: transform 0.8s cubic-bezier(0.1, 0.9, 0.2, 1); 
-    }
-
-    div.text-foreign, div.text-italian, .msg-bottom-bar {
-        position: relative;
-        z-index: 1;
-    }
-
-    div.text-italian {
-        display: none; 
-    }
-    
-    .bot-msg.is-translating div.text-italian {
-        display: block; 
-    }
-    
-    .bot-msg.is-translating div.text-foreign {
-        display: none; 
-    }
-    
-    .text-foreign p:last-child, .text-italian p:last-child {
-        margin-bottom: 0;
-    }
-    .text-foreign p:first-child, .text-italian p:first-child {
-        margin-top: 0;
-    }
-</style>
-
-<script>
-(function() {
-    const SVG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-    const MARKER = '%tr%';
-
-    function processTranslations() {
-        const chatBox = document.getElementById('chat-box');
-        if (!chatBox) return;
-
-        const wrappers = chatBox.querySelectorAll('.bot-wrapper.msg-complete:not([data-lang-checked])');
-        if (wrappers.length === 0) return;
-        
-        wrappers.forEach(wrapper => {
-            const botMsg = wrapper.querySelector('.bot-msg');
-            if (!botMsg) return;
-            
-            wrapper.setAttribute('data-lang-checked', 'true'); 
-
-            const bottomBar = botMsg.querySelector('.msg-bottom-bar');
-            if (bottomBar) bottomBar.remove();
-
-            const hiddenSpan = botMsg.querySelector('.streaming-hidden');
-            if (hiddenSpan) {
-                hiddenSpan.outerHTML = hiddenSpan.innerHTML;
-            }
-
-            let htmlContent = botMsg.innerHTML;
-            
-            if (htmlContent.includes(MARKER)) {
-                const parts = htmlContent.split(MARKER);
-                const foreignText = parts[0].trim(); 
-                const italianText = parts.slice(1).join(MARKER).trim(); 
-
-                const foreignDiv = document.createElement('div');
-                foreignDiv.className = 'text-foreign';
-                foreignDiv.innerHTML = foreignText; 
-
-                const italianDiv = document.createElement('div');
-                italianDiv.className = 'text-italian';
-                italianDiv.innerHTML = italianText;
-
-                botMsg.innerHTML = '';
-                botMsg.insertAdjacentHTML('beforeend', `<div class="translation-backdrop"></div>`);
-                botMsg.appendChild(foreignDiv);
-                botMsg.appendChild(italianDiv);
-                
-                if (bottomBar) {
-                    botMsg.appendChild(bottomBar);
-                }
-                
-                botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Tieni premuto per tradurre">${SVG_EYE}</button>`);
-
-            } else {
-                if (bottomBar) botMsg.appendChild(bottomBar);
-            }
-        });
-    }
-
-    const chatBox = document.getElementById('chat-box');
-    if (chatBox) {
-        
-        chatBox.addEventListener('pointerdown', (e) => {
-            const btn = e.target.closest('.translate-btn');
-            if (!btn) return;
-            
-            e.stopPropagation();
-            
-            if (e.pointerId && btn.setPointerCapture) {
-                btn.setPointerCapture(e.pointerId);
-            }
-
-            const botMsg = btn.closest('.bot-msg');
-            if (botMsg) {
-                botMsg.classList.add('is-translating');
-                botMsg.classList.add('is-inflated');
-                btn.classList.add('active');
-                
-                setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
-            }
-        });
-
-        const releasePointer = (e) => {
-            const btn = e.target.closest('.translate-btn');
-            if (!btn) return;
-            
-            const botMsg = btn.closest('.bot-msg');
-            if (botMsg && botMsg.classList.contains('is-inflated')) {
-                botMsg.classList.remove('is-inflated');
-                btn.classList.remove('active');
-                
-                const backdrop = botMsg.querySelector('.translation-backdrop');
-                if (backdrop) {
-                    // Puliamo eventuali listener precedenti per evitare accumuli
-                    if (botMsg.onDeflateEnd) {
-                        backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
-                    }
-                    
-                    // Il JS si iscrive all'evento di fine animazione del CSS
-                    botMsg.onDeflateEnd = (evt) => {
-                        if (evt.propertyName === 'transform' && !botMsg.classList.contains('is-inflated')) {
-                            botMsg.classList.remove('is-translating');
-                            setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
-                            backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
-                        }
-                    };
-                    backdrop.addEventListener('transitionend', botMsg.onDeflateEnd);
-
-                    // Misura di sicurezza: se la barra è troppo piccola (es. micro-tocco dove l'animazione non parte), spegniamo subito
-                    if (backdrop.getBoundingClientRect().width <= 1) {
-                        botMsg.classList.remove('is-translating');
-                    }
-                }
-            }
-            
-            if (e.pointerId && btn.hasPointerCapture && btn.hasPointerCapture(e.pointerId)) {
-                btn.releasePointerCapture(e.pointerId);
-            }
-        };
-
-        chatBox.addEventListener('pointerup', releasePointer);
-        chatBox.addEventListener('pointercancel', releasePointer);
-
-        let debounceTimer;
-        const observer = new MutationObserver((mutations) => {
-            let shouldProcessComplete = false;
-
-            mutations.forEach(m => {
-                if (m.type === 'attributes' && m.attributeName === 'class' && m.target.classList.contains('msg-complete')) {
-                    shouldProcessComplete = true;
-                }
-            });
-
-            const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
-            streamingBots.forEach(botMsg => {
-                if (botMsg.innerHTML.includes(MARKER) && !botMsg.querySelector('.streaming-hidden')) {
-                    const bottomBar = botMsg.querySelector('.msg-bottom-bar');
-                    if (bottomBar) bottomBar.remove();
-
-                    const parts = botMsg.innerHTML.split(MARKER);
-                    
-                    if (parts.length > 1) {
-                        botMsg.innerHTML = parts[0] + '<span class="streaming-hidden" style="display: none;">' + MARKER + parts.slice(1).join(MARKER) + '</span>';
-                    }
-                    
-                    if (bottomBar) botMsg.appendChild(bottomBar);
-                }
-            });
-
-            if (shouldProcessComplete) {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(processTranslations, 50); 
-            }
-        });
-        
-        observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true, characterData: true });
-    }
-
-    setTimeout(processTranslations, 500);
-})();
-</script>
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+</script>        
 </body>
 </html>
-
-
