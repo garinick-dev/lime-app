@@ -1145,7 +1145,35 @@
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 50);
     }
 
-    async function uploadToSupabaseStorage(file, pathPrefix) { const fileExt = file.name.split('.').pop(); const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); if (error) { alert("Errore caricamento immagine."); return null; } const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); return publicUrl; }
+    async function uploadToSupabaseStorage(file, pathPrefix) { 
+    const fileExt = file.name.split('.').pop(); 
+    const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; 
+    
+    // 1. Carica il file fisicamente
+    const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); 
+    
+    if (error) { 
+        alert("Errore caricamento immagine."); 
+        return null; 
+    } 
+
+    // 2. Recupera l'URL pubblico
+    const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); 
+
+    if (publicUrl) {
+        // 3. AGGIORNAMENTO CHIRURGICO: Salva subito nel database per evitare che sparisca al refresh
+        const now = Date.now();
+        localStorage.setItem('lime_bg', publicUrl);
+        localStorage.setItem('lime_settings_ts', now.toString());
+        
+        // Usiamo updateUser direttamente qui per blindare il dato in Cloud
+        await supabaseClient.auth.updateUser({ 
+            data: { bg: publicUrl, lime_settings_ts: now } 
+        });
+    }
+
+    return publicUrl; 
+}
     async function deleteOldSupabaseFile(oldUrl) { if (!oldUrl) return; try { const bucketMarker = '/lime-assets/'; const index = oldUrl.indexOf(bucketMarker); if (index !== -1) { const filePath = oldUrl.substring(index + bucketMarker.length); await supabaseClient.storage.from('lime-assets').remove([filePath]); } } catch (e) {} }
     
     async function handleBgUpload(event) { 
@@ -1442,6 +1470,7 @@
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { 
             userId = session.user.id; 
+            updateProfileUI(session.user);
             clearCacheIfNewUser(userId);
             document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
             if (window.syncAnchoring) window.syncAnchoring();
