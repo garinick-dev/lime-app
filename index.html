@@ -968,7 +968,7 @@
         if (fullAnswer.trim().length === 0) success = false;
 
         if (!success) {
-            fullAnswer = "Scusa, ho avuto un piccolo vuoto di memoria! 😅 Potresti ripetermi la domanda?";
+            fullAnswer = `Dov'eri finito? 😅 <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
             botDiv.innerHTML = fullAnswer; 
             if(bottomBar) botDiv.appendChild(bottomBar); 
@@ -1006,6 +1006,29 @@
         userWrapper.classList.add('msg-complete'); botWrapper.classList.add('msg-complete');
         if (chatVirtualObserver) { chatVirtualObserver.observe(userWrapper); chatVirtualObserver.observe(botWrapper); }
     }
+
+    window.retryLastMessage = function(btn) {
+        // Recupera il testo salvato nel bottone
+        const queryText = decodeURIComponent(btn.getAttribute('data-query'));
+        
+        if (DOM.inputField) {
+            DOM.inputField.value = queryText;
+            
+            // Trova e distrugge la bolla di errore di LIME
+            const botWrapper = btn.closest('.msg-wrapper');
+            if (botWrapper) {
+                // Trova e distrugge anche la bolla utente che aveva generato l'errore
+                const userWrapper = botWrapper.previousElementSibling;
+                if (userWrapper && userWrapper.classList.contains('user-wrapper')) {
+                    userWrapper.remove();
+                }
+                botWrapper.remove();
+            }
+            
+            // Rilancia immediatamente il messaggio
+            sendMessage();
+        }
+    };
 
     function toggleSidebar() { DOM.sidebar.classList.toggle('hidden'); DOM.backdrop.classList.toggle('active'); }
 
