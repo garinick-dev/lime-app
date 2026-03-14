@@ -1298,6 +1298,32 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+
+        // Sincronizzazione in background sicura (non bloccante)
+        async function fetchFreshData() {
+            if (!userId) return;
+            try {
+                // Diamo a Supabase massimo 2 secondi. Se la scheda è congelata, annulla senza bloccare l'app.
+                const userPromise = supabaseClient.auth.getUser();
+                const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ error: 'timeout' }), 2000));
+                
+                const result = await Promise.race([userPromise, timeoutPromise]);
+                
+                // Se ha risposto in tempo e c'è l'utente, aggiorniamo l'interfaccia
+                if (result && result.data && result.data.user) {
+                    updateProfileUI(result.data.user);
+                }
+            } catch (e) {
+                // Errore silente, l'app continua a funzionare fluidamente
+            }
+        }
+        
+        // Scatta quando torni sulla scheda di LIME
+        document.addEventListener('visibilitychange', () => { 
+            if (document.visibilityState === 'visible') {
+                fetchFreshData(); 
+            }
+        });
         
         DOM = {
             chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area'), micBtn: document.getElementById('mic-btn'), attachBtn: document.getElementById('attach-btn'), timerDisplay: document.getElementById('recording-timer'), attachmentLabel: document.getElementById('attachment-label'), fileInput: document.getElementById('file-input'), eduDropdown: document.getElementById('edu-dropdown'), instDropdown: document.getElementById('inst-dropdown'), bgInput: document.getElementById('bg-input')
