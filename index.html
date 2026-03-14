@@ -1149,27 +1149,34 @@
     const fileExt = file.name.split('.').pop(); 
     const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; 
     
-    // 1. Carica il file fisicamente
+    // 1. Caricamento fisico del file nello Storage
     const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); 
     
     if (error) { 
-        alert("Errore caricamento immagine."); 
+        alert("Errore nel caricamento dell'immagine."); 
         return null; 
     } 
 
-    // 2. Recupera l'URL pubblico
+    // 2. Otteniamo l'URL pubblico
     const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); 
 
     if (publicUrl) {
-        // 3. AGGIORNAMENTO CHIRURGICO: Salva subito nel database per evitare che sparisca al refresh
         const now = Date.now();
+        
+        // 3. ANCORAGGIO LOCALE IMMEDIATO (Fondamentale per il mobile)
+        // Salviamo subito sul telefono prima ancora di provare a parlare con il database.
         localStorage.setItem('lime_bg', publicUrl);
         localStorage.setItem('lime_settings_ts', now.toString());
-        
-        // Usiamo updateUser direttamente qui per blindare il dato in Cloud
-        await supabaseClient.auth.updateUser({ 
-            data: { bg: publicUrl, lime_settings_ts: now } 
-        });
+
+        // 4. AGGIORNAMENTO CLOUD (Sincronizzazione cross-platform)
+        // Se il mobile è instabile, questo potrebbe fallire, ma il dato è già al sicuro in locale.
+        try {
+            await supabaseClient.auth.updateUser({ 
+                data: { bg: publicUrl, lime_settings_ts: now } 
+            });
+        } catch (e) {
+            console.warn("Sincronizzazione cloud fallita, il dato verrà allineato al prossimo focus.");
+        }
     }
 
     return publicUrl; 
