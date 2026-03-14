@@ -381,7 +381,7 @@
     function clearCacheIfNewUser(currentUserId) {
         const lastUser = localStorage.getItem('lime_last_user_id');
         if (lastUser && lastUser !== currentUserId) {
-            ['lime_theme', 'lime_color', 'lime_bg', 'lime_edu_level', 'lime_inst_type', 'lime_settings_ts'].forEach(k => localStorage.removeItem(k));
+            ['lime_theme', 'lime_color', 'lime_bg', 'lime_edu_level', 'lime_inst_type'].forEach(k => localStorage.removeItem(k));
         }
         localStorage.setItem('lime_last_user_id', currentUserId);
     }
@@ -471,10 +471,6 @@
     }
 
     function queueProfileUpdate(newData) {
-        const now = Date.now();
-        localStorage.setItem('lime_settings_ts', now.toString()); 
-        newData.lime_settings_ts = now; 
-        
         pendingProfileUpdates = { ...pendingProfileUpdates, ...newData };
         if (profileUpdateTimer) clearTimeout(profileUpdateTimer);
         profileUpdateTimer = setTimeout(async () => {
@@ -514,7 +510,7 @@
             // 1. Pulisce la cache e fa letteralmente a pezzi il token di Supabase
             const keysToRemove = [
                 'lime_theme', 'lime_color', 'lime_bg', 'lime_edu_level', 
-                'lime_inst_type', 'lime_settings_ts', 'lime_last_user_id',
+                'lime_inst_type', 'lime_last_user_id',
                 'sb-jzwldensaglpawnwpjxa-auth-token' // <-- Questa è la chiave del login fantasma
             ];
             keysToRemove.forEach(k => localStorage.removeItem(k));
@@ -1077,36 +1073,19 @@
             const fullName = user.user_metadata?.full_name || user.email.split('@')[0], initial = fullName.charAt(0).toUpperCase(); 
             nameSpans.forEach(span => span.innerText = fullName); 
             
-            const cloudTs = user.user_metadata?.lime_settings_ts || 0;
-            const localTs = parseInt(localStorage.getItem('lime_settings_ts') || '0', 10);
+            // Nuova logica: Supabase comanda (Single Source of Truth)
+            const finalTheme = user.user_metadata?.theme || localStorage.getItem('lime_theme') || 'dark';
+            const finalColor = user.user_metadata?.color || localStorage.getItem('lime_color') || '#c0f22c';
+            const finalBg = user.user_metadata?.bg || localStorage.getItem('lime_bg') || null;
+            const finalLevel = user.user_metadata?.lime_edu_level || localStorage.getItem('lime_edu_level') || '';
+            const finalInst = user.user_metadata?.lime_inst_type || localStorage.getItem('lime_inst_type') || '';
 
-            let finalTheme, finalColor, finalBg, finalLevel, finalInst;
-
-            if (localTs > cloudTs) {
-                finalTheme = localStorage.getItem('lime_theme') || 'dark';
-                finalColor = localStorage.getItem('lime_color') || '#c0f22c';
-                finalBg = localStorage.getItem('lime_bg');
-                finalLevel = localStorage.getItem('lime_edu_level');
-                finalInst = localStorage.getItem('lime_inst_type');
-                
-                queueProfileUpdate({ 
-                    theme: finalTheme, color: finalColor, bg: finalBg, 
-                    lime_edu_level: finalLevel, lime_inst_type: finalInst 
-                });
-            } else {
-                finalTheme = user.user_metadata?.theme || 'dark';
-                finalColor = user.user_metadata?.color || '#c0f22c';
-                finalBg = user.user_metadata?.bg;
-                finalLevel = user.user_metadata?.lime_edu_level;
-                finalInst = user.user_metadata?.lime_inst_type;
-
-                localStorage.setItem('lime_theme', finalTheme);
-                localStorage.setItem('lime_color', finalColor);
-                if (finalBg) localStorage.setItem('lime_bg', finalBg); else localStorage.removeItem('lime_bg');
-                if (finalLevel) localStorage.setItem('lime_edu_level', finalLevel);
-                if (finalInst) localStorage.setItem('lime_inst_type', finalInst);
-                localStorage.setItem('lime_settings_ts', cloudTs.toString());
-            }
+            // Sovrascriviamo ciecamente la cache locale con la verità
+            localStorage.setItem('lime_theme', finalTheme);
+            localStorage.setItem('lime_color', finalColor);
+            if (finalBg) localStorage.setItem('lime_bg', finalBg); else localStorage.removeItem('lime_bg');
+            if (finalLevel) localStorage.setItem('lime_edu_level', finalLevel);
+            if (finalInst) localStorage.setItem('lime_inst_type', finalInst);
 
             if (DOM.eduDropdown && finalLevel) DOM.eduDropdown.value = finalLevel;
             if (DOM.instDropdown && finalInst) DOM.instDropdown.value = finalInst;
