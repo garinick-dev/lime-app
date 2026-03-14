@@ -1015,20 +1015,9 @@
     }
 
     function applyChatBackground(imageUrl) { 
-        // 1. Filtro di sicurezza: trasforma le stringhe non valide in veri valori nulli
-        if (imageUrl === 'null' || imageUrl === 'undefined') imageUrl = null;
-        
         currentCustomBg = imageUrl;
-        
         if (DOM.chatBox) { 
-            if (imageUrl) { 
-                // 2. Aggiunti gli apici ("") attorno a ${imageUrl} per proteggere il CSS da errori di sintassi
-                DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url("${imageUrl}")`; 
-                DOM.chatBox.style.backgroundSize = 'cover'; 
-                DOM.chatBox.style.backgroundPosition = 'center'; 
-                DOM.chatBox.style.backgroundRepeat = 'no-repeat'; 
-                DOM.chatBox.style.backgroundAttachment = 'fixed'; 
-            } 
+            if (imageUrl) { DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(${imageUrl})`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed'; } 
             else updateDefaultBackground(); 
         } 
     }
