@@ -1133,25 +1133,37 @@
             const prevText = btn.innerText;
             btn.innerText = 'Caricamento...';
             
-            // Creazione istantanea e leggera di un URL locale. Funziona perfettamente da mobile!
-            const tempUrl = URL.createObjectURL(file);
-            applyChatBackground(tempUrl);
-            
-            try {
-                const { data: { user } } = await supabaseClient.auth.getUser(); 
-                const oldUrl = user?.user_metadata?.bg; 
-                const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); 
-                if (publicUrl) { 
-                    localStorage.setItem('lime_bg', publicUrl); 
-                    queueProfileUpdate({ bg: publicUrl });
-                    if (oldUrl && oldUrl !== publicUrl) deleteOldSupabaseFile(oldUrl); 
-                } 
-            } catch(e) {
-                console.error(e);
-            } finally {
-                btn.innerText = prevText;
-                event.target.value = ''; 
-            }
+            // Usiamo FileReader: trasforma l'immagine in Base64, infallibile su mobile
+            const reader = new FileReader(); 
+            reader.onload = async function(e) { 
+                // 1. Anteprima istantanea e scattante
+                applyChatBackground(e.target.result); 
+                
+                // 2. Procediamo con il caricamento in background
+                try {
+                    const { data: { user } } = await supabaseClient.auth.getUser(); 
+                    const oldUrl = user?.user_metadata?.bg; 
+                    const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); 
+                    
+                    if (publicUrl) { 
+                        localStorage.setItem('lime_bg', publicUrl); 
+                        queueProfileUpdate({ bg: publicUrl });
+                        
+                        // 3. Sostituiamo il pesante Base64 con l'URL leggero definitivo
+                        applyChatBackground(publicUrl);
+                        
+                        if (oldUrl && oldUrl !== publicUrl) deleteOldSupabaseFile(oldUrl); 
+                    } 
+                } catch(err) {
+                    console.error("Errore salvataggio sfondo:", err);
+                } finally {
+                    btn.innerText = prevText;
+                    // Resettiamo l'input per poter caricare di nuovo la stessa foto se serve
+                    document.getElementById('bg-input').value = ''; 
+                }
+            }; 
+            // Avvia la lettura dell'immagine
+            reader.readAsDataURL(file); 
         } 
     }
 
