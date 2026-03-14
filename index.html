@@ -455,18 +455,8 @@
     };
 
     async function getAuthHeaders() {
-        try {
-            // Diamo a Supabase massimo 1 secondo per rispondere, evitando blocchi infiniti
-            const sessionPromise = supabaseClient.auth.getSession();
-            const timeoutPromise = new Promise(resolve => setTimeout(() => resolve('TIMEOUT'), 1000));
-            const result = await Promise.race([sessionPromise, timeoutPromise]);
-            
-            if (result !== 'TIMEOUT' && result?.data?.session) {
-                return { 'Authorization': `Bearer ${result.data.session.access_token}` };
-            }
-        } catch(e) {}
-
-        // Se Supabase è bloccato (Tab Freezing), peschiamo il token dalla memoria locale
+        // Leggiamo la chiave istantaneamente dal browser. 
+        // Zero chiamate al server, impossibile che si blocchi.
         try {
             const localSession = localStorage.getItem('sb-jzwldensaglpawnwpjxa-auth-token');
             if (localSession) {
@@ -1419,14 +1409,7 @@
         initLimeExtras();
         setupChatVirtualization();
 
-        async function fetchFreshData() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session && session.user) {
-                const { data: { user }, error } = await supabaseClient.auth.getUser();
-                // Rimosso il refreshSession() forzato. Aggiorna solo l'interfaccia grafica.
-                if (!error && user) { updateProfileUI(user); }
-            }
-        }
+        //vecchio fetchUserData
         
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchFreshData(); });
 
