@@ -713,6 +713,9 @@
     async function toggleRecording() { 
         if (isRecording) { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); return; } 
         try { 
+            // Nasconde istantaneamente il saluto iniziale
+            if (DOM.greetingBox) DOM.greetingBox.classList.add('hidden-greeting');
+
             if (!globalStream) globalStream = await navigator.mediaDevices.getUserMedia({ audio: true }); globalStream.getAudioTracks().forEach(t => t.enabled = true); 
             mediaRecorder = new MediaRecorder(globalStream); audioChunks = []; 
             mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); }; 
@@ -1347,6 +1350,14 @@
 
             textarea.addEventListener('input', () => {
                 autoResize();
+                
+                // Nasconde il microfono se c'è del testo, lo fa riapparire se è vuoto
+                if (textarea.value.trim().length > 0) {
+                    if (DOM.micBtn) DOM.micBtn.classList.add('hidden');
+                } else {
+                    if (DOM.micBtn && !isRecording) DOM.micBtn.classList.remove('hidden');
+                }
+
                 clearTimeout(inputDebounce);
                 inputDebounce = setTimeout(() => { 
                     if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
