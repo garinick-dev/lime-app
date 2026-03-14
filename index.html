@@ -1526,25 +1526,23 @@
 
 
 <style>
-    /* Rettangolo grigio semitrasparente con blur richiesto */
     #tutorial-overlay {
         position: fixed;
         inset: 0;
         background: rgba(15, 15, 15, 0.65);
         backdrop-filter: blur(10px);
-        z-index: 1000; /* Livello base del blur richiesto */
+        z-index: 1000; 
         display: none;
-        pointer-events: all; /* Impedisce interazioni con la chat durante il tutorial */
+        pointer-events: all;
     }
 
-    /* Pulsante Avanti verde */
     #tutorial-next-btn {
         position: fixed;
         bottom: 120px;
         left: 50%;
         transform: translateX(-50%);
-        z-index: 1005; /* Sempre sopra l'evidenziazione */
-        background: #28a745; /* Verde richiesto */
+        z-index: 1005; 
+        background: #28a745; 
         color: white;
         border: none;
         padding: 12px 35px;
@@ -1565,42 +1563,42 @@
 
 <script>
     let currentStep = 0;
-    // Lista degli elementi da evidenziare con i loro z-index originali presi dal codice
+    // Step aggiornati: ora puntiamo direttamente all'input-wrapper
     const tutorialSteps = [
-        { selector: '.menu-toggle', originalZ: 'auto', needsPos: true },
-        { selector: '#lime-greeting-box', originalZ: '1000', needsPos: false },
-        { selector: '.input-wrapper', originalZ: '50', needsPos: false }
+        { selector: 'header', originalZ: '50' }, // Solleviamo l'intero header per mostrare il menu
+        { selector: '#lime-greeting-box', originalZ: '1000' },
+        { selector: '.input-wrapper', originalZ: 'auto' } // Puntiamo chirurgicamente al wrapper
     ];
 
-    /**
-     * Gestisce l'avanzamento del tutorial e la variazione degli z-index
-     */
     function nextTutorialStep() {
-        // 1. Ripristiniamo l'elemento precedente
+        // 1. Ripristino elemento precedente
         if (currentStep > 0) {
             const prev = tutorialSteps[currentStep - 1];
             const prevEl = document.querySelector(prev.selector);
             if (prevEl) {
                 prevEl.style.zIndex = prev.originalZ;
-                if (prev.needsPos) prevEl.style.position = '';
+                // Se è il wrapper, ripristiniamo anche l'area genitore
+                if (prev.selector === '.input-wrapper') document.querySelector('.input-area').style.zIndex = '50';
             }
         }
 
-        // 2. Controllo fine tutorial
+        // 2. Fine tutorial
         if (currentStep >= tutorialSteps.length) {
             closeTutorialInteractive();
             return;
         }
 
-        // 3. Evidenziamo il nuovo elemento portandolo a 1001
+        // 3. Evidenziazione nuovo elemento
         const current = tutorialSteps[currentStep];
         const el = document.querySelector(current.selector);
         if (el) {
-            if (current.needsPos) el.style.position = 'relative'; 
+            // Per l'input wrapper dobbiamo sollevare anche il suo contenitore .input-area
+            if (current.selector === '.input-wrapper') {
+                const parentArea = document.querySelector('.input-area');
+                if (parentArea) parentArea.style.zIndex = '1001';
+            }
             el.style.zIndex = "1001";
-            
-            // Se è l'area di input, facciamo scorrere la vista per sicurezza
-            if (current.selector === '.input-area') window.syncAnchoring();
+            if (current.selector === '.input-wrapper') window.syncAnchoring();
         }
 
         currentStep++;
@@ -1615,34 +1613,39 @@
         }
     }
 
-    function startInteractiveTutorial() {
+    /**
+     * FIX DEBUG: Resetta la flag su Supabase per permettere il re-test [cite: 2026-02-26]
+     */
+    async function startInteractiveTutorial() {
         currentStep = 0;
+        // Resettiamo la flag nel database per debug
+        if (typeof queueProfileUpdate === 'function') {
+            queueProfileUpdate({ tutorial_done: false });
+        }
+        
         document.getElementById('tutorial-overlay').style.display = 'block';
         document.getElementById('tutorial-next-btn').style.display = 'block';
         nextTutorialStep();
     }
 
-    // Integrazione con i sistemi esistenti
     (function patchInteractiveLogic() {
-        // Nascondiamo il vecchio quadrato rosso
         const redSquare = document.getElementById('tutorial-red-square');
         if (redSquare) redSquare.style.display = 'none';
 
-        // Modifica pulsante di debug per i tuoi test
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker) {
             const btn = document.createElement('button');
             btn.className = 'debug-tutorial-btn';
-            btn.innerText = 'DEBUG: Start Tutorial';
+            btn.style.marginTop = "10px";
+            btn.innerText = 'DEBUG: Reset & Start Tut';
             btn.onclick = startInteractiveTutorial;
             colorPicker.parentNode.appendChild(btn);
         }
 
-        // Trigger automatico per nuovi utenti basato sul profilo
         const originalUpdateProfileUI = window.updateProfileUI;
         window.updateProfileUI = function(user) {
             if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-            if (user && user.user_metadata && user.user_metadata.tutorial_done !== true) {
+            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) {
                 startInteractiveTutorial();
             }
         };
