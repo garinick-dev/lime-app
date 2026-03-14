@@ -1381,6 +1381,70 @@
         
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
     });
-</script>    
+</script>
+
+
+
+
+
+
+
+
+<div id="tutorial-red-square" style="display: none; position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; background-color: #ff4444; z-index: 99999; cursor: pointer; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s, opacity 0.2s;"></div>
+
+<script>
+(function() {
+    const redSquare = document.getElementById('tutorial-red-square');
+    
+    // Funzione per verificare lo stato dell'utente in cloud
+    async function checkTutorialFlag() {
+        if (!window.supabaseClient) return;
+        
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+            const isDone = user.user_metadata?.tutorial_done === true;
+            
+            // Mostra il quadrato solo se la flag è falsa o inesistente (utente nuovo)
+            if (!isDone) {
+                redSquare.style.display = 'block';
+            } else {
+                redSquare.style.display = 'none';
+            }
+        }
+    }
+
+    // Interazione scattante al clic
+    redSquare.addEventListener('click', () => {
+        // Sparizione fulminea con una leggera transizione
+        redSquare.style.opacity = '0';
+        redSquare.style.transform = 'scale(0.8)';
+        setTimeout(() => { redSquare.style.display = 'none'; }, 200);
+        
+        // Salvataggio silente sfruttando il "carrello" anti-rate-limiting
+        if (typeof queueProfileUpdate === 'function') {
+            queueProfileUpdate({ tutorial_done: true });
+        } else if (window.supabaseClient) {
+            supabaseClient.auth.updateUser({ data: { tutorial_done: true } }).catch(()=>{});
+        }
+    });
+
+    // Aggancio agli eventi di sessione
+    if (window.supabaseClient) {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (session) checkTutorialFlag();
+        });
+        
+        // Controllo di backup pochi millisecondi dopo l'avvio
+        setTimeout(checkTutorialFlag, 800);
+    }
+})();
+</script>
+
+
+    
+
+
+
+    
 </body>
 </html>
