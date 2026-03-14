@@ -1555,7 +1555,14 @@
         box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         transition: transform 0.2s;
     }
-    #tutorial-next-btn:active { transform: translateX(-50%) scale(0.95); }
+
+    /* Stile temporaneo per la mascotte durante il distacco */
+    .mascot-detached {
+        position: fixed !important;
+        bottom: 100px !important;
+        left: 20px !important;
+        z-index: 9999 !important;
+    }
 </style>
 
 <div id="tutorial-overlay"></div>
@@ -1563,11 +1570,12 @@
 
 <script>
     let currentStep = 0;
-    // Step aggiornati: ora puntiamo direttamente all'input-wrapper
+    let originalMascotParent = null;
+
     const tutorialSteps = [
-        { selector: 'header', originalZ: '50' }, // Solleviamo l'intero header per mostrare il menu
+        { selector: 'header', originalZ: '50' },
         { selector: '#lime-greeting-box', originalZ: '1000' },
-        { selector: '.input-wrapper', originalZ: 'auto' } // Puntiamo chirurgicamente al wrapper
+        { selector: '.input-wrapper', originalZ: 'auto' }
     ];
 
     function nextTutorialStep() {
@@ -1577,12 +1585,13 @@
             const prevEl = document.querySelector(prev.selector);
             if (prevEl) {
                 prevEl.style.zIndex = prev.originalZ;
-                // Se è il wrapper, ripristiniamo anche l'area genitore
-                if (prev.selector === '.input-wrapper') document.querySelector('.input-area').style.zIndex = '50';
+                if (prev.selector === '.input-wrapper') {
+                    document.querySelector('.input-area').style.zIndex = '50';
+                }
             }
         }
 
-        // 2. Fine tutorial
+        // 2. Fine tutorial: pulizia totale e riaggancio mascotte
         if (currentStep >= tutorialSteps.length) {
             closeTutorialInteractive();
             return;
@@ -1592,33 +1601,57 @@
         const current = tutorialSteps[currentStep];
         const el = document.querySelector(current.selector);
         if (el) {
-            // Per l'input wrapper dobbiamo sollevare anche il suo contenitore .input-area
             if (current.selector === '.input-wrapper') {
                 const parentArea = document.querySelector('.input-area');
                 if (parentArea) parentArea.style.zIndex = '1001';
             }
             el.style.zIndex = "1001";
-            if (current.selector === '.input-wrapper') window.syncAnchoring();
         }
 
         currentStep++;
     }
 
+    /**
+     * Termina il tutorial e PULISCE tutto, riportando la mascotte a casa [cite: 2026-02-26]
+     */
     function closeTutorialInteractive() {
-        document.getElementById('tutorial-overlay').style.display = 'none';
-        document.getElementById('tutorial-next-btn').style.display = 'none';
+        const overlay = document.getElementById('tutorial-overlay');
+        const nextBtn = document.getElementById('tutorial-next-btn');
+        const mascot = document.getElementById('lime-app-mascot');
+
+        overlay.style.display = 'none';
+        nextBtn.style.display = 'none';
         currentStep = 0;
+
+        // Riaggancio della mascotte al suo contenitore originale
+        if (mascot && originalMascotParent) {
+            mascot.classList.remove('mascot-detached');
+            originalMascotParent.appendChild(mascot);
+        }
+
         if (typeof queueProfileUpdate === 'function') {
             queueProfileUpdate({ tutorial_done: true });
         }
     }
 
     /**
-     * FIX DEBUG: Resetta la flag su Supabase per permettere il re-test [cite: 2026-02-26]
+     * Avvia il tutorial e "sgancia" la mascotte per renderla visibile [cite: 2026-03-02]
      */
     async function startInteractiveTutorial() {
+        const mascot = document.getElementById('lime-app-mascot');
+        
+        // Salviamo il genitore originale (input-wrapper) prima di spostarla
+        if (mascot && !originalMascotParent) {
+            originalMascotParent = mascot.parentNode;
+        }
+
+        // Sganciamo la mascotte e portiamola nel body per bypassare i contesti z-index
+        if (mascot) {
+            mascot.classList.add('mascot-detached');
+            document.body.appendChild(mascot);
+        }
+
         currentStep = 0;
-        // Resettiamo la flag nel database per debug
         if (typeof queueProfileUpdate === 'function') {
             queueProfileUpdate({ tutorial_done: false });
         }
@@ -1629,17 +1662,23 @@
     }
 
     (function patchInteractiveLogic() {
+        // Disabilitiamo il vecchio quadrato rosso
         const redSquare = document.getElementById('tutorial-red-square');
         if (redSquare) redSquare.style.display = 'none';
 
+        // Fix pulsante debug
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker) {
-            const btn = document.createElement('button');
-            btn.className = 'debug-tutorial-btn';
-            btn.style.marginTop = "10px";
+            let btn = document.getElementById('debug-tut-btn');
+            if (!btn) {
+                btn = document.createElement('button');
+                btn.id = 'debug-tut-btn';
+                btn.className = 'debug-tutorial-btn';
+                btn.style.marginTop = "10px";
+                colorPicker.parentNode.appendChild(btn);
+            }
             btn.innerText = 'DEBUG: Reset & Start Tut';
             btn.onclick = startInteractiveTutorial;
-            colorPicker.parentNode.appendChild(btn);
         }
 
         const originalUpdateProfileUI = window.updateProfileUI;
@@ -1651,7 +1690,6 @@
         };
     })();
 </script>
-
 
 
     
