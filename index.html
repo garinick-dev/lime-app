@@ -1525,164 +1525,6 @@
 
 
 
-<style>
-    /* 1. Overlay e Pulsante Avanti */
-    #tutorial-overlay {
-        position: fixed; inset: 0;
-        background: rgba(15, 15, 15, 0.65);
-        backdrop-filter: blur(10px);
-        z-index: 1000; display: none; pointer-events: all;
-    }
-
-    #tutorial-next-btn {
-        position: fixed; bottom: 80px; left: 50%;
-        transform: translateX(-50%); z-index: 1200;
-        background: #28a745; color: white; border: none;
-        padding: 12px 40px; border-radius: 30px;
-        font-weight: 800; text-transform: uppercase;
-        cursor: pointer; display: none;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    }
-
-    /* 2. Mascotte Tutorial: Occhi Azzurri e Posizione Ancorata [cite: 2026-03-02] */
-    .mascot-tutorial-mode {
-        position: fixed !important;
-        /* Ancoraggio alla solita posizione (calcolato su layout standard) */
-        bottom: 140px !important; 
-        left: 10px !important;
-        z-index: 1100 !important; /* Sopra il blur (1000) e gli highlight (1001) */
-        pointer-events: none;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        transform: scale(0.9) !important; /* Leggermente più piccola per coerenza mobile */
-    }
-
-    /* Colore occhi azzurro solo per il tutorial */
-    .mascot-tutorial-mode .lime-eye {
-        fill: #00d4ff !important;
-        transition: fill 0.4s ease;
-    }
-
-    /* Stile pulsante debug */
-    .debug-tutorial-btn {
-        width: 100%; margin-top: 15px; padding: 8px;
-        background: var(--input-bg); border: 1px dashed var(--border-color);
-        color: var(--text-muted); border-radius: 8px; font-size: 0.75rem;
-        font-weight: bold; text-transform: uppercase; cursor: pointer;
-    }
-</style>
-
-<div id="tutorial-overlay"></div>
-<button id="tutorial-next-btn" onclick="nextTutorialStep()">Avanti</button>
-
-<script>
-    let currentStep = 0;
-    let originalMascotParent = null;
-
-    // Elementi da illuminare in sequenza
-    const tutorialSteps = [
-        { selector: 'header', originalZ: '50' },
-        { selector: '#lime-greeting-box', originalZ: '1000' },
-        { selector: '.input-wrapper', originalZ: 'auto' }
-    ];
-
-    function nextTutorialStep() {
-        // Ripristino elemento precedente
-        if (currentStep > 0) {
-            const prev = tutorialSteps[currentStep - 1];
-            const prevEl = document.querySelector(prev.selector);
-            if (prevEl) {
-                prevEl.style.zIndex = prev.originalZ;
-                // Se era il wrapper, riportiamo giù anche l'area contenitore
-                if (prev.selector === '.input-wrapper') {
-                    const area = document.querySelector('.input-area');
-                    if (area) area.style.zIndex = '50';
-                }
-            }
-        }
-
-        // Fine Tutorial: Pulizia e Reset [cite: 2026-02-26]
-        if (currentStep >= tutorialSteps.length) {
-            closeTutorialInteractive();
-            return;
-        }
-
-        // Evidenziazione nuovo elemento (z-index 1001)
-        const current = tutorialSteps[currentStep];
-        const el = document.querySelector(current.selector);
-        if (el) {
-            // Per l'input wrapper dobbiamo sollevare anche il suo parent .input-area
-            if (current.selector === '.input-wrapper') {
-                const area = document.querySelector('.input-area');
-                if (area) area.style.zIndex = '1001';
-            }
-            el.style.zIndex = "1001";
-        }
-        currentStep++;
-    }
-
-    function closeTutorialInteractive() {
-        document.getElementById('tutorial-overlay').style.display = 'none';
-        document.getElementById('tutorial-next-btn').style.display = 'none';
-        
-        // RIPRISTINO MASCOTTE: Torna a casa con occhi neri [cite: 2026-03-02]
-        const mascot = document.getElementById('lime-app-mascot');
-        if (mascot && originalMascotParent) {
-            mascot.classList.remove('mascot-tutorial-mode');
-            mascot.style.left = ''; mascot.style.bottom = ''; // Pulizia stili inline
-            originalMascotParent.appendChild(mascot);
-        }
-
-        currentStep = 0;
-        if (typeof queueProfileUpdate === 'function') {
-            queueProfileUpdate({ tutorial_done: true });
-        }
-    }
-
-    async function startInteractiveTutorial() {
-        const mascot = document.getElementById('lime-app-mascot');
-        
-        // SGANCIO: Spostiamo LIME nel body per renderlo indipendente dai parent
-        if (mascot) {
-            originalMascotParent = mascot.parentNode;
-            mascot.classList.add('mascot-tutorial-mode');
-            document.body.appendChild(mascot);
-        }
-
-        currentStep = 0;
-        if (typeof queueProfileUpdate === 'function') {
-            queueProfileUpdate({ tutorial_done: false });
-        }
-
-        document.getElementById('tutorial-overlay').style.display = 'block';
-        document.getElementById('tutorial-next-btn').style.display = 'block';
-        nextTutorialStep();
-    }
-
-    (function patchTutorialLogic() {
-        // Nascondiamo il vecchio quadrato rosso
-        const redSquare = document.getElementById('tutorial-red-square');
-        if (redSquare) redSquare.style.display = 'none';
-
-        // Pulsante debug sotto il selettore colore
-        const colorPicker = document.getElementById('color-picker');
-        if (colorPicker) {
-            const btn = document.createElement('button');
-            btn.className = 'debug-tutorial-btn';
-            btn.innerText = 'DEBUG: Reset & Start Tut';
-            btn.onclick = startInteractiveTutorial;
-            colorPicker.parentNode.appendChild(btn);
-        }
-
-        // Gestione automatica al login o caricamento profilo
-        const originalUpdateProfileUI = window.updateProfileUI;
-        window.updateProfileUI = function(user) {
-            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) {
-                startInteractiveTutorial();
-            }
-        };
-    })();
-</script>
 
 
 
@@ -1830,6 +1672,188 @@
     
 
 
+
+
+
+
+
+
+<style>
+    /* 1. Il Blocker: un livello invisibile che impedisce i click durante il tutorial */
+    #tutorial-blocker {
+        position: fixed; inset: 0; z-index: 9000;
+        background: transparent; display: none; cursor: default;
+    }
+
+    /* 2. Lo Spotlight: la "finestra" trasparente circondata da un'ombra immensa (il buio) */
+    #tutorial-spotlight {
+        position: fixed; z-index: 9001;
+        border-radius: 16px;
+        /* Un'ombra spropositata crea l'effetto overlay tutto intorno all'elemento */
+        box-shadow: 0 0 0 9999px rgba(15, 15, 15, 0.75); 
+        pointer-events: none; display: none;
+        /* Animazione iper-fluida quando il buco si sposta o cambia dimensione */
+        transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    /* 3. Pulsante Avanti */
+    #tutorial-next-btn {
+        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+        z-index: 9005; background: #28a745; color: white; border: none;
+        padding: 12px 40px; border-radius: 30px; font-weight: 800;
+        text-transform: uppercase; cursor: pointer; display: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: transform 0.2s;
+    }
+    #tutorial-next-btn:active { transform: translateX(-50%) scale(0.95); }
+
+    /* 4. Occhi azzurri della mascotte attivati senza toccare il corpo SVG */
+    body.tutorial-active #lime-app-mascot .lime-eye {
+        fill: #00d4ff !important;
+        transition: fill 0.3s ease;
+    }
+
+    /* Pulsante debug */
+    .debug-tutorial-btn {
+        width: 100%; margin-top: 15px; padding: 8px;
+        background: var(--input-bg); border: 1px dashed var(--border-color);
+        color: var(--text-muted); border-radius: 8px; font-size: 0.75rem;
+        font-weight: bold; text-transform: uppercase; cursor: pointer;
+    }
+</style>
+
+<div id="tutorial-blocker"></div>
+<div id="tutorial-spotlight"></div>
+<button id="tutorial-next-btn" onclick="nextTutorialStep()">Avanti</button>
+
+<script>
+    (function initTutorialSpotlight() {
+        let currentStep = 0;
+        
+        // Definiamo i raggruppamenti logici e il padding extra per il buco visivo
+        const tutorialSteps = [
+            { selectors: ['header'], padding: 8 },
+            { selectors: ['#lime-greeting-box'], padding: 16 },
+            // Qui calcoliamo un unico "buco" che inglobi sia l'input che la mascotte
+            { selectors: ['.input-wrapper', '#lime-app-mascot'], padding: 12 } 
+        ];
+
+        /**
+         * Calcola il rettangolo esatto che racchiude tutti i selettori di uno step
+         */
+        function getSpotlightRect(stepIndex) {
+            const step = tutorialSteps[stepIndex];
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            let found = false;
+
+            step.selectors.forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el) {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        minX = Math.min(minX, rect.left);
+                        minY = Math.min(minY, rect.top);
+                        maxX = Math.max(maxX, rect.right);
+                        maxY = Math.max(maxY, rect.bottom);
+                        found = true;
+                    }
+                }
+            });
+
+            if (!found) return null;
+            
+            const p = step.padding;
+            return {
+                left: minX - p,
+                top: minY - p,
+                width: (maxX - minX) + (p * 2),
+                height: (maxY - minY) + (p * 2)
+            };
+        }
+
+        function updateSpotlight() {
+            const rect = getSpotlightRect(currentStep);
+            const spotlight = document.getElementById('tutorial-spotlight');
+            if (rect && spotlight) {
+                spotlight.style.left = rect.left + 'px';
+                spotlight.style.top = rect.top + 'px';
+                spotlight.style.width = rect.width + 'px';
+                spotlight.style.height = rect.height + 'px';
+            }
+        }
+
+        window.nextTutorialStep = function() {
+            currentStep++;
+            if (currentStep >= tutorialSteps.length) {
+                closeTutorialInteractive();
+                return;
+            }
+            // Mantiene l'interfaccia allineata durante il movimento
+            if (tutorialSteps[currentStep].selectors.includes('.input-wrapper')) {
+                if (typeof window.syncAnchoring === 'function') window.syncAnchoring();
+            }
+            updateSpotlight();
+        };
+
+        window.closeTutorialInteractive = function() {
+            document.body.classList.remove('tutorial-active');
+            document.getElementById('tutorial-blocker').style.display = 'none';
+            document.getElementById('tutorial-spotlight').style.display = 'none';
+            document.getElementById('tutorial-next-btn').style.display = 'none';
+            window.removeEventListener('resize', updateSpotlight);
+            
+            currentStep = 0;
+            if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: true });
+        };
+
+        window.startInteractiveTutorial = function() {
+            currentStep = 0;
+            if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: false });
+            
+            // Attiva gli occhi azzurri
+            document.body.classList.add('tutorial-active');
+            
+            // Mostra UI
+            document.getElementById('tutorial-blocker').style.display = 'block';
+            document.getElementById('tutorial-spotlight').style.display = 'block';
+            document.getElementById('tutorial-next-btn').style.display = 'block';
+            
+            // Reagisce al cambio di rotazione dello schermo (es. tablet/smartphone)
+            window.addEventListener('resize', updateSpotlight);
+            
+            // Posiziona il primo buco senza animazione iniziale per evitare scatti dal punto (0,0)
+            const spotlight = document.getElementById('tutorial-spotlight');
+            spotlight.style.transition = 'none'; 
+            updateSpotlight();
+            // Riattiva l'animazione per i passi successivi
+            setTimeout(() => spotlight.style.transition = '', 50); 
+        };
+
+        // Nascondiamo i rimasugli del vecchio tutorial e iniettiamo il tasto di debug
+        const redSquare = document.getElementById('tutorial-red-square');
+        if (redSquare) redSquare.style.display = 'none';
+
+        const colorPicker = document.getElementById('color-picker');
+        if (colorPicker && !document.getElementById('debug-tut-btn')) {
+            const btn = document.createElement('button');
+            btn.id = 'debug-tut-btn';
+            btn.className = 'debug-tutorial-btn';
+            btn.innerText = 'DEBUG: Start Tutorial Spotlight';
+            btn.onclick = window.startInteractiveTutorial;
+            colorPicker.parentNode.appendChild(btn);
+        }
+
+        // Avvio automatico
+        const originalUpdateProfileUI = window.updateProfileUI;
+        window.updateProfileUI = function(user) {
+            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
+            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) {
+                window.startInteractiveTutorial();
+            }
+        };
+    })();
+</script>
+
+    
 
 
 
