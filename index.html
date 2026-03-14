@@ -1699,17 +1699,15 @@
         font-weight: 800 !important;
     }
 
-    /* "Spegne" visivamente l'input wrapper e blocca i click senza nasconderlo */
+    /* Blocca i click sull'input wrapper senza alterarne minimamente l'aspetto visivo */
     body.starter-chat-active .input-wrapper {
-        opacity: 0.6;
         pointer-events: none;
         user-select: none;
-        filter: grayscale(0.5); /* Leggero tocco per far capire che è inattivo */
     }
 </style>
 
 <script>
-    (function initPatchEsempiReadOnly() {
+    (function initPatchEsempiReadOnlyMinimal() {
         const fakeFileHtml = `
             <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 12px; width: fit-content; margin: 12px 0;">
                 <span style="font-size: 1.8rem;">📄</span>
@@ -1783,11 +1781,11 @@
                 // ATTIVAZIONE SOLA LETTURA SULLA PROMPT BAR
                 document.body.classList.add('starter-chat-active');
                 if (chatInput) {
-                    // Salviamo il placeholder originale se non l'abbiamo già fatto
                     if (!chatInput.hasAttribute('data-orig-placeholder')) {
                         chatInput.setAttribute('data-orig-placeholder', chatInput.getAttribute('placeholder') || 'Scrivi a LIME...');
                     }
-                    chatInput.setAttribute('placeholder', "Questa è una chat d'esempio di sola lettura");
+                    // Testo minimale richiesto
+                    chatInput.setAttribute('placeholder', "chat d'esempio");
                     chatInput.disabled = true;
                 }
                 return;
@@ -1819,6 +1817,7 @@
             }
         });
 
+        // Pulsante di debug per resettare tutto
         const originalStartTutorial = window.startInteractiveTutorial;
         if (originalStartTutorial) {
             window.startInteractiveTutorial = function() {
