@@ -450,6 +450,10 @@
     }
 
     function queueProfileUpdate(newData) {
+        const now = Date.now();
+        localStorage.setItem('lime_settings_ts', now); // Salviamo il tempo in locale
+        newData.lime_settings_ts = now; // Lo prepariamo per il cloud
+        
         pendingProfileUpdates = { ...pendingProfileUpdates, ...newData };
         if (profileUpdateTimer) clearTimeout(profileUpdateTimer);
         profileUpdateTimer = setTimeout(async () => {
@@ -1028,24 +1032,51 @@
             const fullName = user.user_metadata?.full_name || user.email.split('@')[0], initial = fullName.charAt(0).toUpperCase(); 
             nameSpans.forEach(span => span.innerText = fullName); 
             
-            const cloudTheme = user.user_metadata?.theme || 'dark'; 
-            const cloudColor = user.user_metadata?.color || '#c0f22c'; 
-            const cloudBg = user.user_metadata?.bg; 
-            const cloudLevel = user.user_metadata?.lime_edu_level; 
-            const cloudInst = user.user_metadata?.lime_inst_type;
+            // Confronto dei timestamp: chi è più aggiornato?
+            const cloudTs = user.user_metadata?.lime_settings_ts || 0;
+            const localTs = parseInt(localStorage.getItem('lime_settings_ts') || '0');
 
-            localStorage.setItem('lime_theme', cloudTheme);
-            localStorage.setItem('lime_color', cloudColor);
-            if (cloudBg) localStorage.setItem('lime_bg', cloudBg); else localStorage.removeItem('lime_bg');
-            if (cloudLevel) localStorage.setItem('lime_edu_level', cloudLevel);
-            if (cloudInst) localStorage.setItem('lime_inst_type', cloudInst);
+            let finalTheme, finalColor, finalBg, finalLevel, finalInst;
 
-            if (DOM.eduDropdown && cloudLevel) DOM.eduDropdown.value = cloudLevel;
-            if (DOM.instDropdown && cloudInst) DOM.instDropdown.value = cloudInst;
+            if (localTs > cloudTs) {
+                // Il browser è più recente (il cloud aveva bloccato l'aggiornamento). Vince il locale.
+                finalTheme = localStorage.getItem('lime_theme') || 'dark';
+                finalColor = localStorage.getItem('lime_color') || '#c0f22c';
+                finalBg = localStorage.getItem('lime_bg');
+                finalLevel = localStorage.getItem('lime_edu_level');
+                finalInst = localStorage.getItem('lime_inst_type');
+                
+                // Riprova a spingere silenziosamente i dati esatti verso il cloud
+                queueProfileUpdate({ 
+                    theme: finalTheme, color: finalColor, bg: finalBg, 
+                    lime_edu_level: finalLevel, lime_inst_type: finalInst 
+                });
+            } else {
+                // Il cloud è più recente o pari (es. hai usato il cellulare e ora sei sul PC). Vince il cloud.
+                finalTheme = user.user_metadata?.theme || 'dark';
+                finalColor = user.user_metadata?.color || '#c0f22c';
+                finalBg = user.user_metadata?.bg;
+                finalLevel = user.user_metadata?.lime_edu_level;
+                finalInst = user.user_metadata?.lime_inst_type;
+
+                // Allineiamo il locale al cloud
+                localStorage.setItem('lime_theme', finalTheme);
+                localStorage.setItem('lime_color', finalColor);
+                if (finalBg) localStorage.setItem('lime_bg', finalBg); else localStorage.removeItem('lime_bg');
+                if (finalLevel) localStorage.setItem('lime_edu_level', finalLevel);
+                if (finalInst) localStorage.setItem('lime_inst_type', finalInst);
+                localStorage.setItem('lime_settings_ts', cloudTs);
+            }
+
+            if (DOM.eduDropdown && finalLevel) DOM.eduDropdown.value = finalLevel;
+            if (DOM.instDropdown && finalInst) DOM.instDropdown.value = finalInst;
             
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = initial; }); 
-            applyTheme(cloudTheme); document.documentElement.style.setProperty('--accent', cloudColor); document.documentElement.style.setProperty('--lime-accent', cloudColor); updateColorCirclesUI(cloudColor); 
-            applyChatBackground(cloudBg); 
+            applyTheme(finalTheme); 
+            document.documentElement.style.setProperty('--accent', finalColor); 
+            document.documentElement.style.setProperty('--lime-accent', finalColor); 
+            updateColorCirclesUI(finalColor); 
+            applyChatBackground(finalBg); 
         } else { 
             nameSpans.forEach(span => span.innerText = ""); 
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
