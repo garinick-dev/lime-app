@@ -1518,6 +1518,130 @@
         
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
     });
-</script>    
+</script>  
+
+
+
+
+
+
+
+<style>
+    #tutorial-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 15, 15, 0.75); /* Grigio fumo semitrasparente */
+        backdrop-filter: blur(8px); /* Effetto sfocato moderno */
+        z-index: 9000; /* Sopra la chat, ma sotto Mascotte (9999) e Sidebar (20000) */
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: all;
+    }
+
+    #tutorial-overlay.fade-out {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    .tutorial-content {
+        text-align: center;
+        padding: 40px;
+        max-width: 450px;
+        font-family: inherit;
+    }
+
+    .tutorial-title {
+        color: var(--accent);
+        font-size: 2.2rem;
+        font-weight: 900;
+        margin-bottom: 10px;
+        letter-spacing: -1px;
+    }
+
+    .tutorial-text {
+        color: white;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        opacity: 0.9;
+        margin-bottom: 30px;
+    }
+
+    .tutorial-hint {
+        color: var(--accent);
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.6;
+    }
+</style>
+
+<div id="tutorial-overlay" onclick="closeTutorialLIME()">
+    <div class="tutorial-content">
+        <div class="tutorial-title">Ciao!</div>
+        <p class="tutorial-text">
+            Io sono <strong>LIME</strong>.<br>
+            Il tuo nuovo spazio per studiare, <br>
+            velocemente e senza distrazioni.
+        </p>
+        <div class="tutorial-hint">Tocca ovunque per iniziare</div>
+    </div>
+</div>
+
+<script>
+    /**
+     * Chiude il tutorial e salva lo stato in modo permanente e fluido [cite: 2026-02-28]
+     */
+    function closeTutorialLIME() {
+        const overlay = document.getElementById('tutorial-overlay');
+        if (overlay) {
+            overlay.classList.add('fade-out');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                // Comunichiamo al database che il tutorial è completato per coerenza cross-platform [cite: 2026-02-26]
+                if (typeof queueProfileUpdate === 'function') {
+                    queueProfileUpdate({ tutorial_done: true });
+                }
+            }, 500);
+        }
+    }
+
+    /**
+     * Patch di integrazione: disattiva il quadrato rosso e attiva l'overlay
+     * Mantiene il codice scattante e senza fronzoli [cite: 2026-02-28]
+     */
+    (function patchTutorialLogic() {
+        // Disabilitiamo il vecchio quadrato rosso se presente
+        const redSquare = document.getElementById('tutorial-red-square');
+        if (redSquare) redSquare.style.display = 'none';
+
+        // Estendiamo la funzione di aggiornamento UI esistente per gestire l'overlay
+        const originalUpdateProfileUI = window.updateProfileUI;
+        window.updateProfileUI = function(user) {
+            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
+            
+            if (user && user.user_metadata) {
+                const overlay = document.getElementById('tutorial-overlay');
+                const isDone = user.user_metadata.tutorial_done === true;
+                
+                if (overlay) {
+                    // Mostriamo l'overlay solo se il tutorial non è mai stato fatto
+                    overlay.style.display = isDone ? 'none' : 'flex';
+                }
+            }
+        };
+    })();
+</script>
+
+
+
+    
+
+    
 </body>
 </html>
