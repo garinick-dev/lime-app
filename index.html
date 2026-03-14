@@ -1029,10 +1029,11 @@
     }
     
     async function removeCustomBg() {
-        currentCustomBg = null; applyChatBackground(null);
+        currentCustomBg = null; 
+        applyChatBackground(null);
         localStorage.removeItem('lime_bg'); 
         if (userId) { 
-            queueProfileUpdate({ bg: null });
+            queueProfileUpdate({ bg: "" }); // Stringa vuota invece di null per forzare l'aggiornamento su Supabase
             try { 
                 const { data: { user } } = await supabaseClient.auth.getUser(); 
                 const oldUrl = user?.user_metadata?.bg; 
@@ -1072,7 +1073,12 @@
             const md = user.user_metadata || {};
             const finalTheme = md.theme || localStorage.getItem('lime_theme') || 'dark';
             const finalColor = md.color || localStorage.getItem('lime_color') || '#c0f22c';
-            const finalBg = md.bg !== undefined ? md.bg : (localStorage.getItem('lime_bg') || null);
+            
+            // Nuova logica infallibile per lo sfondo: accetta anche le rimozioni ("")
+            let finalBg = localStorage.getItem('lime_bg');
+            if (md.bg !== undefined) finalBg = md.bg; 
+            if (finalBg === "" || finalBg === "null") finalBg = null;
+
             const finalLevel = md.lime_edu_level !== undefined ? md.lime_edu_level : (localStorage.getItem('lime_edu_level') || '');
             const finalInst = md.lime_inst_type !== undefined ? md.lime_inst_type : (localStorage.getItem('lime_inst_type') || '');
 
@@ -1127,11 +1133,9 @@
             const prevText = btn.innerText;
             btn.innerText = 'Caricamento...';
             
-            const reader = new FileReader(); 
-            reader.onload = function(e) { 
-                applyChatBackground(e.target.result); 
-            }; 
-            reader.readAsDataURL(file); 
+            // Creazione istantanea e leggera di un URL locale. Funziona perfettamente da mobile!
+            const tempUrl = URL.createObjectURL(file);
+            applyChatBackground(tempUrl);
             
             try {
                 const { data: { user } } = await supabaseClient.auth.getUser(); 
@@ -1140,7 +1144,7 @@
                 if (publicUrl) { 
                     localStorage.setItem('lime_bg', publicUrl); 
                     queueProfileUpdate({ bg: publicUrl });
-                    if (oldUrl) deleteOldSupabaseFile(oldUrl); 
+                    if (oldUrl && oldUrl !== publicUrl) deleteOldSupabaseFile(oldUrl); 
                 } 
             } catch(e) {
                 console.error(e);
