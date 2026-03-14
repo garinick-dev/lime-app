@@ -1526,169 +1526,100 @@
 
 
 <style>
-    #tutorial-overlay {
-        position: fixed;
+    /* Definizione dei nuovi colori azzurri per gli occhi [cite: 2026-02-28] */
+    :root {
+        --lime-eye-blue-1: #87CEFA; /* LightSkyBlue */
+        --lime-eye-blue-2: #1E90FF; /* DodgerBlue */
+    }
+
+    /* Stile per la mascotte tutorial duplicata */
+    #lime-svg-sprite-tutorial {
+        position: absolute;
         inset: 0;
-        background: rgba(15, 15, 15, 0.65);
-        backdrop-filter: blur(10px);
-        z-index: 1000; 
-        display: none;
-        pointer-events: all;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.4s ease, visibility 0.4s ease;
+        z-index: 1; /* Sopra la mascotte originale se attiva */
     }
 
-    #tutorial-next-btn {
-        position: fixed;
-        bottom: 120px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1005; 
-        background: #28a745; 
-        color: white;
-        border: none;
-        padding: 12px 35px;
-        border-radius: 30px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        cursor: pointer;
-        display: none;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        transition: transform 0.2s;
+    /* Stato: Tutorial Attivo [cite: 2026-02-26] */
+    body.tutorial-active #lime-app-mascot {
+        z-index: 1001 !important; /* Porta l'intero contenitore SOPRA il blur grigio */
     }
 
-    /* Stile temporaneo per la mascotte durante il distacco */
-    .mascot-detached {
-        position: fixed !important;
-        bottom: 100px !important;
-        left: 20px !important;
-        z-index: 9999 !important;
+    body.tutorial-active #lime-svg-sprite-tutorial {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Nascondiamo la mascotte originale solo durante il tutorial */
+    body.tutorial-active #lime-svg-sprite {
+        opacity: 0;
     }
 </style>
 
-<div id="tutorial-overlay"></div>
-<button id="tutorial-next-btn" onclick="nextTutorialStep()">Avanti</button>
-
 <script>
-    let currentStep = 0;
-    let originalMascotParent = null;
+    (function injectTutorialMascotPatch() {
+        // 1. Recuperiamo le definizioni SVG originali
+        const defsContainer = document.getElementById('dify-app-global-svg-defs-container');
+        if (!defsContainer) return;
 
-    const tutorialSteps = [
-        { selector: 'header', originalZ: '50' },
-        { selector: '#lime-greeting-box', originalZ: '1000' },
-        { selector: '.input-wrapper', originalZ: 'auto' }
-    ];
+        // 2. Creiamo il nuovo gradiente azzurro per gli occhi
+        const blueGradient = `
+            <linearGradient id="lime-eye-gradient-tutorial" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:var(--lime-eye-blue-1); stop-opacity:1"></stop>
+                <stop offset="100%" style="stop-color:var(--lime-eye-blue-2); stop-opacity:1"></stop>
+            </linearGradient>
+        `;
+        defsContainer.insertAdjacentHTML('beforeend', blueGradient);
 
-    function nextTutorialStep() {
-        // 1. Ripristino elemento precedente
-        if (currentStep > 0) {
-            const prev = tutorialSteps[currentStep - 1];
-            const prevEl = document.querySelector(prev.selector);
-            if (prevEl) {
-                prevEl.style.zIndex = prev.originalZ;
-                if (prev.selector === '.input-wrapper') {
-                    document.querySelector('.input-area').style.zIndex = '50';
-                }
-            }
-        }
-
-        // 2. Fine tutorial: pulizia totale e riaggancio mascotte
-        if (currentStep >= tutorialSteps.length) {
-            closeTutorialInteractive();
-            return;
-        }
-
-        // 3. Evidenziazione nuovo elemento
-        const current = tutorialSteps[currentStep];
-        const el = document.querySelector(current.selector);
-        if (el) {
-            if (current.selector === '.input-wrapper') {
-                const parentArea = document.querySelector('.input-area');
-                if (parentArea) parentArea.style.zIndex = '1001';
-            }
-            el.style.zIndex = "1001";
-        }
-
-        currentStep++;
-    }
-
-    /**
-     * Termina il tutorial e PULISCE tutto, riportando la mascotte a casa [cite: 2026-02-26]
-     */
-    function closeTutorialInteractive() {
-        const overlay = document.getElementById('tutorial-overlay');
-        const nextBtn = document.getElementById('tutorial-next-btn');
-        const mascot = document.getElementById('lime-app-mascot');
-
-        overlay.style.display = 'none';
-        nextBtn.style.display = 'none';
-        currentStep = 0;
-
-        // Riaggancio della mascotte al suo contenitore originale
-        if (mascot && originalMascotParent) {
-            mascot.classList.remove('mascot-detached');
-            originalMascotParent.appendChild(mascot);
-        }
-
-        if (typeof queueProfileUpdate === 'function') {
-            queueProfileUpdate({ tutorial_done: true });
-        }
-    }
-
-    /**
-     * Avvia il tutorial e "sgancia" la mascotte per renderla visibile [cite: 2026-03-02]
-     */
-    async function startInteractiveTutorial() {
-        const mascot = document.getElementById('lime-app-mascot');
+        // 3. Duplichiamo il simbolo della mascotte e modifichiamo il riferimento degli occhi
+        // Recuperiamo il contenuto testuale del simbolo per modificarlo chirurgicamente
+        const originalSymbol = document.getElementById('lime-app-mascot-sprite-symbol');
+        if (!originalSymbol) return;
         
-        // Salviamo il genitore originale (input-wrapper) prima di spostarla
-        if (mascot && !originalMascotParent) {
-            originalMascotParent = mascot.parentNode;
-        }
-
-        // Sganciamo la mascotte e portiamola nel body per bypassare i contesti z-index
-        if (mascot) {
-            mascot.classList.add('mascot-detached');
-            document.body.appendChild(mascot);
-        }
-
-        currentStep = 0;
-        if (typeof queueProfileUpdate === 'function') {
-            queueProfileUpdate({ tutorial_done: false });
-        }
+        // Creiamo il nuovo simbolo duplicato
+        const tutorialSymbol = originalSymbol.cloneNode(true);
+        tutorialSymbol.id = 'lime-app-mascot-sprite-symbol-tutorial';
         
-        document.getElementById('tutorial-overlay').style.display = 'block';
-        document.getElementById('tutorial-next-btn').style.display = 'block';
-        nextTutorialStep();
-    }
+        // Modifichiamo il fill degli occhi per usare il nuovo gradiente
+        // Nota: si assume che nel simbolo originale l'elemento occhi abbia fill="url(#lime-eye-gradient)"
+        let symbolHtml = tutorialSymbol.innerHTML;
+        symbolHtml = symbolHtml.replace('url(#lime-eye-gradient)', 'url(#lime-eye-gradient-tutorial)');
+        tutorialSymbol.innerHTML = symbolHtml;
+        
+        defsContainer.appendChild(tutorialSymbol);
 
-    (function patchInteractiveLogic() {
-        // Disabilitiamo il vecchio quadrato rosso
-        const redSquare = document.getElementById('tutorial-red-square');
-        if (redSquare) redSquare.style.display = 'none';
-
-        // Fix pulsante debug
-        const colorPicker = document.getElementById('color-picker');
-        if (colorPicker) {
-            let btn = document.getElementById('debug-tut-btn');
-            if (!btn) {
-                btn = document.createElement('button');
-                btn.id = 'debug-tut-btn';
-                btn.className = 'debug-tutorial-btn';
-                btn.style.marginTop = "10px";
-                colorPicker.parentNode.appendChild(btn);
-            }
-            btn.innerText = 'DEBUG: Reset & Start Tut';
-            btn.onclick = startInteractiveTutorial;
+        // 4. Creiamo la visualizzazione della Mascotte Tutorial nell'interfaccia
+        const mascotContainer = document.getElementById('lime-app-mascot');
+        if (mascotContainer && !document.getElementById('lime-svg-sprite-tutorial')) {
+            const tutorialSpriteHtml = `
+                <div id="lime-svg-sprite-tutorial">
+                    <svg viewBox="0 0 500 500">
+                        <use href="#lime-app-mascot-sprite-symbol-tutorial"></use>
+                    </svg>
+                </div>
+            `;
+            mascotContainer.insertAdjacentHTML('beforeend', tutorialSpriteHtml);
         }
 
-        const originalUpdateProfileUI = window.updateProfileUI;
-        window.updateProfileUI = function(user) {
-            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) {
-                startInteractiveTutorial();
-            }
-        };
+        console.log("Patch LIME: Mascotte Tutorial con occhi azzurri iniettata con successo.");
     })();
+
+    // 5. Integrazione con la logica del tutorial esistente
+    // Sovrascriviamo le funzioni di start/close per gestire la classe sul body
+
+    const originalStartInteractiveTutorial = window.startInteractiveTutorial;
+    window.startInteractiveTutorial = async function() {
+        document.body.classList.add('tutorial-active');
+        if (originalStartInteractiveTutorial) await originalStartInteractiveTutorial();
+    };
+
+    const originalCloseTutorialInteractive = window.closeTutorialInteractive;
+    window.closeTutorialInteractive = function() {
+        document.body.classList.remove('tutorial-active');
+        if (originalCloseTutorialInteractive) originalCloseTutorialInteractive();
+    };
 </script>
 
 
