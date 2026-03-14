@@ -851,7 +851,8 @@
             isThinkingLocal = true;
             
             const controller = new AbortController();
-            let streamTimeout = setTimeout(() => controller.abort(), 15000); 
+            // Aumentato a 30 secondi per resistere al throttling in background
+            let streamTimeout = setTimeout(() => controller.abort(), 30000); 
 
             try {
                 const reqMode = isImage ? "blocking" : "streaming"; 
@@ -895,7 +896,8 @@
                     const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = ""; 
                     while (true) { 
                         clearTimeout(streamTimeout);
-                        streamTimeout = setTimeout(() => controller.abort(), 10000); 
+                        // Aumentato a 20 secondi per tollerare i ritardi in background
+                        streamTimeout = setTimeout(() => controller.abort(), 20000); 
                         
                         const { done, value } = await reader.read(); 
                         if (done) { clearTimeout(streamTimeout); break; } 
@@ -913,19 +915,31 @@
                                         
                                         if (!renderQueued) { 
                                             renderQueued = true; 
-                                            requestAnimationFrame(() => { 
+                                            
+                                            // Funzione di aggiornamento UI isolata
+                                            const updateUI = () => {
                                                 renderQueued = false; 
                                                 const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
                                                 let safeMathText = formatLaTeX(fullAnswer);
                                                 botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
                                                 if(bottomBar) botDiv.appendChild(bottomBar); 
                                                 scrollToBottom(); 
-                                            });
+                                            };
+                                            
+                                            // Aggiornamento testuale forzato se la pagina è in background
+                                            if (document.hidden) {
+                                                updateUI();
+                                            } else {
+                                                requestAnimationFrame(updateUI);
+                                            }
                                         } 
                                     } else if (data.event === 'message_end') { 
                                         if (fullAnswer.trim().length > 0) {
                                             success = true;
-                                            requestAnimationFrame(() => { botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); }); 
+                                            
+                                            const finalizeUI = () => { botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); };
+                                            if (document.hidden) finalizeUI(); else requestAnimationFrame(finalizeUI);
+                                             
                                             if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
                                             if(currentConversationId) { 
                                                 if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
