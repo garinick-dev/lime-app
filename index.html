@@ -1029,21 +1029,18 @@
     }
 
     function applyChatBackground(imageUrl) { 
-        // 1. Filtro di sicurezza: trasforma le stringhe non valide in veri valori nulli
-        if (imageUrl === 'null' || imageUrl === 'undefined') imageUrl = null;
-        
         currentCustomBg = imageUrl;
-        
-        if (DOM.chatBox) { 
-            if (imageUrl) { 
-                // 2. Aggiunti gli apici ("") attorno a ${imageUrl} per proteggere il CSS da errori di sintassi
-                DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url("${imageUrl}")`; 
-                DOM.chatBox.style.backgroundSize = 'cover'; 
-                DOM.chatBox.style.backgroundPosition = 'center'; 
-                DOM.chatBox.style.backgroundRepeat = 'no-repeat'; 
-                DOM.chatBox.style.backgroundAttachment = 'fixed'; 
-            } 
-            else updateDefaultBackground(); 
+        if (!DOM.chatBox) return;
+
+        if (imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined') { 
+            // Applichiamo lo sfondo ricevuto da Supabase
+            DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url("${imageUrl}")`; 
+            DOM.chatBox.style.backgroundSize = 'cover'; 
+            DOM.chatBox.style.backgroundPosition = 'center'; 
+            DOM.chatBox.style.backgroundAttachment = 'fixed'; 
+        } else {
+            // Se non c'è nulla nel cloud, torna allo sfondo Lime di default
+            updateDefaultBackground();
         } 
     }
     
@@ -1091,6 +1088,9 @@
             const cloudTs = user.user_metadata?.lime_settings_ts || 0;
             const localTs = parseInt(localStorage.getItem('lime_settings_ts') || '0', 10);
 
+            const cloudBg = user.user_metadata?.bg;
+            applyChatBackground(cloudBg);
+            
             let finalTheme, finalColor, finalBg, finalLevel, finalInst;
 
             if (localTs > cloudTs) {
@@ -1187,18 +1187,15 @@
         if (!userId) return; 
         const file = event.target.files[0]; 
         if (file) { 
-            const reader = new FileReader(); 
-            reader.onload = function(e) { 
-                applyChatBackground(e.target.result); 
-            }; 
-            reader.readAsDataURL(file); 
-            const { data: { user } } = await supabaseClient.auth.getUser(); 
-            const oldUrl = user?.user_metadata?.bg; 
+            // 1. Carica il file nello storage
             const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); 
-            if (publicUrl) { 
-                localStorage.setItem('lime_bg', publicUrl); 
-                queueProfileUpdate({ bg: publicUrl });
-                if (oldUrl) await deleteOldSupabaseFile(oldUrl); 
+            
+            if (publicUrl) {
+                // 2. Scrivi l'URL nei metadati dell'utente su Supabase
+                await supabaseClient.auth.updateUser({ data: { bg: publicUrl } });
+                
+                // 3. Mostralo subito a schermo
+                applyChatBackground(publicUrl);
             } 
         } 
     }
