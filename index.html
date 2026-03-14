@@ -1683,6 +1683,106 @@
         };
     })();
 </script>
+
+
+
+
+
+
+
+
+
+<script>
+    /**
+     * Definizione dei messaggi per le chat di esempio
+     * Creati per dare un benvenuto immediato e mostrare le potenzialità di LIME
+     */
+    const LIME_STARTER_PACK = {
+        "💡 Benvenuto in LIME": [
+            { query: "Ciao LIME, cosa posso fare qui?", answer: "Ciao! Benvenuto nel tuo nuovo spazio di studio. 🚀 Qui puoi caricarmi i tuoi appunti, chiedermi di farti un riassunto, o anche interrogarmi per prepararti alla prossima verifica. Da dove iniziamo?", created_at: Math.floor(Date.now()/1000) - 3600 }
+        ],
+        "📚 Come studiare con me": [
+            { query: "Come posso usare i file?", answer: "È facilissimo! Clicca sulla graffetta 📎 in basso a sinistra, carica un PDF o un'immagine e chiedimi di spiegarti i concetti più difficili o di estrarre le date importanti.", created_at: Math.floor(Date.now()/1000) - 7200 }
+        ],
+        "🧪 Test rapido di Chimica": [
+            { query: "Voglio mettermi alla prova.", answer: "Ottimo spirito! Iniziamo con qualcosa di semplice: sapresti dirmi qual è il simbolo chimico dell'oro? ✨", created_at: Math.floor(Date.now()/1000) - 10800 }
+        ]
+    };
+
+    /**
+     * Inietta le chat nel database Supabase dell'utente
+     */
+    async function injectStarterChats() {
+        if (!userId) return;
+
+        const titles = Object.keys(LIME_STARTER_PACK);
+        const starterChats = titles.map(title => ({
+            user_id: userId,
+            title: title,
+            dify_id: null // Identificate come chat locali iniziali
+        }));
+
+        try {
+            // Inserimento fisico nel database per persistenza cross-platform [cite: 2026-02-26]
+            const { data, error } = await supabaseClient.from('conversations').insert(starterChats).select();
+            
+            if (!error && data) {
+                // Popoliamo la cache locale immediatamente per permettere la lettura istantanea
+                data.forEach(chat => {
+                    const idKey = chat.dify_id || chat.id;
+                    chatCache[idKey] = LIME_STARTER_PACK[chat.title];
+                });
+
+                // Segniamo l'avvenuta iniezione nel profilo utente
+                queueProfileUpdate({ starter_chats_injected: true });
+                
+                // Ricarichiamo la lista laterale per mostrare le nuove chat
+                if (typeof loadHistory === 'function') loadHistory(); 
+            }
+        } catch (e) {
+            console.error("Errore patchEsempi:", e);
+        }
+    }
+
+    /**
+     * Integrazione con la logica di sistema esistente
+     */
+    (function applyPatchEsempi() {
+        const originalUpdateProfileUI = window.updateProfileUI;
+
+        window.updateProfileUI = function(user) {
+            // Eseguiamo prima la logica originale
+            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
+
+            if (user && user.user_metadata) {
+                // Se l'utente non ha ancora ricevuto le chat di esempio, le iniettiamo
+                if (!user.user_metadata.starter_chats_injected) {
+                    injectStarterChats();
+                }
+            }
+        };
+
+        // Estendiamo anche la funzione di debug se presente (dalla patchTutorial)
+        // per permetterti di resettare anche gli esempi
+        const originalStartTutorial = window.startInteractiveTutorial;
+        if (originalStartTutorial) {
+            window.startInteractiveTutorial = function() {
+                if (typeof queueProfileUpdate === 'function') {
+                    queueProfileUpdate({ starter_chats_injected: false });
+                }
+                originalStartTutorial();
+            };
+        }
+    })();
+</script>
+
+    
+
+
+
+
+
+    
     
 
     
