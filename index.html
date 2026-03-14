@@ -1693,77 +1693,92 @@
 
 
 <script>
-    /**
-     * Definizione dei messaggi per le chat di esempio
-     * Creati per dare un benvenuto immediato e mostrare le potenzialità di LIME
-     */
-    const LIME_STARTER_PACK = {
-        "💡 Benvenuto in LIME": [
-            { query: "Ciao LIME, cosa posso fare qui?", answer: "Ciao! Benvenuto nel tuo nuovo spazio di studio. 🚀 Qui puoi caricarmi i tuoi appunti, chiedermi di farti un riassunto, o anche interrogarmi per prepararti alla prossima verifica. Da dove iniziamo?", created_at: Math.floor(Date.now()/1000) - 3600 }
-        ],
-        "📚 Come studiare con me": [
-            { query: "Come posso usare i file?", answer: "È facilissimo! Clicca sulla graffetta 📎 in basso a sinistra, carica un PDF o un'immagine e chiedimi di spiegarti i concetti più difficili o di estrarre le date importanti.", created_at: Math.floor(Date.now()/1000) - 7200 }
-        ],
-        "🧪 Test rapido di Chimica": [
-            { query: "Voglio mettermi alla prova.", answer: "Ottimo spirito! Iniziamo con qualcosa di semplice: sapresti dirmi qual è il simbolo chimico dell'oro? ✨", created_at: Math.floor(Date.now()/1000) - 10800 }
-        ]
-    };
-
-    /**
-     * Inietta le chat nel database Supabase dell'utente
-     */
-    async function injectStarterChats() {
-        if (!userId) return;
-
-        const titles = Object.keys(LIME_STARTER_PACK);
-        const starterChats = titles.map(title => ({
-            user_id: userId,
-            title: title,
-            dify_id: null // Identificate come chat locali iniziali
-        }));
-
-        try {
-            // Inserimento fisico nel database per persistenza cross-platform [cite: 2026-02-26]
-            const { data, error } = await supabaseClient.from('conversations').insert(starterChats).select();
-            
-            if (!error && data) {
-                // Popoliamo la cache locale immediatamente per permettere la lettura istantanea
-                data.forEach(chat => {
-                    const idKey = chat.dify_id || chat.id;
-                    chatCache[idKey] = LIME_STARTER_PACK[chat.title];
-                });
-
-                // Segniamo l'avvenuta iniezione nel profilo utente
-                queueProfileUpdate({ starter_chats_injected: true });
-                
-                // Ricarichiamo la lista laterale per mostrare le nuove chat
-                if (typeof loadHistory === 'function') loadHistory(); 
-            }
-        } catch (e) {
-            console.error("Errore patchEsempi:", e);
-        }
-    }
-
-    /**
-     * Integrazione con la logica di sistema esistente
-     */
-    (function applyPatchEsempi() {
-        const originalUpdateProfileUI = window.updateProfileUI;
-
-        window.updateProfileUI = function(user) {
-            // Eseguiamo prima la logica originale
-            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-
-            if (user && user.user_metadata) {
-                // Se l'utente non ha ancora ricevuto le chat di esempio, le iniettiamo
-                if (!user.user_metadata.starter_chats_injected) {
-                    injectStarterChats();
-                }
+    (function initPatchEsempi() {
+        // 1. I contenuti delle chat di benvenuto
+        const LIME_STARTER_PACK = {
+            "starter-1": { 
+                title: "💡 Benvenuto in LIME", 
+                msgs: [{ query: "Ciao LIME, cosa posso fare qui?", answer: "Ciao! Benvenuto nel tuo nuovo spazio di studio. 🚀 Qui puoi caricarmi i tuoi appunti, chiedermi riassunti o farti interrogare. Da dove iniziamo?" }] 
+            },
+            "starter-2": { 
+                title: "📚 Come studiare con me", 
+                msgs: [{ query: "Come posso usare i file?", answer: "È facilissimo! Clicca sulla graffetta 📎 in basso a sinistra, carica un PDF o un'immagine e chiedimi di spiegarti i concetti più difficili." }] 
+            },
+            "starter-3": { 
+                title: "🧪 Test rapido di Chimica", 
+                msgs: [{ query: "Voglio mettermi alla prova.", answer: "Ottimo spirito! Iniziamo con qualcosa di semplice: sapresti dirmi qual è il simbolo chimico dell'oro? ✨" }] 
             }
         };
 
-        // Estendiamo anche la funzione di debug se presente (dalla patchTutorial)
-        // per permetterti di resettare anche gli esempi
+        // 2. Iniezione Automatica al Login
+        const originalUpdateProfile = window.updateProfileUI;
+        window.updateProfileUI = async function(user) {
+            if (originalUpdateProfile) originalUpdateProfile(user);
+            
+            if (user && user.user_metadata && !user.user_metadata.starter_chats_injected) {
+                // Prepariamo i record per il database
+                const starterRows = Object.keys(LIME_STARTER_PACK).map(fakeId => ({
+                    user_id: user.id,
+                    title: LIME_STARTER_PACK[fakeId].title,
+                    dify_id: fakeId // Il Fake ID permette alla tua lista di renderizzarle subito
+                }));
+                
+                await supabaseClient.from('conversations').insert(starterRows);
+                
+                if (typeof queueProfileUpdate === 'function') {
+                    queueProfileUpdate({ starter_chats_injected: true });
+                }
+                if (typeof loadHistory === 'function') loadHistory();
+            }
+        };
+
+        // 3. Intercettiamo il click per caricare la chat senza chiamare Dify
+        const originalLoadChat = window.loadChat;
+        window.loadChat = async function(id) {
+            if (id && LIME_STARTER_PACK[id]) {
+                currentConversationId = id;
+                if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar();
+                
+                // Mettiamo i messaggi finti in cache e li renderizziamo
+                chatCache[id] = LIME_STARTER_PACK[id].msgs;
+                if (typeof renderMessages === 'function') renderMessages(chatCache[id]);
+                
+                // Evidenziamo la chat nella sidebar
+                document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active-chat'));
+                const activeItem = document.getElementById(`chat-${id}`);
+                if (activeItem) activeItem.classList.add('active-chat');
+                return;
+            }
+            // Se non è una chat starter, usa la tua funzione originale
+            if (originalLoadChat) return originalLoadChat(id);
+        };
+
+        // 4. Intercettiamo l'invio per trasformare la chat finta in una chat VERA
+        const originalSendMessage = window.sendMessage;
+        window.sendMessage = async function(query, fileUrl, fileType) {
+            let wasStarter = false;
+            let fakeId = null;
+
+            if (currentConversationId && LIME_STARTER_PACK[currentConversationId]) {
+                wasStarter = true;
+                fakeId = currentConversationId;
+                currentConversationId = null; // Sganciamo l'ID finto, così Dify crea una chat nuova
+            }
+
+            // Eseguiamo il tuo invio messaggio originale
+            if (originalSendMessage) await originalSendMessage(query, fileUrl, fileType);
+
+            // Se era una chat starter, ora currentConversationId contiene il VERO ID generato da Dify
+            if (wasStarter && currentConversationId) {
+                // Aggiorniamo il database per sovrascrivere il Fake ID con quello Reale
+                await supabaseClient.from('conversations')
+                    .update({ dify_id: currentConversationId })
+                    .eq('dify_id', fakeId)
+                    .eq('user_id', userId);
+            }
+        };
+
+        // 5. Aggiorniamo il pulsante Debug per farti resettare tutto nei test
         const originalStartTutorial = window.startInteractiveTutorial;
         if (originalStartTutorial) {
             window.startInteractiveTutorial = function() {
