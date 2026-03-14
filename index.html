@@ -1398,16 +1398,7 @@
         initLimeExtras();
         setupChatVirtualization();
 
-        async function fetchFreshData() {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session && session.user) {
-                const { data: { user }, error } = await supabaseClient.auth.getUser();
-                // Rimosso il refreshSession() forzato. Aggiorna solo l'interfaccia grafica.
-                if (!error && user) { updateProfileUI(user); }
-            }
-        }
-        
-        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchFreshData(); });
+
 
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { 
