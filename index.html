@@ -455,19 +455,8 @@
     };
 
     async function getAuthHeaders() {
-        // Leggiamo la chiave istantaneamente dal browser. 
-        // Zero chiamate al server, impossibile che si blocchi.
-        try {
-            const localSession = localStorage.getItem('sb-jzwldensaglpawnwpjxa-auth-token');
-            if (localSession) {
-                const parsed = JSON.parse(localSession);
-                if (parsed && parsed.access_token) {
-                    return { 'Authorization': `Bearer ${parsed.access_token}` };
-                }
-            }
-        } catch(e) {}
-        
-        return {};
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        return { 'Authorization': `Bearer ${session?.access_token}` };
     }
 
     function queueProfileUpdate(newData) {
@@ -1030,17 +1019,9 @@
 
     function applyChatBackground(imageUrl) { 
         currentCustomBg = imageUrl;
-        if (!DOM.chatBox) return;
-
-        if (imageUrl && imageUrl !== 'null' && imageUrl !== 'undefined') { 
-            // Applichiamo lo sfondo ricevuto da Supabase
-            DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url("${imageUrl}")`; 
-            DOM.chatBox.style.backgroundSize = 'cover'; 
-            DOM.chatBox.style.backgroundPosition = 'center'; 
-            DOM.chatBox.style.backgroundAttachment = 'fixed'; 
-        } else {
-            // Se non c'è nulla nel cloud, torna allo sfondo Lime di default
-            updateDefaultBackground();
+        if (DOM.chatBox) { 
+            if (imageUrl) { DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(${imageUrl})`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed'; } 
+            else updateDefaultBackground(); 
         } 
     }
     
@@ -1088,9 +1069,6 @@
             const cloudTs = user.user_metadata?.lime_settings_ts || 0;
             const localTs = parseInt(localStorage.getItem('lime_settings_ts') || '0', 10);
 
-            const cloudBg = user.user_metadata?.bg;
-            applyChatBackground(cloudBg);
-            
             let finalTheme, finalColor, finalBg, finalLevel, finalInst;
 
             if (localTs > cloudTs) {
@@ -1145,57 +1123,25 @@
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 50);
     }
 
-    async function uploadToSupabaseStorage(file, pathPrefix) { 
-    const fileExt = file.name.split('.').pop(); 
-    const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; 
-    
-    // 1. Caricamento fisico del file nello Storage
-    const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); 
-    
-    if (error) { 
-        alert("Errore nel caricamento dell'immagine."); 
-        return null; 
-    } 
-
-    // 2. Otteniamo l'URL pubblico
-    const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); 
-
-    if (publicUrl) {
-        const now = Date.now();
-        
-        // 3. ANCORAGGIO LOCALE IMMEDIATO (Fondamentale per il mobile)
-        // Salviamo subito sul telefono prima ancora di provare a parlare con il database.
-        localStorage.setItem('lime_bg', publicUrl);
-        localStorage.setItem('lime_settings_ts', now.toString());
-
-        // 4. AGGIORNAMENTO CLOUD (Sincronizzazione cross-platform)
-        // Se il mobile è instabile, questo potrebbe fallire, ma il dato è già al sicuro in locale.
-        try {
-            await supabaseClient.auth.updateUser({ 
-                data: { bg: publicUrl, lime_settings_ts: now } 
-            });
-        } catch (e) {
-            console.warn("Sincronizzazione cloud fallita, il dato verrà allineato al prossimo focus.");
-        }
-    }
-
-    return publicUrl; 
-}
+    async function uploadToSupabaseStorage(file, pathPrefix) { const fileExt = file.name.split('.').pop(); const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); if (error) { alert("Errore caricamento immagine."); return null; } const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); return publicUrl; }
     async function deleteOldSupabaseFile(oldUrl) { if (!oldUrl) return; try { const bucketMarker = '/lime-assets/'; const index = oldUrl.indexOf(bucketMarker); if (index !== -1) { const filePath = oldUrl.substring(index + bucketMarker.length); await supabaseClient.storage.from('lime-assets').remove([filePath]); } } catch (e) {} }
     
     async function handleBgUpload(event) { 
         if (!userId) return; 
         const file = event.target.files[0]; 
         if (file) { 
-            // 1. Carica il file nello storage
+            const reader = new FileReader(); 
+            reader.onload = function(e) { 
+                applyChatBackground(e.target.result); 
+            }; 
+            reader.readAsDataURL(file); 
+            const { data: { user } } = await supabaseClient.auth.getUser(); 
+            const oldUrl = user?.user_metadata?.bg; 
             const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); 
-            
-            if (publicUrl) {
-                // 2. Scrivi l'URL nei metadati dell'utente su Supabase
-                await supabaseClient.auth.updateUser({ data: { bg: publicUrl } });
-                
-                // 3. Mostralo subito a schermo
-                applyChatBackground(publicUrl);
+            if (publicUrl) { 
+                localStorage.setItem('lime_bg', publicUrl); 
+                queueProfileUpdate({ bg: publicUrl });
+                if (oldUrl) await deleteOldSupabaseFile(oldUrl); 
             } 
         } 
     }
@@ -1341,32 +1287,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-
-        // Sincronizzazione in background sicura (non bloccante)
-        async function fetchFreshData() {
-            if (!userId) return;
-            try {
-                // Diamo a Supabase massimo 2 secondi. Se la scheda è congelata, annulla senza bloccare l'app.
-                const userPromise = supabaseClient.auth.getUser();
-                const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ error: 'timeout' }), 2000));
-                
-                const result = await Promise.race([userPromise, timeoutPromise]);
-                
-                // Se ha risposto in tempo e c'è l'utente, aggiorniamo l'interfaccia
-                if (result && result.data && result.data.user) {
-                    updateProfileUI(result.data.user);
-                }
-            } catch (e) {
-                // Errore silente, l'app continua a funzionare fluidamente
-            }
-        }
-        
-        // Scatta quando torni sulla scheda di LIME
-        document.addEventListener('visibilitychange', () => { 
-            if (document.visibilityState === 'visible') {
-                fetchFreshData(); 
-            }
-        });
         
         DOM = {
             chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area'), micBtn: document.getElementById('mic-btn'), attachBtn: document.getElementById('attach-btn'), timerDisplay: document.getElementById('recording-timer'), attachmentLabel: document.getElementById('attachment-label'), fileInput: document.getElementById('file-input'), eduDropdown: document.getElementById('edu-dropdown'), instDropdown: document.getElementById('inst-dropdown'), bgInput: document.getElementById('bg-input')
@@ -1467,14 +1387,19 @@
         initLimeExtras();
         setupChatVirtualization();
 
-        //vecchio fetchUserData
+        async function fetchFreshData() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                const { data: { user }, error } = await supabaseClient.auth.getUser();
+                if (!error && user) { updateProfileUI(user); await supabaseClient.auth.refreshSession(); }
+            }
+        }
         
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') fetchFreshData(); });
 
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { 
             userId = session.user.id; 
-            updateProfileUI(session.user);
             clearCacheIfNewUser(userId);
             document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
             if (window.syncAnchoring) window.syncAnchoring();
