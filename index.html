@@ -972,7 +972,7 @@
         if (fullAnswer.trim().length === 0 || botDiv.innerText.trim() === "") success = false;
 
         if (!success) {
-            fullAnswer = `Dov'eri finito? 😅 <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
+            fullAnswer = `🚫📶 Ci siamo persi! Ritento la risposta? <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
             botDiv.innerHTML = fullAnswer; 
             if(bottomBar) botDiv.appendChild(bottomBar); 
