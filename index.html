@@ -1402,7 +1402,8 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session && session.user) {
                 const { data: { user }, error } = await supabaseClient.auth.getUser();
-                if (!error && user) { updateProfileUI(user); await supabaseClient.auth.refreshSession(); }
+                // Rimosso il refreshSession() forzato. Aggiorna solo l'interfaccia grafica.
+                if (!error && user) { updateProfileUI(user); }
             }
         }
         
