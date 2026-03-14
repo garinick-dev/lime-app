@@ -1004,7 +1004,14 @@
         if (window.setMascotThinking) window.setMascotThinking(false); 
         DOM.sendBtn.disabled = false; scrollToBottom(true); 
         userWrapper.classList.add('msg-complete'); botWrapper.classList.add('msg-complete');
-        if (chatVirtualObserver) { chatVirtualObserver.observe(userWrapper); chatVirtualObserver.observe(botWrapper); }
+        
+        // Ritardiamo l'osservatore per permettere allo scorrimento fluido di terminare in pace
+        setTimeout(() => {
+            if (chatVirtualObserver) { 
+                chatVirtualObserver.observe(userWrapper); 
+                chatVirtualObserver.observe(botWrapper); 
+            }
+        }, 600);
     }
 
     window.retryLastMessage = function(btn) {
