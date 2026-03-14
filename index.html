@@ -1692,35 +1692,86 @@
 
 
 
+<style>
+    /* 1. Colora i titoli delle chat di esempio con l'accento scelto dall'utente */
+    div[id^="chat-starter-"] .chat-title {
+        color: var(--accent) !important;
+        font-weight: 800 !important;
+    }
+
+    /* 2. Nasconde la barra di input e mostra il banner quando una chat di esempio è attiva */
+    body.starter-chat-active .input-area,
+    body.starter-chat-active .input-wrapper {
+        display: none !important;
+    }
+
+    #starter-readonly-banner {
+        display: none;
+        position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: var(--input-bg); border: 1px dashed var(--accent); color: var(--text-muted);
+        padding: 12px 24px; border-radius: 20px; font-size: 0.9rem; z-index: 50;
+        text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    body.starter-chat-active #starter-readonly-banner {
+        display: block;
+    }
+</style>
+
+<div id="starter-readonly-banner">
+    📌 Questa è una chat di esempio in sola lettura.<br>
+    <span style="font-size: 0.8rem; opacity: 0.7;">Crea una "Nuova Chat" dal menu per iniziare a studiare.</span>
+</div>
+
 <script>
-    (function initPatchEsempi() {
-        // 1. I contenuti delle chat di benvenuto
+    (function initPatchEsempiReadOnly() {
+        // Finto allegato stilizzato in linea per massima compatibilità
+        const fakeFileHtml = `
+            <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 12px; width: fit-content; margin: 12px 0;">
+                <span style="font-size: 1.8rem;">📄</span>
+                <div style="display: flex; flex-direction: column; text-align: left;">
+                    <span style="font-weight: bold; color: var(--accent); font-size: 0.9rem;">appunti_storia_roma.pdf</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Documento PDF • 1.2 MB</span>
+                </div>
+            </div>
+        `;
+
+        // 1. I contenuti espansi delle chat di benvenuto [cite: 2026-02-28]
         const LIME_STARTER_PACK = {
             "starter-1": { 
                 title: "💡 Benvenuto in LIME", 
-                msgs: [{ query: "Ciao LIME, cosa posso fare qui?", answer: "Ciao! Benvenuto nel tuo nuovo spazio di studio. 🚀 Qui puoi caricarmi i tuoi appunti, chiedermi riassunti o farti interrogare. Da dove iniziamo?" }] 
+                msgs: [
+                    { query: "Ciao LIME, cosa posso fare qui?", answer: "Ciao! Benvenuto nel tuo nuovo spazio di studio. 🚀 Qui puoi caricarmi i tuoi appunti, chiedermi riassunti o farti interrogare per la prossima verifica." },
+                    { query: "Davvero? E come funziona per le interrogazioni?", answer: "Basta scrivermi: 'Fammi 5 domande a risposta multipla su questo argomento' e io ti testerò uno alla volta, correggendoti se sbagli. Sono programmato per essere veloce e drittto al punto!" }
+                ] 
             },
             "starter-2": { 
-                title: "📚 Come studiare con me", 
-                msgs: [{ query: "Come posso usare i file?", answer: "È facilissimo! Clicca sulla graffetta 📎 in basso a sinistra, carica un PDF o un'immagine e chiedimi di spiegarti i concetti più difficili." }] 
+                title: "📚 Come usare i File", 
+                msgs: [
+                    { query: "Posso farti leggere i miei documenti?", answer: "Certamente. Clicca sulla graffetta 📎 in basso a sinistra, carica un PDF, un'immagine o un file di testo e io lo leggerò per te." },
+                    { query: `Ecco un esempio pratico:<br>${fakeFileHtml}Puoi riassumere i punti chiave di questo documento?`, answer: "Analizzando il tuo documento, ecco i punti fondamentali:\n\n1. Fondazione di Roma (753 a.C.)\n2. Età Repubblicana e guerre puniche\n3. Nascita dell'Impero con Augusto\n\nVuoi che approfondisca uno di questi periodi storici?" }
+                ] 
             },
             "starter-3": { 
-                title: "🧪 Test rapido di Chimica", 
-                msgs: [{ query: "Voglio mettermi alla prova.", answer: "Ottimo spirito! Iniziamo con qualcosa di semplice: sapresti dirmi qual è il simbolo chimico dell'oro? ✨" }] 
+                title: "🧪 Test di Chimica (Esempio)", 
+                msgs: [
+                    { query: "Voglio mettermi alla prova su un argomento a caso.", answer: "Ottimo spirito! Iniziamo con qualcosa di semplice: sapresti dirmi qual è il simbolo chimico dell'oro? ✨" },
+                    { query: "Penso sia Au.", answer: "Esatto! Deriva dal latino 'Aurum'. E quello dell'Argento lo ricordi?" },
+                    { query: "Ag!", answer: "Perfetto, 'Argentum'. Sei andato benissimo. Quando vuoi fare sul serio, crea una Nuova Chat e iniziamo a studiare i tuoi veri programmi scolastici!" }
+                ] 
             }
         };
 
-        // 2. Iniezione Automatica al Login
+        // 2. Iniezione Automatica al Login (Solo la prima volta)
         const originalUpdateProfile = window.updateProfileUI;
         window.updateProfileUI = async function(user) {
             if (originalUpdateProfile) originalUpdateProfile(user);
             
             if (user && user.user_metadata && !user.user_metadata.starter_chats_injected) {
-                // Prepariamo i record per il database
                 const starterRows = Object.keys(LIME_STARTER_PACK).map(fakeId => ({
                     user_id: user.id,
                     title: LIME_STARTER_PACK[fakeId].title,
-                    dify_id: fakeId // Il Fake ID permette alla tua lista di renderizzarle subito
+                    dify_id: fakeId 
                 }));
                 
                 await supabaseClient.from('conversations').insert(starterRows);
@@ -1732,14 +1783,21 @@
             }
         };
 
-        // 3. Intercettiamo il click per caricare la chat senza chiamare Dify
+        // 3. Intercettiamo il caricamento: Sola Lettura ON/OFF [cite: 2026-02-26]
         const originalLoadChat = window.loadChat;
         window.loadChat = async function(id) {
+            // Selezioniamo il contenitore principale della chat per inserirci il banner
+            const chatBoxContainer = document.querySelector('.app-main') || document.body;
+            const banner = document.getElementById('starter-readonly-banner');
+            if (banner && banner.parentNode !== chatBoxContainer) {
+                chatBoxContainer.appendChild(banner);
+            }
+
+            // Se è una chat Starter
             if (id && LIME_STARTER_PACK[id]) {
                 currentConversationId = id;
                 if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar();
                 
-                // Mettiamo i messaggi finti in cache e li renderizziamo
                 chatCache[id] = LIME_STARTER_PACK[id].msgs;
                 if (typeof renderMessages === 'function') renderMessages(chatCache[id]);
                 
@@ -1747,50 +1805,35 @@
                 document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active-chat'));
                 const activeItem = document.getElementById(`chat-${id}`);
                 if (activeItem) activeItem.classList.add('active-chat');
+
+                // ATTIVIAMO LA MODALITÀ SOLA LETTURA
+                document.body.classList.add('starter-chat-active');
                 return;
             }
-            // Se non è una chat starter, usa la tua funzione originale
+            
+            // Se è una chat normale (o "Nuova Chat"), DISATTIVIAMO LA SOLA LETTURA
+            document.body.classList.remove('starter-chat-active');
             if (originalLoadChat) return originalLoadChat(id);
         };
 
-        // 4. Intercettiamo l'invio per trasformare la chat finta in una chat VERA
-        const originalSendMessage = window.sendMessage;
-        window.sendMessage = async function(query, fileUrl, fileType) {
-            let wasStarter = false;
-            let fakeId = null;
-
-            if (currentConversationId && LIME_STARTER_PACK[currentConversationId]) {
-                wasStarter = true;
-                fakeId = currentConversationId;
-                currentConversationId = null; // Sganciamo l'ID finto, così Dify crea una chat nuova
+        // 4. Per sicurezza, rimuoviamo la sola lettura se si clicca sul tasto "Nuova Chat"
+        document.addEventListener('click', function(e) {
+            const isNewChatBtn = e.target.closest('#new-chat-btn') || e.target.closest('.new-chat');
+            if (isNewChatBtn) {
+                document.body.classList.remove('starter-chat-active');
             }
+        });
 
-            // Eseguiamo il tuo invio messaggio originale
-            if (originalSendMessage) await originalSendMessage(query, fileUrl, fileType);
-
-            // Se era una chat starter, ora currentConversationId contiene il VERO ID generato da Dify
-            if (wasStarter && currentConversationId) {
-                // Aggiorniamo il database per sovrascrivere il Fake ID con quello Reale
-                await supabaseClient.from('conversations')
-                    .update({ dify_id: currentConversationId })
-                    .eq('dify_id', fakeId)
-                    .eq('user_id', userId);
-            }
-        };
-
-        // 5. Aggiorniamo il pulsante Debug per farti resettare tutto nei test
+        // 5. Aggiorniamo il pulsante Debug
         const originalStartTutorial = window.startInteractiveTutorial;
         if (originalStartTutorial) {
             window.startInteractiveTutorial = function() {
-                if (typeof queueProfileUpdate === 'function') {
-                    queueProfileUpdate({ starter_chats_injected: false });
-                }
+                if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ starter_chats_injected: false });
                 originalStartTutorial();
             };
         }
     })();
 </script>
-
     
 
 
