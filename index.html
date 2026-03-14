@@ -159,7 +159,6 @@
 </head>
 <body>
 <script>
-    // Iniezione sincrona prima del caricamento del DOM per evitare il FOUC
     (function() {
         try {
             const savedTheme = localStorage.getItem('lime_theme');
@@ -238,7 +237,7 @@
                 <div class="setting-item">
                     <label>Interfaccia</label>
                     <div class="bg-buttons-wrapper">
-                        <button class="setting-action-btn" style="flex: 1;" onclick="DOM.bgInput.click()">Cambia sfondo chat</button>
+                        <button class="setting-action-btn bg-upload-btn" style="flex: 1;" onclick="DOM.bgInput.click()">Cambia sfondo chat</button>
                         <button id="remove-bg-btn" title="Rimuovi sfondo personalizzato" onclick="removeCustomBg()">
                             <svg viewBox="0 0 40 40" style="width: 18px; height: 18px;"><path fill="currentColor" d="M 10 10 H 30 V 34 C 30 35.1 29.1 36 28 36 H 12 C 10.9 36 10 35.1 10 34 V 10 Z" /><path d="M 8 10 H 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 10 V 6 C 16 4.9 16.9 4 18 4 H 22 C 23.1 4 24 4.9 24 6 V 10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M 16 16 V 30 M 24 16 V 30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                         </button>
@@ -455,8 +454,6 @@
     };
 
     async function getAuthHeaders() {
-        // Leggiamo la chiave istantaneamente dal browser. 
-        // Zero chiamate al server, impossibile che si blocchi.
         try {
             const localSession = localStorage.getItem('sb-jzwldensaglpawnwpjxa-auth-token');
             if (localSession) {
@@ -466,7 +463,6 @@
                 }
             }
         } catch(e) {}
-        
         return {};
     }
 
@@ -507,23 +503,18 @@
 
     async function handleLogout() { 
         if (confirm("Vuoi davvero uscire?")) { 
-            // 1. Pulisce la cache e fa letteralmente a pezzi il token di Supabase
             const keysToRemove = [
                 'lime_theme', 'lime_color', 'lime_bg', 'lime_edu_level', 
                 'lime_inst_type', 'lime_last_user_id',
-                'sb-jzwldensaglpawnwpjxa-auth-token' // <-- Questa è la chiave del login fantasma
+                'sb-jzwldensaglpawnwpjxa-auth-token'
             ];
             keysToRemove.forEach(k => localStorage.removeItem(k));
             
-            // 2. Modifica l'interfaccia a zero millisecondi
             userId = null;
             document.getElementById('auth-section').classList.remove('hidden'); 
             document.getElementById('main-container').classList.add('hidden');
             
-            // 3. Avvisa il server in background, ma senza fargli bloccare la UI
             supabaseClient.auth.signOut().catch(() => {});
-            
-            // 4. Ricarica istantaneamente l'ambiente, azzerando la memoria Javascript
             window.location.reload(); 
         } 
     }
@@ -720,7 +711,6 @@
     async function toggleRecording() { 
         if (isRecording) { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); return; } 
         try { 
-            // Nasconde istantaneamente il greeting all'avvio della registrazione
             if (DOM.greetingBox) DOM.greetingBox.classList.add('hidden-greeting');
 
             if (!globalStream) globalStream = await navigator.mediaDevices.getUserMedia({ audio: true }); globalStream.getAudioTracks().forEach(t => t.enabled = true); 
@@ -1027,7 +1017,13 @@
     function applyChatBackground(imageUrl) { 
         currentCustomBg = imageUrl;
         if (DOM.chatBox) { 
-            if (imageUrl) { DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(${imageUrl})`; DOM.chatBox.style.backgroundSize = 'cover'; DOM.chatBox.style.backgroundPosition = 'center'; DOM.chatBox.style.backgroundRepeat = 'no-repeat'; DOM.chatBox.style.backgroundAttachment = 'fixed'; } 
+            if (imageUrl) { 
+                DOM.chatBox.style.backgroundImage = `linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url("${imageUrl}")`; 
+                DOM.chatBox.style.backgroundSize = 'cover'; 
+                DOM.chatBox.style.backgroundPosition = 'center'; 
+                DOM.chatBox.style.backgroundRepeat = 'no-repeat'; 
+                DOM.chatBox.style.backgroundAttachment = 'fixed'; 
+            } 
             else updateDefaultBackground(); 
         } 
     }
@@ -1073,14 +1069,13 @@
             const fullName = user.user_metadata?.full_name || user.email.split('@')[0], initial = fullName.charAt(0).toUpperCase(); 
             nameSpans.forEach(span => span.innerText = fullName); 
             
-            // Nuova logica: Supabase comanda (Single Source of Truth)
-            const finalTheme = user.user_metadata?.theme || localStorage.getItem('lime_theme') || 'dark';
-            const finalColor = user.user_metadata?.color || localStorage.getItem('lime_color') || '#c0f22c';
-            const finalBg = user.user_metadata?.bg || localStorage.getItem('lime_bg') || null;
-            const finalLevel = user.user_metadata?.lime_edu_level || localStorage.getItem('lime_edu_level') || '';
-            const finalInst = user.user_metadata?.lime_inst_type || localStorage.getItem('lime_inst_type') || '';
+            const md = user.user_metadata || {};
+            const finalTheme = md.theme || localStorage.getItem('lime_theme') || 'dark';
+            const finalColor = md.color || localStorage.getItem('lime_color') || '#c0f22c';
+            const finalBg = md.bg !== undefined ? md.bg : (localStorage.getItem('lime_bg') || null);
+            const finalLevel = md.lime_edu_level !== undefined ? md.lime_edu_level : (localStorage.getItem('lime_edu_level') || '');
+            const finalInst = md.lime_inst_type !== undefined ? md.lime_inst_type : (localStorage.getItem('lime_inst_type') || '');
 
-            // Sovrascriviamo ciecamente la cache locale con la verità
             localStorage.setItem('lime_theme', finalTheme);
             localStorage.setItem('lime_color', finalColor);
             if (finalBg) localStorage.setItem('lime_bg', finalBg); else localStorage.removeItem('lime_bg');
@@ -1097,7 +1092,7 @@
             updateColorCirclesUI(finalColor); 
             applyChatBackground(finalBg); 
             
-            const tutorialDone = user.user_metadata?.tutorial_done === true;
+            const tutorialDone = md.tutorial_done === true;
             const redSquare = document.getElementById('tutorial-red-square');
             if (redSquare) {
                 if (!tutorialDone) redSquare.style.display = 'block';
@@ -1113,26 +1108,46 @@
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 50);
     }
 
-    async function uploadToSupabaseStorage(file, pathPrefix) { const fileExt = file.name.split('.').pop(); const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); if (error) { alert("Errore caricamento immagine."); return null; } const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); return publicUrl; }
+    async function uploadToSupabaseStorage(file, pathPrefix) { 
+        const fileExt = (file.name || 'image.jpg').split('.').pop(); 
+        const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; 
+        const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); 
+        if (error) { alert("Errore caricamento immagine."); return null; } 
+        const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); 
+        return publicUrl; 
+    }
+    
     async function deleteOldSupabaseFile(oldUrl) { if (!oldUrl) return; try { const bucketMarker = '/lime-assets/'; const index = oldUrl.indexOf(bucketMarker); if (index !== -1) { const filePath = oldUrl.substring(index + bucketMarker.length); await supabaseClient.storage.from('lime-assets').remove([filePath]); } } catch (e) {} }
     
     async function handleBgUpload(event) { 
         if (!userId) return; 
         const file = event.target.files[0]; 
         if (file) { 
+            const btn = document.querySelector('.bg-upload-btn');
+            const prevText = btn.innerText;
+            btn.innerText = 'Caricamento...';
+            
             const reader = new FileReader(); 
             reader.onload = function(e) { 
                 applyChatBackground(e.target.result); 
             }; 
             reader.readAsDataURL(file); 
-            const { data: { user } } = await supabaseClient.auth.getUser(); 
-            const oldUrl = user?.user_metadata?.bg; 
-            const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); 
-            if (publicUrl) { 
-                localStorage.setItem('lime_bg', publicUrl); 
-                queueProfileUpdate({ bg: publicUrl });
-                if (oldUrl) await deleteOldSupabaseFile(oldUrl); 
-            } 
+            
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser(); 
+                const oldUrl = user?.user_metadata?.bg; 
+                const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); 
+                if (publicUrl) { 
+                    localStorage.setItem('lime_bg', publicUrl); 
+                    queueProfileUpdate({ bg: publicUrl });
+                    if (oldUrl) deleteOldSupabaseFile(oldUrl); 
+                } 
+            } catch(e) {
+                console.error(e);
+            } finally {
+                btn.innerText = prevText;
+                event.target.value = ''; 
+            }
         } 
     }
 
@@ -1278,26 +1293,21 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
 
-        // Sincronizzazione in background sicura (non bloccante)
         async function fetchFreshData() {
             if (!userId) return;
             try {
-                // Diamo a Supabase massimo 2 secondi. Se la scheda è congelata, annulla senza bloccare l'app.
                 const userPromise = supabaseClient.auth.getUser();
                 const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve({ error: 'timeout' }), 2000));
-                
                 const result = await Promise.race([userPromise, timeoutPromise]);
                 
-                // Se ha risposto in tempo e c'è l'utente, aggiorniamo l'interfaccia
                 if (result && result.data && result.data.user) {
-                    updateProfileUI(result.data.user);
+                    if (Object.keys(pendingProfileUpdates).length === 0) {
+                        updateProfileUI(result.data.user);
+                    }
                 }
-            } catch (e) {
-                // Errore silente, l'app continua a funzionare fluidamente
-            }
+            } catch (e) {}
         }
         
-        // Scatta quando torni sulla scheda di LIME
         document.addEventListener('visibilitychange', () => { 
             if (document.visibilityState === 'visible') {
                 fetchFreshData(); 
@@ -1317,14 +1327,6 @@
                 queueProfileUpdate({ tutorial_done: true });
             });
         }
-
-        const savedBg = localStorage.getItem('lime_bg');
-        if (savedBg) applyChatBackground(savedBg);
-
-        const savedLevel = localStorage.getItem('lime_edu_level');
-        const savedInst = localStorage.getItem('lime_inst_type');
-        if (DOM.eduDropdown && savedLevel) DOM.eduDropdown.value = savedLevel;
-        if (DOM.instDropdown && savedInst) DOM.instDropdown.value = savedInst;
 
         let inputDebounce, scrollTimeout; 
         if (DOM.chatBox) {
@@ -1356,7 +1358,6 @@
             textarea.addEventListener('input', () => {
                 autoResize();
                 
-                // Nasconde il microfono se c'è del testo, lo fa riapparire se è vuoto
                 if (textarea.value.trim().length > 0) {
                     if (DOM.micBtn) DOM.micBtn.classList.add('hidden');
                 } else {
@@ -1403,8 +1404,6 @@
         initLimeExtras();
         setupChatVirtualization();
 
-
-
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { 
             userId = session.user.id; 
@@ -1421,23 +1420,33 @@
         }
         
         supabaseClient.auth.onAuthStateChange(async (event, session) => { 
-            if (session) { 
-                userId = session.user.id; 
-                clearCacheIfNewUser(userId);
-                document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
-                if (window.syncAnchoring) window.syncAnchoring();
-                
-                const { data: { user } } = await supabaseClient.auth.getUser();
-                updateProfileUI(user || session.user); 
-                
-                loadHistory(); 
-                if (window.updateGreetingVisibility) window.updateGreetingVisibility();
-                await loadHeavyLibraries(); 
-            } else { 
+            if (event === 'USER_UPDATED') return; 
+            
+            if (event === 'SIGNED_OUT') {
                 userId = null; 
-                document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); 
+                document.getElementById('auth-section').classList.remove('hidden'); 
+                document.getElementById('main-container').classList.add('hidden'); 
                 updateProfileUI(null); 
-            } 
+                return;
+            }
+
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+                if (session) { 
+                    if (userId === session.user.id) return; 
+                    
+                    userId = session.user.id; 
+                    clearCacheIfNewUser(userId);
+                    document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
+                    if (window.syncAnchoring) window.syncAnchoring();
+                    
+                    const { data: { user } } = await supabaseClient.auth.getUser();
+                    updateProfileUI(user || session.user); 
+                    
+                    loadHistory(); 
+                    if (window.updateGreetingVisibility) window.updateGreetingVisibility();
+                    await loadHeavyLibraries(); 
+                }
+            }
         });
         
         if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', (e) => { const level = e.target.value; localStorage.setItem('lime_edu_level', level); queueProfileUpdate({ lime_edu_level: level }); }); }
