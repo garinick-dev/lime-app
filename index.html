@@ -455,8 +455,29 @@
     };
 
     async function getAuthHeaders() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        return { 'Authorization': `Bearer ${session?.access_token}` };
+        try {
+            // Diamo a Supabase massimo 1 secondo per rispondere, evitando blocchi infiniti
+            const sessionPromise = supabaseClient.auth.getSession();
+            const timeoutPromise = new Promise(resolve => setTimeout(() => resolve('TIMEOUT'), 1000));
+            const result = await Promise.race([sessionPromise, timeoutPromise]);
+            
+            if (result !== 'TIMEOUT' && result?.data?.session) {
+                return { 'Authorization': `Bearer ${result.data.session.access_token}` };
+            }
+        } catch(e) {}
+
+        // Se Supabase è bloccato (Tab Freezing), peschiamo il token dalla memoria locale
+        try {
+            const localSession = localStorage.getItem('sb-jzwldensaglpawnwpjxa-auth-token');
+            if (localSession) {
+                const parsed = JSON.parse(localSession);
+                if (parsed && parsed.access_token) {
+                    return { 'Authorization': `Bearer ${parsed.access_token}` };
+                }
+            }
+        } catch(e) {}
+        
+        return {};
     }
 
     function queueProfileUpdate(newData) {
