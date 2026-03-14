@@ -455,8 +455,19 @@
     };
 
     async function getAuthHeaders() {
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        return { 'Authorization': `Bearer ${session?.access_token}` };
+        // Leggiamo la chiave istantaneamente dal browser. 
+        // Zero chiamate al server, impossibile che si blocchi.
+        try {
+            const localSession = localStorage.getItem('sb-jzwldensaglpawnwpjxa-auth-token');
+            if (localSession) {
+                const parsed = JSON.parse(localSession);
+                if (parsed && parsed.access_token) {
+                    return { 'Authorization': `Bearer ${parsed.access_token}` };
+                }
+            }
+        } catch(e) {}
+        
+        return {};
     }
 
     function queueProfileUpdate(newData) {
@@ -713,6 +724,9 @@
     async function toggleRecording() { 
         if (isRecording) { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); return; } 
         try { 
+            // Nasconde istantaneamente il greeting all'avvio della registrazione
+            if (DOM.greetingBox) DOM.greetingBox.classList.add('hidden-greeting');
+
             if (!globalStream) globalStream = await navigator.mediaDevices.getUserMedia({ audio: true }); globalStream.getAudioTracks().forEach(t => t.enabled = true); 
             mediaRecorder = new MediaRecorder(globalStream); audioChunks = []; 
             mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); }; 
@@ -1336,6 +1350,14 @@
 
             textarea.addEventListener('input', () => {
                 autoResize();
+                
+                // Nasconde il microfono se c'è del testo, lo fa riapparire se è vuoto
+                if (textarea.value.trim().length > 0) {
+                    if (DOM.micBtn) DOM.micBtn.classList.add('hidden');
+                } else {
+                    if (DOM.micBtn && !isRecording) DOM.micBtn.classList.remove('hidden');
+                }
+
                 clearTimeout(inputDebounce);
                 inputDebounce = setTimeout(() => { 
                     if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
@@ -1380,7 +1402,8 @@
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session && session.user) {
                 const { data: { user }, error } = await supabaseClient.auth.getUser();
-                if (!error && user) { updateProfileUI(user); await supabaseClient.auth.refreshSession(); }
+                // Rimosso il refreshSession() forzato. Aggiorna solo l'interfaccia grafica.
+                if (!error && user) { updateProfileUI(user); }
             }
         }
         
