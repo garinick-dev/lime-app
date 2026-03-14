@@ -1526,103 +1526,161 @@
 
 
 <style>
-    /* Definizione dei nuovi colori azzurri per gli occhi [cite: 2026-02-28] */
-    :root {
-        --lime-eye-blue-1: #87CEFA; /* LightSkyBlue */
-        --lime-eye-blue-2: #1E90FF; /* DodgerBlue */
-    }
-
-    /* Stile per la mascotte tutorial duplicata */
-    #lime-svg-sprite-tutorial {
-        position: absolute;
+    /* 1. Overlay e UI Tutorial */
+    #tutorial-overlay {
+        position: fixed;
         inset: 0;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.4s ease, visibility 0.4s ease;
-        z-index: 1; /* Sopra la mascotte originale se attiva */
+        background: rgba(15, 15, 15, 0.65);
+        backdrop-filter: blur(10px);
+        z-index: 1000; /* Sopra la chat, sotto gli highlight */
+        display: none;
+        pointer-events: all;
     }
 
-    /* Stato: Tutorial Attivo [cite: 2026-02-26] */
-    body.tutorial-active #lime-app-mascot {
-        z-index: 1001 !important; /* Porta l'intero contenitore SOPRA il blur grigio */
+    #tutorial-next-btn {
+        position: fixed;
+        bottom: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1005; 
+        background: #28a745; /* Verde richiesto */
+        color: white;
+        border: none;
+        padding: 12px 35px;
+        border-radius: 30px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        display: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        transition: transform 0.2s;
     }
 
-    body.tutorial-active #lime-svg-sprite-tutorial {
-        opacity: 1;
-        visibility: visible;
+    /* 2. Logica Mascotte Tutorial (Occhi Azzurri) */
+    .tutorial-mascot-active .lime-eye {
+        fill: #00d4ff !important; /* Azzurro Tutorial */
+        transition: fill 0.3s ease;
     }
 
-    /* Nascondiamo la mascotte originale solo durante il tutorial */
-    body.tutorial-active #lime-svg-sprite {
-        opacity: 0;
+    /* Sollevamento forzato della mascotte e dei suoi contenitori sopra il blur */
+    .tutorial-lift { z-index: 1001 !important; }
+    
+    /* Stile pulsante debug */
+    .debug-tutorial-btn {
+        width: 100%; margin-top: 15px; padding: 8px;
+        background: var(--input-bg); border: 1px dashed var(--border-color);
+        color: var(--text-muted); border-radius: 8px; font-size: 0.75rem;
+        font-weight: bold; text-transform: uppercase; cursor: pointer;
     }
 </style>
 
+<div id="tutorial-overlay"></div>
+<button id="tutorial-next-btn" onclick="nextTutorialStep()">Avanti</button>
+
 <script>
-    (function injectTutorialMascotPatch() {
-        // 1. Recuperiamo le definizioni SVG originali
-        const defsContainer = document.getElementById('dify-app-global-svg-defs-container');
-        if (!defsContainer) return;
+    let currentStep = 0;
+    const tutorialSteps = [
+        { selector: 'header', originalZ: '50' },
+        { selector: '#lime-greeting-box', originalZ: '1000' },
+        { selector: '.input-wrapper', originalZ: 'auto' }
+    ];
 
-        // 2. Creiamo il nuovo gradiente azzurro per gli occhi
-        const blueGradient = `
-            <linearGradient id="lime-eye-gradient-tutorial" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style="stop-color:var(--lime-eye-blue-1); stop-opacity:1"></stop>
-                <stop offset="100%" style="stop-color:var(--lime-eye-blue-2); stop-opacity:1"></stop>
-            </linearGradient>
-        `;
-        defsContainer.insertAdjacentHTML('beforeend', blueGradient);
-
-        // 3. Duplichiamo il simbolo della mascotte e modifichiamo il riferimento degli occhi
-        // Recuperiamo il contenuto testuale del simbolo per modificarlo chirurgicamente
-        const originalSymbol = document.getElementById('lime-app-mascot-sprite-symbol');
-        if (!originalSymbol) return;
-        
-        // Creiamo il nuovo simbolo duplicato
-        const tutorialSymbol = originalSymbol.cloneNode(true);
-        tutorialSymbol.id = 'lime-app-mascot-sprite-symbol-tutorial';
-        
-        // Modifichiamo il fill degli occhi per usare il nuovo gradiente
-        // Nota: si assume che nel simbolo originale l'elemento occhi abbia fill="url(#lime-eye-gradient)"
-        let symbolHtml = tutorialSymbol.innerHTML;
-        symbolHtml = symbolHtml.replace('url(#lime-eye-gradient)', 'url(#lime-eye-gradient-tutorial)');
-        tutorialSymbol.innerHTML = symbolHtml;
-        
-        defsContainer.appendChild(tutorialSymbol);
-
-        // 4. Creiamo la visualizzazione della Mascotte Tutorial nell'interfaccia
-        const mascotContainer = document.getElementById('lime-app-mascot');
-        if (mascotContainer && !document.getElementById('lime-svg-sprite-tutorial')) {
-            const tutorialSpriteHtml = `
-                <div id="lime-svg-sprite-tutorial">
-                    <svg viewBox="0 0 500 500">
-                        <use href="#lime-app-mascot-sprite-symbol-tutorial"></use>
-                    </svg>
-                </div>
-            `;
-            mascotContainer.insertAdjacentHTML('beforeend', tutorialSpriteHtml);
+    /**
+     * Cicla tra gli elementi alzando lo z-index a 1001
+     */
+    function nextTutorialStep() {
+        // Ripristino elemento precedente
+        if (currentStep > 0) {
+            const prev = tutorialSteps[currentStep - 1];
+            const prevEl = document.querySelector(prev.selector);
+            if (prevEl) {
+                prevEl.style.zIndex = prev.originalZ;
+                if (prev.selector === '.input-wrapper') {
+                    document.querySelector('.input-area').style.zIndex = '50';
+                }
+            }
         }
 
-        console.log("Patch LIME: Mascotte Tutorial con occhi azzurri iniettata con successo.");
+        // Fine Tutorial: Reset Totale [cite: 2026-02-26]
+        if (currentStep >= tutorialSteps.length) {
+            closeTutorialInteractive();
+            return;
+        }
+
+        // Evidenziazione nuovo elemento (z-index 1001)
+        const current = tutorialSteps[currentStep];
+        const el = document.querySelector(current.selector);
+        if (el) {
+            if (current.selector === '.input-wrapper') {
+                const parentArea = document.querySelector('.input-area');
+                if (parentArea) parentArea.style.zIndex = '1001';
+            }
+            el.style.zIndex = "1001";
+        }
+
+        currentStep++;
+    }
+
+    function closeTutorialInteractive() {
+        document.getElementById('tutorial-overlay').style.display = 'none';
+        document.getElementById('tutorial-next-btn').style.display = 'none';
+        
+        // Riporta la mascotte allo stato originale (occhi neri e z-index standard)
+        const mascot = document.getElementById('lime-app-mascot');
+        const inputArea = document.querySelector('.input-area');
+        if (mascot) mascot.classList.remove('tutorial-mascot-active');
+        if (inputArea) inputArea.style.zIndex = '50'; // Valore originale da lime33.html
+
+        currentStep = 0;
+        if (typeof queueProfileUpdate === 'function') {
+            queueProfileUpdate({ tutorial_done: true });
+        }
+    }
+
+    async function startInteractiveTutorial() {
+        currentStep = 0;
+        // Reset flag per debug e coerenza cross-platform [cite: 2026-02-26]
+        if (typeof queueProfileUpdate === 'function') {
+            queueProfileUpdate({ tutorial_done: false });
+        }
+
+        // Attiva Mascotte Tutorial (Occhi Azzurri + Primo Piano)
+        const mascot = document.getElementById('lime-app-mascot');
+        const inputArea = document.querySelector('.input-area');
+        if (mascot) mascot.classList.add('tutorial-mascot-active');
+        if (inputArea) inputArea.style.zIndex = '1001'; // La solleva sopra il blur
+
+        document.getElementById('tutorial-overlay').style.display = 'block';
+        document.getElementById('tutorial-next-btn').style.display = 'block';
+        nextTutorialStep();
+    }
+
+    (function patchTutorialLogic() {
+        // Nascondiamo il vecchio quadrato rosso
+        const redSquare = document.getElementById('tutorial-red-square');
+        if (redSquare) redSquare.style.display = 'none';
+
+        // Inserimento pulsante debug sotto il color picker
+        const colorPicker = document.getElementById('color-picker');
+        if (colorPicker) {
+            const btn = document.createElement('button');
+            btn.className = 'debug-tutorial-btn';
+            btn.innerText = 'DEBUG: Reset & Start Tut';
+            btn.onclick = startInteractiveTutorial;
+            colorPicker.parentNode.appendChild(btn);
+        }
+
+        // Trigger automatico basato sul profilo Supabase
+        const originalUpdateProfileUI = window.updateProfileUI;
+        window.updateProfileUI = function(user) {
+            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
+            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) {
+                startInteractiveTutorial();
+            }
+        };
     })();
-
-    // 5. Integrazione con la logica del tutorial esistente
-    // Sovrascriviamo le funzioni di start/close per gestire la classe sul body
-
-    const originalStartInteractiveTutorial = window.startInteractiveTutorial;
-    window.startInteractiveTutorial = async function() {
-        document.body.classList.add('tutorial-active');
-        if (originalStartInteractiveTutorial) await originalStartInteractiveTutorial();
-    };
-
-    const originalCloseTutorialInteractive = window.closeTutorialInteractive;
-    window.closeTutorialInteractive = function() {
-        document.body.classList.remove('tutorial-active');
-        if (originalCloseTutorialInteractive) originalCloseTutorialInteractive();
-    };
 </script>
-
-
     
 
     
