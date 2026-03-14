@@ -1526,46 +1526,40 @@
 
 
 <style>
-    /* 1. Overlay e UI Tutorial */
+    /* 1. Overlay e Pulsante */
     #tutorial-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(15, 15, 15, 0.65);
+        position: fixed; inset: 0;
+        background: rgba(15, 15, 15, 0.7);
         backdrop-filter: blur(10px);
-        z-index: 1000; /* Sopra la chat, sotto gli highlight */
-        display: none;
-        pointer-events: all;
+        z-index: 1000; display: none; pointer-events: all;
     }
 
     #tutorial-next-btn {
-        position: fixed;
-        bottom: 120px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 1005; 
-        background: #28a745; /* Verde richiesto */
-        color: white;
-        border: none;
-        padding: 12px 35px;
-        border-radius: 30px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        cursor: pointer;
-        display: none;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        transition: transform 0.2s;
+        position: fixed; bottom: 80px; left: 50%;
+        transform: translateX(-50%); z-index: 1100;
+        background: #28a745; color: white; border: none;
+        padding: 12px 40px; border-radius: 30px;
+        font-weight: 800; text-transform: uppercase;
+        cursor: pointer; display: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
 
-    /* 2. Logica Mascotte Tutorial (Occhi Azzurri) */
-    .tutorial-mascot-active .lime-eye {
-        fill: #00d4ff !important; /* Azzurro Tutorial */
-        transition: fill 0.3s ease;
+    /* 2. Mascotte in modalità Tutorial (Sola e con occhi azzurri) */
+    .mascot-tutorial-mode {
+        position: fixed !important;
+        bottom: 140px !important; /* Alzata rispetto al pulsante */
+        left: 50% !important;
+        transform: translateX(-50%) scale(1.2) !important;
+        z-index: 1005 !important; /* Sopra il blur, ma indipendente dagli altri highlight */
+        pointer-events: none;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
 
-    /* Sollevamento forzato della mascotte e dei suoi contenitori sopra il blur */
-    .tutorial-lift { z-index: 1001 !important; }
-    
+    .mascot-tutorial-mode .lime-eye {
+        fill: #00d4ff !important; /* Azzurro Tutorial richiesto */
+        transition: fill 0.4s ease;
+    }
+
     /* Stile pulsante debug */
     .debug-tutorial-btn {
         width: 100%; margin-top: 15px; padding: 8px;
@@ -1580,15 +1574,15 @@
 
 <script>
     let currentStep = 0;
+    let mascotPlaceholder = null;
+    let originalMascotParent = null;
+
     const tutorialSteps = [
         { selector: 'header', originalZ: '50' },
         { selector: '#lime-greeting-box', originalZ: '1000' },
         { selector: '.input-wrapper', originalZ: 'auto' }
     ];
 
-    /**
-     * Cicla tra gli elementi alzando lo z-index a 1001
-     */
     function nextTutorialStep() {
         // Ripristino elemento precedente
         if (currentStep > 0) {
@@ -1596,29 +1590,25 @@
             const prevEl = document.querySelector(prev.selector);
             if (prevEl) {
                 prevEl.style.zIndex = prev.originalZ;
-                if (prev.selector === '.input-wrapper') {
-                    document.querySelector('.input-area').style.zIndex = '50';
-                }
+                if (prev.selector === '.input-wrapper') document.querySelector('.input-area').style.zIndex = '50';
             }
         }
 
-        // Fine Tutorial: Reset Totale [cite: 2026-02-26]
+        // Fine Tutorial
         if (currentStep >= tutorialSteps.length) {
             closeTutorialInteractive();
             return;
         }
 
-        // Evidenziazione nuovo elemento (z-index 1001)
+        // Evidenziazione nuovo elemento
         const current = tutorialSteps[currentStep];
         const el = document.querySelector(current.selector);
         if (el) {
             if (current.selector === '.input-wrapper') {
-                const parentArea = document.querySelector('.input-area');
-                if (parentArea) parentArea.style.zIndex = '1001';
+                document.querySelector('.input-area').style.zIndex = '1001';
             }
             el.style.zIndex = "1001";
         }
-
         currentStep++;
     }
 
@@ -1626,11 +1616,12 @@
         document.getElementById('tutorial-overlay').style.display = 'none';
         document.getElementById('tutorial-next-btn').style.display = 'none';
         
-        // Riporta la mascotte allo stato originale (occhi neri e z-index standard)
+        // RIPRISTINO TOTALE: Riportiamo la mascotte a casa [cite: 2026-03-02]
         const mascot = document.getElementById('lime-app-mascot');
-        const inputArea = document.querySelector('.input-area');
-        if (mascot) mascot.classList.remove('tutorial-mascot-active');
-        if (inputArea) inputArea.style.zIndex = '50'; // Valore originale da lime33.html
+        if (mascot && originalMascotParent) {
+            mascot.classList.remove('mascot-tutorial-mode');
+            originalMascotParent.appendChild(mascot); // Torna dentro l'input wrapper
+        }
 
         currentStep = 0;
         if (typeof queueProfileUpdate === 'function') {
@@ -1639,17 +1630,19 @@
     }
 
     async function startInteractiveTutorial() {
+        const mascot = document.getElementById('lime-app-mascot');
+        
+        // 1. SGANCIO: Salviamo il genitore e spostiamo la mascotte nel body
+        if (mascot) {
+            originalMascotParent = mascot.parentNode;
+            mascot.classList.add('mascot-tutorial-mode');
+            document.body.appendChild(mascot); // Ora è "sola" nel DOM
+        }
+
         currentStep = 0;
-        // Reset flag per debug e coerenza cross-platform [cite: 2026-02-26]
         if (typeof queueProfileUpdate === 'function') {
             queueProfileUpdate({ tutorial_done: false });
         }
-
-        // Attiva Mascotte Tutorial (Occhi Azzurri + Primo Piano)
-        const mascot = document.getElementById('lime-app-mascot');
-        const inputArea = document.querySelector('.input-area');
-        if (mascot) mascot.classList.add('tutorial-mascot-active');
-        if (inputArea) inputArea.style.zIndex = '1001'; // La solleva sopra il blur
 
         document.getElementById('tutorial-overlay').style.display = 'block';
         document.getElementById('tutorial-next-btn').style.display = 'block';
@@ -1661,7 +1654,7 @@
         const redSquare = document.getElementById('tutorial-red-square');
         if (redSquare) redSquare.style.display = 'none';
 
-        // Inserimento pulsante debug sotto il color picker
+        // Pulsante debug sotto il color picker
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker) {
             const btn = document.createElement('button');
@@ -1671,7 +1664,7 @@
             colorPicker.parentNode.appendChild(btn);
         }
 
-        // Trigger automatico basato sul profilo Supabase
+        // Integrazione profilo
         const originalUpdateProfileUI = window.updateProfileUI;
         window.updateProfileUI = function(user) {
             if (originalUpdateProfileUI) originalUpdateProfileUI(user);
