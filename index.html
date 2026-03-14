@@ -43,8 +43,7 @@
         .history-item { padding: 12px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 6px; font-size: 0.9rem; color: var(--text-light); transition: background 0.2s, color 0.2s; display: flex; justify-content: space-between; align-items: center; } .history-item:hover { background: var(--border-color); color: var(--text-main); }
         .active-chat { background: #2a2a2a; color: white; border-left: 3px solid var(--accent); border-radius: 4px 10px 10px 4px; }
         .chat-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; pointer-events: none; } .chat-actions { display: flex; gap: 12px; } .action-btn { background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.6; padding: 4px; transition: opacity 0.2s; pointer-events: auto; } .action-btn:hover { opacity: 1; }
-        
-        .load-more-btn { background: var(--accent); color: #000; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 0.85rem; font-weight: 600; transition: filter 0.2s ease, transform 0.1s ease; } .load-more-btn:hover { filter: brightness(1.15); } .load-more-btn:active { transform: scale(0.98); }
+        .load-more-btn { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-color); padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 0.85rem; transition: 0.2s; } .load-more-btn:hover { background: var(--user-bubble); color: var(--text-main); }
         
         #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: 20px !important; }
         #sidebar-bottom::before { content: "Impostazioni"; position: -webkit-sticky; position: sticky; top: -20px; display: block; background: var(--sidebar-bg); color: var(--accent); font-size: 0.95rem; font-weight: 800; letter-spacing: 1px; padding: 20px 0 15px 0; margin: -20px 0 15px 0; z-index: 10; }
@@ -99,7 +98,7 @@
         .msg-wrapper { width: 100%; max-width: var(--chat-max-width); display: flex; flex-direction: column; position: relative; z-index: 2; transition: min-height 0.2s; } 
         
         .msg { max-width: 85%; line-height: 1.6; word-wrap: break-word; font-size: 1rem; position: relative; border: none !important; box-shadow: none !important; } 
-        .user-msg { align-self: flex-end; background: var(--user-bubble); padding: 12px 18px; border-radius: 20px 20px 4px 20px; color: #fff; transform: translateZ(0); white-space: pre-wrap !important; } 
+        .user-msg { align-self: flex-end; background: var(--user-bubble); padding: 12px 18px; border-radius: 20px 20px 4px 20px; color: #fff; transform: translateZ(0); } 
         
         .bot-msg { align-self: flex-start; background: var(--accent) !important; color: #000 !important; padding: 12px 18px; border-radius: 20px 20px 20px 4px; width: auto; transform-origin: bottom left; } 
         
@@ -112,12 +111,9 @@
         .input-area { position: absolute !important; bottom: 0; left: 0; width: 100%; background: transparent !important; background-color: transparent !important; border-top: transparent !important; box-shadow: none !important; z-index: 50; padding: 15px 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; align-items: center; flex-shrink: 0; transform: translateZ(0); } 
         #breath-area { position: absolute; bottom: 100%; left: 0; width: 100%; height: 95%; pointer-events: none; }
         
-        .input-wrapper { position: relative !important; width: 100%; max-width: var(--chat-max-width); background: var(--input-bg); border-radius: 30px; display: flex; padding: 8px 12px 8px 20px; align-items: flex-end !important; border: 1px solid var(--border-color); box-shadow: 0 5px 20px rgba(0,0,0,0.5); transition: border-color 0.2s; pointer-events: auto; } .input-wrapper:focus-within { border-color: #555; }
+        .input-wrapper { position: relative !important; width: 100%; max-width: var(--chat-max-width); background: var(--input-bg); border-radius: 30px; display: flex; padding: 8px 12px 8px 20px; align-items: center; border: 1px solid var(--border-color); box-shadow: 0 5px 20px rgba(0,0,0,0.5); transition: border-color 0.2s; pointer-events: auto; } .input-wrapper:focus-within { border-color: #555; }
+        #user-input { flex: 1; min-width: 0; background: none; border: none; color: var(--text-main); padding: 10px 0; outline: none; font-size: 16px; } 
         
-        textarea#user-input { flex: 1; min-width: 0; background: none; border: none; color: var(--text-main); padding: 10px 0; outline: none; font-size: 16px; font-family: inherit; resize: none; line-height: 20px; max-height: 120px; min-height: 40px; box-sizing: border-box; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
-        textarea#user-input::-webkit-scrollbar { display: none; }
-        
-        #attach-btn, #mic-btn { margin-bottom: 10px; }
         #attach-btn, #mic-btn, #send-btn { color: var(--text-main); display: flex; align-items: center; justify-content: center; }
         #send-btn { background: var(--accent); color: inherit; border: none; width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem; cursor: pointer; transition: transform 0.2s; flex-shrink: 0; } #send-btn:active { transform: scale(0.9); } #send-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: scale(0.9); } 
         #attach-btn { background: none; border: none; padding: 0; margin-right: 12px; cursor: pointer; transition: 0.2s; filter: grayscale(100%); opacity: 0.6; outline: none; position: relative; flex-shrink: 0; } #attach-btn:hover, #attach-btn.active { opacity: 1; filter: grayscale(0%); } 
@@ -158,21 +154,6 @@
     </style>
 </head>
 <body>
-<script>
-    // Iniezione sincrona prima del caricamento del DOM per evitare il FOUC
-    (function() {
-        try {
-            const savedTheme = localStorage.getItem('lime_theme');
-            const savedColor = localStorage.getItem('lime_color');
-            
-            if (savedTheme === 'light') document.body.classList.add('light-theme');
-            if (savedColor) {
-                document.documentElement.style.setProperty('--accent', savedColor);
-                document.documentElement.style.setProperty('--lime-accent', savedColor);
-            }
-        } catch(e) {}
-    })();
-</script>
 
     <div id="sidebar-backdrop" class="hidden" onclick="toggleSidebar()"></div>
 
@@ -327,7 +308,7 @@
                     <input type="file" id="file-input" class="hidden-file-input" onchange="handleFileSelect(event)" accept="image/*,.pdf,.txt">
                     
                     <span id="recording-timer" class="hidden">🔴 00:00</span>
-                    <textarea id="user-input" rows="1" placeholder="Scrivi a LIME..."></textarea>
+                    <input type="text" id="user-input" placeholder="Chiedi qualsiasi cosa a LIME...">
                     
                     <button id="mic-btn" onclick="toggleRecording()" title="Parla con LIME">
                         <svg viewBox="0 0 40 40" style="width: 20px; height: 20px;"><path fill="currentColor" d="M 20 2 C 16.13 2, 13 5.13, 13 9 V 19 C 13 22.87, 16.13 26, 20 26 C 23.87 26, 27 22.87, 27 19 V 9 C 27 5.13, 23.87 2, 20 2 Z" /><path d="M 32 19 C 32 25.63, 26.63 31, 20 31 C 13.37 31, 8 25.63, 8 19" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M 20 31 V 37.5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
@@ -341,27 +322,15 @@
         </div>
     </div>
 
-    <div id="tutorial-red-square" style="display: none; position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; background-color: #ff4444; z-index: 99999; cursor: pointer; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s, opacity 0.2s;"></div>
-
 <script>
     let DOM = {};
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
     let globalStream = null, chatVirtualObserver = null, currentCustomBg = null, capturedChipTitle = null;
-    let librariesLoaded = false; 
-    let isPrependInProgress = false;
+    let librariesLoaded = false; // Flag per il lazy loading
 
     const chatCache = {}; let allChats = []; let chatPage = 1; const CHATS_PER_PAGE = 10;
-    const MAX_CACHE_CHATS = 5; 
-    
-    const chatHasMoreCache = {};
-    const chatOldestIdCache = {};
-    let currentChatHasMore = false;
-    let currentChatOldestMsgId = null;
-
-    let profileUpdateTimer = null;
-    let pendingProfileUpdates = {};
-
+    const MAX_CACHE_CHATS = 5; // Limite memoria cache
     const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
 
     const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
@@ -378,14 +347,7 @@
         sendPlane: `<svg viewBox="0 0 24 24" style="width: 23px; height: 23px; transform: translate(0.5px, -0.5px);" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path transform="rotate(45 12 12) translate(12 12) scale(1 0.75) translate(-12 -12)" fill-rule="evenodd" clip-rule="evenodd" d="M12 2a1 1 0 0 1 .932.638l7 18a1 1 0 0 1-1.326 1.281L13 19.517V13a1 1 0 1 0-2 0v6.517l-5.606 2.402a1 1 0 0 1-1.326-1.281l7-18A1 1 0 0 1 12 2Z" /></svg>`
     };
 
-    function clearCacheIfNewUser(currentUserId) {
-        const lastUser = localStorage.getItem('lime_last_user_id');
-        if (lastUser && lastUser !== currentUserId) {
-            ['lime_theme', 'lime_color', 'lime_bg', 'lime_edu_level', 'lime_inst_type', 'lime_settings_ts'].forEach(k => localStorage.removeItem(k));
-        }
-        localStorage.setItem('lime_last_user_id', currentUserId);
-    }
-
+    // Lazy Loading delle librerie pesanti
     async function loadHeavyLibraries() {
         if (librariesLoaded) return;
         librariesLoaded = true;
@@ -405,30 +367,21 @@
                 loadScript("https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js")
             ]);
             await loadScript("https://cdn.jsdelivr.net/npm/marked-katex-extension@5.0.0/lib/index.umd.js");
-            setupMathAndSanitization(); 
+            setupMathAndSanitization(); // Inizializza Marked e DOMPurify una volta scaricati
         } catch (e) {
             console.error("Errore caricamento librerie", e);
         }
     }
 
+    // Gestione Pulizia Memoria
     function manageChatCache() {
         const keys = Object.keys(chatCache);
         if (keys.length > MAX_CACHE_CHATS) {
             for (let i = 0; i < keys.length - MAX_CACHE_CHATS; i++) {
                 if (keys[i] !== currentConversationId) {
-                    delete chatCache[keys[i]]; 
-                    delete chatHasMoreCache[keys[i]];
-                    delete chatOldestIdCache[keys[i]];
+                    delete chatCache[keys[i]]; // Distrugge i dati delle chat più vecchie dalla RAM
                 }
             }
-        }
-    }
-    
-    function trimCurrentChatCache() {
-        if (currentConversationId && chatCache[currentConversationId] && chatCache[currentConversationId].length > 20) {
-            chatCache[currentConversationId] = chatCache[currentConversationId].slice(-20);
-            chatHasMoreCache[currentConversationId] = true;
-            chatOldestIdCache[currentConversationId] = chatCache[currentConversationId][0].id;
         }
     }
 
@@ -459,26 +412,6 @@
         return { 'Authorization': `Bearer ${session?.access_token}` };
     }
 
-    function queueProfileUpdate(newData) {
-        const now = Date.now();
-        localStorage.setItem('lime_settings_ts', now.toString()); 
-        newData.lime_settings_ts = now; 
-        
-        pendingProfileUpdates = { ...pendingProfileUpdates, ...newData };
-        if (profileUpdateTimer) clearTimeout(profileUpdateTimer);
-        profileUpdateTimer = setTimeout(async () => {
-            if (Object.keys(pendingProfileUpdates).length > 0 && userId) {
-                const dataToSend = { ...pendingProfileUpdates };
-                pendingProfileUpdates = {}; 
-                try {
-                    await supabaseClient.auth.updateUser({ data: dataToSend });
-                } catch (e) {
-                    console.error("Errore salvataggio profilo:", e);
-                }
-            }
-        }, 1000); 
-    }
-
     function toggleAuthMode() { 
         authMode = authMode === 'login' ? 'signup' : 'login'; document.getElementById('signup-extra').classList.toggle('hidden'); 
         document.getElementById('auth-btn').innerText = authMode === 'login' ? 'Accedi' : 'Registrati'; 
@@ -498,28 +431,7 @@
         } 
     }
 
-    async function handleLogout() { 
-        if (confirm("Vuoi davvero uscire?")) { 
-            // 1. Pulisce la cache e fa letteralmente a pezzi il token di Supabase
-            const keysToRemove = [
-                'lime_theme', 'lime_color', 'lime_bg', 'lime_edu_level', 
-                'lime_inst_type', 'lime_settings_ts', 'lime_last_user_id',
-                'sb-jzwldensaglpawnwpjxa-auth-token' // <-- Questa è la chiave del login fantasma
-            ];
-            keysToRemove.forEach(k => localStorage.removeItem(k));
-            
-            // 2. Modifica l'interfaccia a zero millisecondi
-            userId = null;
-            document.getElementById('auth-section').classList.remove('hidden'); 
-            document.getElementById('main-container').classList.add('hidden');
-            
-            // 3. Avvisa il server in background, ma senza fargli bloccare la UI
-            supabaseClient.auth.signOut().catch(() => {});
-            
-            // 4. Ricarica istantaneamente l'ambiente, azzerando la memoria Javascript
-            window.location.reload(); 
-        } 
-    }
+    async function handleLogout() { if (confirm("Vuoi davvero uscire?")) { await supabaseClient.auth.signOut(); window.location.reload(); } }
 
     async function loadHistory() { 
         const { data } = await supabaseClient.from('conversations').select('*').order('created_at', { ascending: false }); 
@@ -528,7 +440,6 @@
 
     function handleChatClick(id) { 
         if (currentConversationId === id && !isGenerating) return; 
-        trimCurrentChatCache();
         isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; 
         document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-chat')); 
         const clickedItem = document.getElementById(`chat-${id}`); if (clickedItem) clickedItem.classList.add('active-chat'); 
@@ -555,105 +466,32 @@
     async function deleteChat(id) { if (confirm("Vuoi eliminare questa chat?")) { await supabaseClient.from('conversations').delete().eq('dify_id', id); delete chatCache[id]; if (currentConversationId === id) startNewChat(); else loadHistory(); } }
     
     function startNewChat() { 
-        trimCurrentChatCache();
         isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; currentConversationId = null; DOM.chatBox.innerHTML = ""; 
         if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
         document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-chat')); 
         if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
     }
 
-    async function loadMoreMessages() {
-        if (!currentConversationId || !currentChatHasMore || isGenerating) return;
-        const btn = document.getElementById('load-more-msgs-btn');
-        if (btn) btn.innerText = "Caricamento...";
-
-        try {
-            const url = `${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${currentConversationId}&user=${userId}&first_id=${currentChatOldestMsgId}&limit=20`;
-            const res = await fetch(url, { headers: await getAuthHeaders() });
-            const result = await res.json();
-
-            if (result.data && result.data.length > 0) {
-                isPrependInProgress = true; 
-                DOM.chatBox.style.setProperty('scroll-behavior', 'auto', 'important'); 
-
-                const oldScrollHeight = DOM.chatBox.scrollHeight;
-                const oldScrollTop = DOM.chatBox.scrollTop;
-
-                const newMsgs = result.data.sort((a, b) => a.created_at - b.created_at);
-                chatCache[currentConversationId] = [...newMsgs, ...chatCache[currentConversationId]];
-
-                currentChatHasMore = result.has_more || false;
-                chatHasMoreCache[currentConversationId] = currentChatHasMore;
-
-                currentChatOldestMsgId = newMsgs[0].id || null;
-                chatOldestIdCache[currentConversationId] = currentChatOldestMsgId;
-
-                renderMessages(chatCache[currentConversationId], false); 
-
-                DOM.chatBox.scrollTop = (DOM.chatBox.scrollHeight - oldScrollHeight) + oldScrollTop;
-
-                requestAnimationFrame(() => {
-                    DOM.chatBox.style.removeProperty('scroll-behavior');
-                    setTimeout(() => { isPrependInProgress = false; }, 100); 
-                });
-            } else {
-                currentChatHasMore = false;
-                chatHasMoreCache[currentConversationId] = false;
-                if (btn) btn.remove();
-            }
-        } catch (e) {
-            if (btn) btn.innerText = "Errore. Riprova.";
-        }
-    }
-
     async function loadChat(id) { 
         currentConversationId = id; if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
-        manageChatCache(); 
+        manageChatCache(); // Attiva la pulizia della cache
 
-        if (chatCache[id]) { 
-            currentChatHasMore = chatHasMoreCache[id] || false;
-            currentChatOldestMsgId = chatOldestIdCache[id] || null;
-            renderMessages(chatCache[id]); 
-            return; 
-        } 
+        if (chatCache[id]) { renderMessages(chatCache[id]); return; } 
         DOM.chatBox.innerHTML = `<div style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Recupero messaggi...</div>`; 
         if (window.updateGreetingVisibility) window.updateGreetingVisibility();
         
         const controller = new AbortController(); const timeoutId = setTimeout(() => controller.abort(), 10000); 
         try { 
-            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}&limit=20`, { headers: await getAuthHeaders(), signal: controller.signal }); 
+            const res = await fetch(`${EDGE_FUNCTION_URL}?path=/messages&conversation_id=${id}&user=${userId}`, { headers: await getAuthHeaders(), signal: controller.signal }); 
             clearTimeout(timeoutId); const result = await res.json(); 
             if (result.data && result.data.length > 0) { 
-                const sorted = result.data.sort((a, b) => a.created_at - b.created_at); 
-                chatCache[id] = sorted; 
-                
-                currentChatHasMore = result.has_more || false;
-                chatHasMoreCache[id] = currentChatHasMore;
-                
-                currentChatOldestMsgId = sorted[0].id || null;
-                chatOldestIdCache[id] = currentChatOldestMsgId;
-
-                renderMessages(sorted); 
+                const sorted = result.data.sort((a, b) => a.created_at - b.created_at); chatCache[id] = sorted; renderMessages(sorted); 
             } else startNewChat(); 
         } catch (e) { clearTimeout(timeoutId); DOM.chatBox.innerHTML = `<div style="color:#ff4444; text-align:center; width:100%;">Impossibile recuperare la chat. Riprova.</div>`; } 
     }
     
-    function renderMessages(messages, doScrollToBottom = true) { 
-        DOM.chatBox.innerHTML = ""; const fragment = document.createDocumentFragment(); 
-
-        if (currentChatHasMore) {
-            const loadBtn = document.createElement('button');
-            loadBtn.id = "load-more-msgs-btn";
-            loadBtn.className = "load-more-btn";
-            loadBtn.style.margin = "10px auto 20px auto";
-            loadBtn.style.display = "block";
-            loadBtn.style.width = "max-content";
-            loadBtn.innerText = "Carica messaggi precedenti";
-            loadBtn.onclick = loadMoreMessages;
-            fragment.appendChild(loadBtn);
-        }
-
-        let lastDate = null; 
+    function renderMessages(messages) { 
+        DOM.chatBox.innerHTML = ""; const fragment = document.createDocumentFragment(); let lastDate = null; 
         messages.forEach(m => { 
             const md = formatDateSeparator(m.created_at); if (md !== lastDate) { fragment.appendChild(createDateSeparatorNode(md)); lastDate = md; } 
             let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
@@ -663,8 +501,7 @@
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
             fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
         }); 
-        DOM.chatBox.appendChild(fragment); 
-        if (doScrollToBottom) scrollToBottom(true); 
+        DOM.chatBox.appendChild(fragment); scrollToBottom(true); 
         
         DOM.chatBox.querySelectorAll('.msg-wrapper').forEach(wrapper => { wrapper.classList.add('msg-complete'); if (chatVirtualObserver) chatVirtualObserver.observe(wrapper); });
         if(window.updateGreetingVisibility) window.updateGreetingVisibility(); 
@@ -713,9 +550,6 @@
     async function toggleRecording() { 
         if (isRecording) { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); return; } 
         try { 
-            // Nasconde istantaneamente il saluto iniziale
-            if (DOM.greetingBox) DOM.greetingBox.classList.add('hidden-greeting');
-
             if (!globalStream) globalStream = await navigator.mediaDevices.getUserMedia({ audio: true }); globalStream.getAudioTracks().forEach(t => t.enabled = true); 
             mediaRecorder = new MediaRecorder(globalStream); audioChunks = []; 
             mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); }; 
@@ -746,7 +580,7 @@
 
     function resetInputUI(clearText = true) { 
         if (window.setMascotThinking) window.setMascotThinking(false); DOM.inputField.disabled = false; DOM.inputField.style.color = 'inherit'; 
-        if (clearText) DOM.inputField.value = ''; DOM.inputField.placeholder = "Scrivi a LIME..."; 
+        if (clearText) DOM.inputField.value = ''; DOM.inputField.placeholder = "Chiedi qualsiasi cosa a LIME..."; 
         DOM.sendBtn.innerHTML = SVG_ICONS.sendPlane; DOM.sendBtn.style.background = 'var(--accent)'; DOM.sendBtn.disabled = false; 
         if (DOM.micBtn) DOM.micBtn.classList.remove('hidden'); if (DOM.attachBtn) DOM.attachBtn.classList.remove('hidden'); if (DOM.timerDisplay) DOM.timerDisplay.classList.add('hidden'); clearInterval(recordingTimer); 
     }
@@ -841,7 +675,7 @@
 
         const botWrapper = createMessageNode('bot', "...", null); const botDiv = botWrapper.querySelector('.bot-msg'); DOM.chatBox.appendChild(botWrapper); 
         
-        let fullAnswer = "", renderQueued = false, isThinkingLocal = true;
+        let fullAnswer = "", renderQueued = false, isThinkingLocal = true, lastRenderTime = 0;
         let attempt = 0;
         const maxAttempts = 2;
         let success = false;
@@ -852,9 +686,6 @@
             fullAnswer = "";
             let hasError = false;
             isThinkingLocal = true;
-            
-            const controller = new AbortController();
-            let streamTimeout = setTimeout(() => controller.abort(), 15000); 
 
             try {
                 const reqMode = isImage ? "blocking" : "streaming"; 
@@ -863,19 +694,13 @@
                 if (filePayload.length > 0) Object.assign(reqBody, { files: filePayload });
                 
                 const authHeaders = await getAuthHeaders(); 
-                const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { 
-                    method: 'POST', 
-                    headers: { ...authHeaders, 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(reqBody),
-                    signal: controller.signal
-                });
+                const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...authHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody) });
 
                 if (!res.ok) throw new Error(`Errore Server: ${res.status}`);
 
                 if (reqMode === "blocking") { 
-                    clearTimeout(streamTimeout);
                     const data = await res.json(); 
-                    if (data.answer && data.answer.trim().length > 0) {
+                    if (data.answer) {
                         if (window.setMascotThinking) window.setMascotThinking(false);
                         fullAnswer = data.answer; 
                         success = true;
@@ -887,22 +712,16 @@
                         if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom(); 
                         
                         if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
-                        if(currentConversationId) { 
-                            if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
-                            chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
-                        } 
+                        if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                     } else {
                         hasError = true;
                     }
                 } else { 
-                    const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = ""; 
+                    const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = "", firstChunk = true; 
                     while (true) { 
-                        clearTimeout(streamTimeout);
-                        streamTimeout = setTimeout(() => controller.abort(), 10000); 
-                        
                         const { done, value } = await reader.read(); 
-                        if (done) { clearTimeout(streamTimeout); break; } 
-                        
+                        if (done) break; 
+                        if (firstChunk) { firstChunk = false; } 
                         buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n\n'); buffer = lines.pop(); 
                         for (const line of lines) { 
                             if (line.startsWith('data: ')) { 
@@ -914,38 +733,45 @@
                                         fullAnswer += data.answer; 
                                         if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
                                         
-                                        if (!renderQueued) { 
+                                        // Ottimizzazione dinamica del Rendering
+                                        // Aumenta il tempo di attesa tra i refresh man mano che il testo cresce per non affaticare il dispositivo
+                                        const throttleInterval = fullAnswer.length > 2000 ? 150 : (fullAnswer.length > 800 ? 100 : 50);
+                                        const now = Date.now();
+
+                                        if (now - lastRenderTime > throttleInterval) {
+                                            lastRenderTime = now;
+                                            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
+                                            let safeMathText = formatLaTeX(fullAnswer);
+                                            botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
+                                            if(bottomBar) botDiv.appendChild(bottomBar); 
+                                            scrollToBottom();
+                                        } else if (!renderQueued) { 
                                             renderQueued = true; 
-                                            requestAnimationFrame(() => { 
-                                                renderQueued = false; 
-                                                const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                                                let safeMathText = formatLaTeX(fullAnswer);
-                                                botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
-                                                if(bottomBar) botDiv.appendChild(bottomBar); 
-                                                scrollToBottom(); 
-                                            });
+                                            setTimeout(() => { 
+                                                renderQueued = false; lastRenderTime = Date.now();
+                                                requestAnimationFrame(() => { 
+                                                    const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
+                                                    let safeMathText = formatLaTeX(fullAnswer);
+                                                    botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
+                                                    if(bottomBar) botDiv.appendChild(bottomBar); 
+                                                    scrollToBottom(); 
+                                                });
+                                            }, throttleInterval); 
                                         } 
                                     } else if (data.event === 'message_end') { 
-                                        if (fullAnswer.trim().length > 0) {
-                                            success = true;
-                                            requestAnimationFrame(() => { botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); }); 
-                                            if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
-                                            if(currentConversationId) { 
-                                                if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
-                                                chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
-                                            }
-                                        } else {
-                                            hasError = true; 
-                                        }
+                                        success = true;
+                                        botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); 
+                                        if (!currentConversationId && data.conversation_id) { currentConversationId = data.conversation_id; await supabaseClient.from('conversations').insert([{ user_id: userId, dify_id: currentConversationId, title: newChatTitle }]); loadHistory(); } 
+                                        if(currentConversationId) { if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; chatCache[currentConversationId].push({query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); } 
                                     } 
                                 } catch (e) {} 
                             } 
                         } 
-                        if (hasError) { clearTimeout(streamTimeout); break; } 
+                        if (hasError) break; 
                     } 
+                    if (fullAnswer.trim().length === 0 && !success) hasError = true; 
                 } 
             } catch (e) {
-                clearTimeout(streamTimeout);
                 hasError = true; 
             }
 
@@ -953,8 +779,6 @@
                 await new Promise(r => setTimeout(r, 1000)); 
             }
         } 
-        
-        if (fullAnswer.trim().length === 0) success = false;
 
         if (!success) {
             fullAnswer = "Scusa, ho avuto un piccolo vuoto di memoria! 😅 Potresti ripetermi la domanda?";
@@ -1027,26 +851,12 @@
     
     async function removeCustomBg() {
         currentCustomBg = null; applyChatBackground(null);
-        localStorage.removeItem('lime_bg'); 
-        if (userId) { 
-            queueProfileUpdate({ bg: null });
-            try { 
-                const { data: { user } } = await supabaseClient.auth.getUser(); 
-                const oldUrl = user?.user_metadata?.bg; 
-                if (oldUrl) await deleteOldSupabaseFile(oldUrl); 
-            } catch (e) { console.error(e); } 
-        }
+        if (userId) { try { const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; await supabaseClient.auth.updateUser({ data: { bg: null } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } catch (e) { console.error(e); } }
     }
 
     function applyTheme(themeName) { if (themeName === 'light') document.body.classList.add('light-theme'); else document.body.classList.remove('light-theme'); }
     function toggleThemeSwitch() { const isLight = document.body.classList.contains('light-theme'); handleThemeChange(isLight ? 'dark' : 'light'); }
-    
-    async function handleThemeChange(themeName) { 
-        if (!userId) return; 
-        applyTheme(themeName); 
-        localStorage.setItem('lime_theme', themeName); 
-        queueProfileUpdate({ theme: themeName });
-    }
+    async function handleThemeChange(themeName) { if (!userId) return; applyTheme(themeName); await supabaseClient.auth.updateUser({ data: { theme: themeName } }); }
     
     function updateColorCirclesUI(hex) { document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('active')); const activeCircle = document.querySelector(`.color-circle[data-color="${hex}"]`); if (activeCircle) activeCircle.classList.add('active'); }
     
@@ -1054,8 +864,7 @@
         if (!userId) return; 
         document.documentElement.style.setProperty('--accent', hex); document.documentElement.style.setProperty('--lime-accent', hex); updateColorCirclesUI(hex); 
         if (!currentCustomBg) updateDefaultBackground();
-        localStorage.setItem('lime_color', hex); 
-        queueProfileUpdate({ color: hex });
+        await supabaseClient.auth.updateUser({ data: { color: hex } }); 
     }
 
     function updateProfileUI(user) { 
@@ -1066,54 +875,15 @@
             const fullName = user.user_metadata?.full_name || user.email.split('@')[0], initial = fullName.charAt(0).toUpperCase(); 
             nameSpans.forEach(span => span.innerText = fullName); 
             
-            const cloudTs = user.user_metadata?.lime_settings_ts || 0;
-            const localTs = parseInt(localStorage.getItem('lime_settings_ts') || '0', 10);
+            const savedTheme = user.user_metadata?.theme || 'dark'; const savedColor = user.user_metadata?.color || '#c0f22c'; const savedBg = user.user_metadata?.bg; 
+            const cloudLevel = user.user_metadata?.lime_edu_level; const cloudInst = user.user_metadata?.lime_inst_type;
 
-            let finalTheme, finalColor, finalBg, finalLevel, finalInst;
-
-            if (localTs > cloudTs) {
-                finalTheme = localStorage.getItem('lime_theme') || 'dark';
-                finalColor = localStorage.getItem('lime_color') || '#c0f22c';
-                finalBg = localStorage.getItem('lime_bg');
-                finalLevel = localStorage.getItem('lime_edu_level');
-                finalInst = localStorage.getItem('lime_inst_type');
-                
-                queueProfileUpdate({ 
-                    theme: finalTheme, color: finalColor, bg: finalBg, 
-                    lime_edu_level: finalLevel, lime_inst_type: finalInst 
-                });
-            } else {
-                finalTheme = user.user_metadata?.theme || 'dark';
-                finalColor = user.user_metadata?.color || '#c0f22c';
-                finalBg = user.user_metadata?.bg;
-                finalLevel = user.user_metadata?.lime_edu_level;
-                finalInst = user.user_metadata?.lime_inst_type;
-
-                localStorage.setItem('lime_theme', finalTheme);
-                localStorage.setItem('lime_color', finalColor);
-                if (finalBg) localStorage.setItem('lime_bg', finalBg); else localStorage.removeItem('lime_bg');
-                if (finalLevel) localStorage.setItem('lime_edu_level', finalLevel);
-                if (finalInst) localStorage.setItem('lime_inst_type', finalInst);
-                localStorage.setItem('lime_settings_ts', cloudTs.toString());
-            }
-
-            if (DOM.eduDropdown && finalLevel) DOM.eduDropdown.value = finalLevel;
-            if (DOM.instDropdown && finalInst) DOM.instDropdown.value = finalInst;
+            if (cloudLevel) { localStorage.setItem('lime_edu_level', cloudLevel); if (DOM.eduDropdown) DOM.eduDropdown.value = cloudLevel; }
+            if (cloudInst) { localStorage.setItem('lime_inst_type', cloudInst); if (DOM.instDropdown) DOM.instDropdown.value = cloudInst; }
             
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = initial; }); 
-            applyTheme(finalTheme); 
-            document.documentElement.style.setProperty('--accent', finalColor); 
-            document.documentElement.style.setProperty('--lime-accent', finalColor); 
-            updateColorCirclesUI(finalColor); 
-            applyChatBackground(finalBg); 
-            
-            const tutorialDone = user.user_metadata?.tutorial_done === true;
-            const redSquare = document.getElementById('tutorial-red-square');
-            if (redSquare) {
-                if (!tutorialDone) redSquare.style.display = 'block';
-                else redSquare.style.display = 'none';
-            }
-
+            applyTheme(savedTheme); document.documentElement.style.setProperty('--accent', savedColor); document.documentElement.style.setProperty('--lime-accent', savedColor); updateColorCirclesUI(savedColor); 
+            applyChatBackground(savedBg); 
         } else { 
             nameSpans.forEach(span => span.innerText = ""); 
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
@@ -1125,26 +895,7 @@
 
     async function uploadToSupabaseStorage(file, pathPrefix) { const fileExt = file.name.split('.').pop(); const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); if (error) { alert("Errore caricamento immagine."); return null; } const { data: { publicUrl } } = supabaseClient.storage.from('lime-assets').getPublicUrl(fileName); return publicUrl; }
     async function deleteOldSupabaseFile(oldUrl) { if (!oldUrl) return; try { const bucketMarker = '/lime-assets/'; const index = oldUrl.indexOf(bucketMarker); if (index !== -1) { const filePath = oldUrl.substring(index + bucketMarker.length); await supabaseClient.storage.from('lime-assets').remove([filePath]); } } catch (e) {} }
-    
-    async function handleBgUpload(event) { 
-        if (!userId) return; 
-        const file = event.target.files[0]; 
-        if (file) { 
-            const reader = new FileReader(); 
-            reader.onload = function(e) { 
-                applyChatBackground(e.target.result); 
-            }; 
-            reader.readAsDataURL(file); 
-            const { data: { user } } = await supabaseClient.auth.getUser(); 
-            const oldUrl = user?.user_metadata?.bg; 
-            const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); 
-            if (publicUrl) { 
-                localStorage.setItem('lime_bg', publicUrl); 
-                queueProfileUpdate({ bg: publicUrl });
-                if (oldUrl) await deleteOldSupabaseFile(oldUrl); 
-            } 
-        } 
-    }
+    async function handleBgUpload(event) { if (!userId) return; const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { applyChatBackground(e.target.result); }; reader.readAsDataURL(file); const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); if (publicUrl) { await supabaseClient.auth.updateUser({ data: { bg: publicUrl } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } } }
 
     function initLimeExtras() {
         const bodyM = document.getElementById('lime-body-main'), eyesM = document.querySelectorAll('.lime-eye'); 
@@ -1240,21 +991,11 @@
         }
 
         window.scrollToBottom = function(force = false) { if (DOM.chatBox && (!window.isUserScrolling || force)) DOM.chatBox.scrollTop = DOM.chatBox.scrollHeight; };
-        
-        if (DOM.chatBox) new MutationObserver((m) => { 
-            let shouldScroll = false; 
-            m.forEach(x => { if (x.addedNodes.length > 0) shouldScroll = true; }); 
-            if (shouldScroll) {
-                requestAnimationFrame(() => { 
-                    window.syncAnchoring(); 
-                    if (!isPrependInProgress && window.scrollToBottom) window.scrollToBottom(true); 
-                }); 
-            }
-        }).observe(DOM.chatBox, { childList: true });
+        if (DOM.chatBox) new MutationObserver((m) => { let shouldScroll = false; m.forEach(x => { if (x.addedNodes.length > 0) shouldScroll = true; }); if (shouldScroll) requestAnimationFrame(() => { window.syncAnchoring(); if (window.scrollToBottom) window.scrollToBottom(true); }); }).observe(DOM.chatBox, { childList: true });
     }
 
     function setupMathAndSanitization() {
-        if (!window.marked || !window.DOMPurify) return; 
+        if (!window.marked || !window.DOMPurify) return; // Se non caricate aspetta
         if (window.marked && window.markedKatex) marked.use(window.markedKatex({ throwOnError: false }), { breaks: true, gfm: true });
         
         const originalSanitize = window.DOMPurify.sanitize;
@@ -1292,95 +1033,14 @@
             chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area'), micBtn: document.getElementById('mic-btn'), attachBtn: document.getElementById('attach-btn'), timerDisplay: document.getElementById('recording-timer'), attachmentLabel: document.getElementById('attachment-label'), fileInput: document.getElementById('file-input'), eduDropdown: document.getElementById('edu-dropdown'), instDropdown: document.getElementById('inst-dropdown'), bgInput: document.getElementById('bg-input')
         };
 
-        const redSquareBtn = document.getElementById('tutorial-red-square');
-        if (redSquareBtn) {
-            redSquareBtn.addEventListener('click', () => {
-                redSquareBtn.style.opacity = '0';
-                redSquareBtn.style.transform = 'scale(0.8)';
-                setTimeout(() => { redSquareBtn.style.display = 'none'; }, 200);
-                queueProfileUpdate({ tutorial_done: true });
-            });
-        }
-
-        const savedBg = localStorage.getItem('lime_bg');
-        if (savedBg) applyChatBackground(savedBg);
-
-        const savedLevel = localStorage.getItem('lime_edu_level');
-        const savedInst = localStorage.getItem('lime_inst_type');
-        if (DOM.eduDropdown && savedLevel) DOM.eduDropdown.value = savedLevel;
-        if (DOM.instDropdown && savedInst) DOM.instDropdown.value = savedInst;
-
         let inputDebounce, scrollTimeout; 
         if (DOM.chatBox) {
             DOM.chatBox.addEventListener('scroll', () => { if (!scrollTimeout) { scrollTimeout = requestAnimationFrame(() => { isUserScrolling = (DOM.chatBox.scrollHeight - DOM.chatBox.scrollTop) > (DOM.chatBox.clientHeight + 100); scrollTimeout = null; }); } }, { passive: true });
             DOM.chatBox.addEventListener('click', (e) => { const copyBtn = e.target.closest('.copy-btn'); if (copyBtn) { const pre = copyBtn.closest('pre'); if(pre) { navigator.clipboard.writeText(pre.querySelector('code').innerText); copyBtn.innerText = 'Copiato!'; setTimeout(() => copyBtn.innerText = 'Copia', 2000); } } });
         }
-        
         if (DOM.inputField) {
-            const textarea = DOM.inputField;
-            
-            const autoResize = () => {
-                textarea.style.height = '40px'; 
-                const requiredHeight = textarea.scrollHeight;
-                textarea.style.height = Math.max(Math.min(requiredHeight, 120), 40) + 'px';
-                if (window.syncAnchoring) window.syncAnchoring();
-            };
-
-            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-            Object.defineProperty(textarea, 'value', {
-                set: function(val) {
-                    nativeInputValueSetter.call(this, val);
-                    autoResize();
-                },
-                get: function() {
-                    return Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").get.call(this);
-                }
-            });
-
-            textarea.addEventListener('input', () => {
-                autoResize();
-                
-                // Nasconde il microfono se c'è del testo, lo fa riapparire se è vuoto
-                if (textarea.value.trim().length > 0) {
-                    if (DOM.micBtn) DOM.micBtn.classList.add('hidden');
-                } else {
-                    if (DOM.micBtn && !isRecording) DOM.micBtn.classList.remove('hidden');
-                }
-
-                clearTimeout(inputDebounce);
-                inputDebounce = setTimeout(() => { 
-                    if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
-                }, 150);
-            });
-
-            const triggerSend = () => {
-                if (isRecording) {
-                    toggleRecording();
-                } else if (!isGenerating) {
-                    sendMessage();
-                }
-            };
-
-            textarea.addEventListener('keydown', (e) => {
-                if (!e.isTrusted) {
-                    e.preventDefault();
-                    triggerSend();
-                    return;
-                }
-
-                const isStrictMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    if (isStrictMobile) {
-                        e.stopPropagation();
-                    } else {
-                        e.preventDefault(); 
-                        triggerSend();
-                    }
-                }
-            }, true);
-
-            autoResize();
+            DOM.inputField.addEventListener('input', () => { clearTimeout(inputDebounce); inputDebounce = setTimeout(() => { if (window.updateGreetingVisibility) window.updateGreetingVisibility(); }, 150); });
+            DOM.inputField.addEventListener('keypress', e => { if (e.key === 'Enter') { if (isRecording) toggleRecording(); else if (!isGenerating) sendMessage(); } });
         }
         
         setupViewportAnchoring();
@@ -1400,31 +1060,21 @@
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) { 
             userId = session.user.id; 
-            clearCacheIfNewUser(userId);
             document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
             if (window.syncAnchoring) window.syncAnchoring();
-            
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            updateProfileUI(user || session.user); 
-            
-            loadHistory(); 
+            updateProfileUI(session.user); loadHistory(); 
             if (window.updateGreetingVisibility) window.updateGreetingVisibility();
-            await loadHeavyLibraries(); 
+            await loadHeavyLibraries(); // Avvia il download differito
         }
         
         supabaseClient.auth.onAuthStateChange(async (event, session) => { 
             if (session) { 
                 userId = session.user.id; 
-                clearCacheIfNewUser(userId);
                 document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-container').classList.remove('hidden'); 
                 if (window.syncAnchoring) window.syncAnchoring();
-                
-                const { data: { user } } = await supabaseClient.auth.getUser();
-                updateProfileUI(user || session.user); 
-                
-                loadHistory(); 
+                updateProfileUI(session.user); loadHistory(); 
                 if (window.updateGreetingVisibility) window.updateGreetingVisibility();
-                await loadHeavyLibraries(); 
+                await loadHeavyLibraries(); // Avvia il download differito
             } else { 
                 userId = null; 
                 document.getElementById('auth-section').classList.remove('hidden'); document.getElementById('main-container').classList.add('hidden'); 
@@ -1432,8 +1082,8 @@
             } 
         });
         
-        if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', (e) => { const level = e.target.value; localStorage.setItem('lime_edu_level', level); queueProfileUpdate({ lime_edu_level: level }); }); }
-        if (DOM.instDropdown) { DOM.instDropdown.addEventListener('change', (e) => { const inst = e.target.value; localStorage.setItem('lime_inst_type', inst); queueProfileUpdate({ lime_inst_type: inst }); }); }
+        if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', async (e) => { const level = e.target.value; localStorage.setItem('lime_edu_level', level); try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } catch (err) {} }); }
+        if (DOM.instDropdown) { DOM.instDropdown.addEventListener('change', async (e) => { const inst = e.target.value; localStorage.setItem('lime_inst_type', inst); try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: inst } }); } catch (err) {} }); }
         
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
     });
