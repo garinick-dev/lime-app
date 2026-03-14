@@ -357,6 +357,9 @@
     let currentChatHasMore = false;
     let currentChatOldestMsgId = null;
 
+    let profileUpdateTimer = null;
+    let pendingProfileUpdates = {};
+
     const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
 
     const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
@@ -444,6 +447,22 @@
     async function getAuthHeaders() {
         const { data: { session } } = await supabaseClient.auth.getSession();
         return { 'Authorization': `Bearer ${session?.access_token}` };
+    }
+
+    function queueProfileUpdate(newData) {
+        pendingProfileUpdates = { ...pendingProfileUpdates, ...newData };
+        if (profileUpdateTimer) clearTimeout(profileUpdateTimer);
+        profileUpdateTimer = setTimeout(async () => {
+            if (Object.keys(pendingProfileUpdates).length > 0 && userId) {
+                const dataToSend = { ...pendingProfileUpdates };
+                pendingProfileUpdates = {}; 
+                try {
+                    await supabaseClient.auth.updateUser({ data: dataToSend });
+                } catch (e) {
+                    console.error("Errore salvataggio profilo:", e);
+                }
+            }
+        }, 1000); 
     }
 
     function toggleAuthMode() { 
@@ -971,16 +990,24 @@
     async function removeCustomBg() {
         currentCustomBg = null; applyChatBackground(null);
         localStorage.removeItem('lime_bg'); 
-        if (userId) { try { const { data: { user } } = await supabaseClient.auth.getUser(); const oldUrl = user?.user_metadata?.bg; await supabaseClient.auth.updateUser({ data: { bg: null } }); if (oldUrl) await deleteOldSupabaseFile(oldUrl); } catch (e) { console.error(e); } }
+        if (userId) { 
+            queueProfileUpdate({ bg: null });
+            try { 
+                const { data: { user } } = await supabaseClient.auth.getUser(); 
+                const oldUrl = user?.user_metadata?.bg; 
+                if (oldUrl) await deleteOldSupabaseFile(oldUrl); 
+            } catch (e) { console.error(e); } 
+        }
     }
 
     function applyTheme(themeName) { if (themeName === 'light') document.body.classList.add('light-theme'); else document.body.classList.remove('light-theme'); }
     function toggleThemeSwitch() { const isLight = document.body.classList.contains('light-theme'); handleThemeChange(isLight ? 'dark' : 'light'); }
+    
     async function handleThemeChange(themeName) { 
         if (!userId) return; 
         applyTheme(themeName); 
         localStorage.setItem('lime_theme', themeName); 
-        await supabaseClient.auth.updateUser({ data: { theme: themeName } }); 
+        queueProfileUpdate({ theme: themeName });
     }
     
     function updateColorCirclesUI(hex) { document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('active')); const activeCircle = document.querySelector(`.color-circle[data-color="${hex}"]`); if (activeCircle) activeCircle.classList.add('active'); }
@@ -990,7 +1017,7 @@
         document.documentElement.style.setProperty('--accent', hex); document.documentElement.style.setProperty('--lime-accent', hex); updateColorCirclesUI(hex); 
         if (!currentCustomBg) updateDefaultBackground();
         localStorage.setItem('lime_color', hex); 
-        await supabaseClient.auth.updateUser({ data: { color: hex } }); 
+        queueProfileUpdate({ color: hex });
     }
 
     function updateProfileUI(user) { 
@@ -1045,7 +1072,7 @@
             const publicUrl = await uploadToSupabaseStorage(file, `bg/${userId}`); 
             if (publicUrl) { 
                 localStorage.setItem('lime_bg', publicUrl); 
-                await supabaseClient.auth.updateUser({ data: { bg: publicUrl } }); 
+                queueProfileUpdate({ bg: publicUrl });
                 if (oldUrl) await deleteOldSupabaseFile(oldUrl); 
             } 
         } 
@@ -1318,8 +1345,8 @@
             } 
         });
         
-        if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', async (e) => { const level = e.target.value; localStorage.setItem('lime_edu_level', level); try { await supabaseClient.auth.updateUser({ data: { lime_edu_level: level } }); } catch (err) {} }); }
-        if (DOM.instDropdown) { DOM.instDropdown.addEventListener('change', async (e) => { const inst = e.target.value; localStorage.setItem('lime_inst_type', inst); try { await supabaseClient.auth.updateUser({ data: { lime_inst_type: inst } }); } catch (err) {} }); }
+        if (DOM.eduDropdown) { DOM.eduDropdown.addEventListener('change', (e) => { const level = e.target.value; localStorage.setItem('lime_edu_level', level); queueProfileUpdate({ lime_edu_level: level }); }); }
+        if (DOM.instDropdown) { DOM.instDropdown.addEventListener('change', (e) => { const inst = e.target.value; localStorage.setItem('lime_inst_type', inst); queueProfileUpdate({ lime_inst_type: inst }); }); }
         
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
     });
