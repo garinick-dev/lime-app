@@ -500,24 +500,23 @@
 
     async function handleLogout() { 
         if (confirm("Vuoi davvero uscire?")) { 
-            // 1. Pulisci tutta la cache grafica e di impostazioni locale
-            ['lime_theme', 'lime_color', 'lime_bg', 'lime_edu_level', 'lime_inst_type', 'lime_settings_ts', 'lime_last_user_id'].forEach(k => localStorage.removeItem(k));
+            // 1. Pulisce la cache e fa letteralmente a pezzi il token di Supabase
+            const keysToRemove = [
+                'lime_theme', 'lime_color', 'lime_bg', 'lime_edu_level', 
+                'lime_inst_type', 'lime_settings_ts', 'lime_last_user_id',
+                'sb-jzwldensaglpawnwpjxa-auth-token' // <-- Questa è la chiave del login fantasma
+            ];
+            keysToRemove.forEach(k => localStorage.removeItem(k));
             
-            // 2. Modifica l'interfaccia istantaneamente
+            // 2. Modifica l'interfaccia a zero millisecondi
             userId = null;
             document.getElementById('auth-section').classList.remove('hidden'); 
             document.getElementById('main-container').classList.add('hidden');
-            updateProfileUI(null);
-
-            // 3. Esegui il logout da Supabase con un timeout per non bloccare mai la ricarica
-            try {
-                await Promise.race([
-                    supabaseClient.auth.signOut(),
-                    new Promise(resolve => setTimeout(resolve, 2000)) 
-                ]);
-            } catch (e) {}
             
-            // 4. Ricarica la pagina per resettare lo stato globale della memoria
+            // 3. Avvisa il server in background, ma senza fargli bloccare la UI
+            supabaseClient.auth.signOut().catch(() => {});
+            
+            // 4. Ricarica istantaneamente l'ambiente, azzerando la memoria Javascript
             window.location.reload(); 
         } 
     }
