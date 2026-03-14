@@ -1525,92 +1525,128 @@
 
 
 
-
 <style>
-    /* Overlay solo rettangolo grigio senza scritte */
+    /* Rettangolo grigio semitrasparente con blur richiesto */
     #tutorial-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15, 15, 15, 0.75);
-        backdrop-filter: blur(8px);
-        z-index: 1;
+        background: rgba(15, 15, 15, 0.65);
+        backdrop-filter: blur(10px);
+        z-index: 1000; /* Livello base del blur richiesto */
         display: none;
-        cursor: pointer;
-        transition: opacity 0.4s ease;
+        pointer-events: all; /* Impedisce interazioni con la chat durante il tutorial */
     }
 
-    /* Pulsante di debug nel sidebar */
-    .debug-tutorial-btn {
-        width: 100%;
-        margin-top: 15px;
-        padding: 8px;
-        background: var(--input-bg);
-        border: 1px dashed var(--border-color);
-        color: var(--text-muted);
-        border-radius: 8px;
-        font-size: 0.75rem;
-        font-weight: bold;
+    /* Pulsante Avanti verde */
+    #tutorial-next-btn {
+        position: fixed;
+        bottom: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1005; /* Sempre sopra l'evidenziazione */
+        background: #28a745; /* Verde richiesto */
+        color: white;
+        border: none;
+        padding: 12px 35px;
+        border-radius: 30px;
+        font-weight: 800;
         text-transform: uppercase;
+        letter-spacing: 1px;
         cursor: pointer;
-        transition: all 0.2s;
+        display: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        transition: transform 0.2s;
     }
-    .debug-tutorial-btn:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-    }
+    #tutorial-next-btn:active { transform: translateX(-50%) scale(0.95); }
 </style>
 
-<div id="tutorial-overlay" onclick="toggleTutorialDebug()"></div>
+<div id="tutorial-overlay"></div>
+<button id="tutorial-next-btn" onclick="nextTutorialStep()">Avanti</button>
 
 <script>
-    (function injectDebugTools() {
-        // 1. Inserimento pulsante tutorial sotto il color-picker
-        const colorPicker = document.getElementById('color-picker');
-        if (colorPicker && !document.getElementById('debug-tut-btn')) {
-            const btn = document.createElement('button');
-            btn.id = 'debug-tut-btn';
-            btn.className = 'debug-tutorial-btn';
-            btn.innerText = 'DEBUG: Toggle Tutorial';
-            btn.onclick = toggleTutorialDebug;
-            colorPicker.parentNode.appendChild(btn);
+    let currentStep = 0;
+    // Lista degli elementi da evidenziare con i loro z-index originali presi dal codice
+    const tutorialSteps = [
+        { selector: '.menu-toggle', originalZ: 'auto', needsPos: true },
+        { selector: '#lime-greeting-box', originalZ: '1000', needsPos: false },
+        { selector: '.input-area', originalZ: '50', needsPos: false }
+    ];
+
+    /**
+     * Gestisce l'avanzamento del tutorial e la variazione degli z-index
+     */
+    function nextTutorialStep() {
+        // 1. Ripristiniamo l'elemento precedente
+        if (currentStep > 0) {
+            const prev = tutorialSteps[currentStep - 1];
+            const prevEl = document.querySelector(prev.selector);
+            if (prevEl) {
+                prevEl.style.zIndex = prev.originalZ;
+                if (prev.needsPos) prevEl.style.position = '';
+            }
         }
 
-        // 2. Nascondiamo il vecchio quadrato rosso
+        // 2. Controllo fine tutorial
+        if (currentStep >= tutorialSteps.length) {
+            closeTutorialInteractive();
+            return;
+        }
+
+        // 3. Evidenziamo il nuovo elemento portandolo a 1001
+        const current = tutorialSteps[currentStep];
+        const el = document.querySelector(current.selector);
+        if (el) {
+            if (current.needsPos) el.style.position = 'relative'; 
+            el.style.zIndex = "1001";
+            
+            // Se è l'area di input, facciamo scorrere la vista per sicurezza
+            if (current.selector === '.input-area') window.syncAnchoring();
+        }
+
+        currentStep++;
+    }
+
+    function closeTutorialInteractive() {
+        document.getElementById('tutorial-overlay').style.display = 'none';
+        document.getElementById('tutorial-next-btn').style.display = 'none';
+        currentStep = 0;
+        if (typeof queueProfileUpdate === 'function') {
+            queueProfileUpdate({ tutorial_done: true });
+        }
+    }
+
+    function startInteractiveTutorial() {
+        currentStep = 0;
+        document.getElementById('tutorial-overlay').style.display = 'block';
+        document.getElementById('tutorial-next-btn').style.display = 'block';
+        nextTutorialStep();
+    }
+
+    // Integrazione con i sistemi esistenti
+    (function patchInteractiveLogic() {
+        // Nascondiamo il vecchio quadrato rosso
         const redSquare = document.getElementById('tutorial-red-square');
         if (redSquare) redSquare.style.display = 'none';
 
-        // 3. Estensione logica UI per l'overlay minimale
-        const originalUpdateUI = window.updateProfileUI;
+        // Modifica pulsante di debug per i tuoi test
+        const colorPicker = document.getElementById('color-picker');
+        if (colorPicker) {
+            const btn = document.createElement('button');
+            btn.className = 'debug-tutorial-btn';
+            btn.innerText = 'DEBUG: Start Tutorial';
+            btn.onclick = startInteractiveTutorial;
+            colorPicker.parentNode.appendChild(btn);
+        }
+
+        // Trigger automatico per nuovi utenti basato sul profilo
+        const originalUpdateProfileUI = window.updateProfileUI;
         window.updateProfileUI = function(user) {
-            if (originalUpdateUI) originalUpdateUI(user);
-            if (user && user.user_metadata) {
-                const isDone = user.user_metadata.tutorial_done === true;
-                const overlay = document.getElementById('tutorial-overlay');
-                if (overlay) overlay.style.display = isDone ? 'none' : 'block';
+            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
+            if (user && user.user_metadata && user.user_metadata.tutorial_done !== true) {
+                startInteractiveTutorial();
             }
         };
     })();
-
-    /**
-     * Funzione di Debug per il Toggle On/Off
-     * Semplice, veloce e coerente con la logica del profilo [cite: 2026-02-28, 2026-02-26]
-     */
-    async function toggleTutorialDebug() {
-        const overlay = document.getElementById('tutorial-overlay');
-        // Determiniamo lo stato attuale (se l'overlay è visibile, il tutorial NON è finito)
-        const isCurrentlyHidden = window.getComputedStyle(overlay).display === 'none';
-        const newState = isCurrentlyHidden ? false : true;
-
-        // Aggiornamento visivo immediato per fluidità [cite: 2026-02-28]
-        overlay.style.display = newState ? 'none' : 'block';
-
-        // Salvataggio persistente nel profilo
-        if (typeof queueProfileUpdate === 'function') {
-            queueProfileUpdate({ tutorial_done: newState });
-        }
-        
-        console.log("Debug: tutorial_done impostato a", newState);
-    }
 </script>
 
 
