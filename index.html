@@ -1679,21 +1679,24 @@
 
 
 <style>
-    /* 1. Il Blocker: un livello invisibile che impedisce i click durante il tutorial */
+    /* 1. Il Blocker: livello invisibile che impedisce i click e lo scroll */
     #tutorial-blocker {
-        position: fixed; inset: 0; z-index: 9000;
-        background: transparent; display: none; cursor: default;
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        z-index: 9000; background: transparent; display: none; cursor: default;
+        /* Su mobile evita comportamenti anomali di touch */
+        touch-action: none; 
     }
 
-    /* 2. Lo Spotlight: la "finestra" trasparente circondata da un'ombra immensa (il buio) */
+    /* 2. Lo Spotlight: ottimizzato per accelerazione hardware */
     #tutorial-spotlight {
         position: fixed; z-index: 9001;
         border-radius: 16px;
-        /* Un'ombra spropositata crea l'effetto overlay tutto intorno all'elemento */
         box-shadow: 0 0 0 9999px rgba(15, 15, 15, 0.75); 
         pointer-events: none; display: none;
-        /* Animazione iper-fluida quando il buco si sposta o cambia dimensione */
-        transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        
+        /* Hint per la GPU: rende l'animazione fluida e senza microscatti */
+        will-change: top, left, width, height;
+        transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     /* 3. Pulsante Avanti */
@@ -1702,11 +1705,17 @@
         z-index: 9005; background: #28a745; color: white; border: none;
         padding: 12px 40px; border-radius: 30px; font-weight: 800;
         text-transform: uppercase; cursor: pointer; display: none;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: transform 0.2s;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
+        transition: transform 0.2s ease, background 0.2s ease;
+        /* Evita la selezione del testo su doppio tap veloce */
+        user-select: none;
     }
-    #tutorial-next-btn:active { transform: translateX(-50%) scale(0.95); }
+    #tutorial-next-btn:active { 
+        transform: translateX(-50%) scale(0.92); 
+        background: #218838;
+    }
 
-    /* 4. Occhi azzurri della mascotte attivati senza toccare il corpo SVG */
+    /* 4. Occhi azzurri della mascotte (Perfetto, non tocca il corpo) */
     body.tutorial-active #lime-app-mascot .lime-eye {
         fill: #00d4ff !important;
         transition: fill 0.3s ease;
@@ -1729,17 +1738,12 @@
     (function initTutorialSpotlight() {
         let currentStep = 0;
         
-        // Definiamo i raggruppamenti logici e il padding extra per il buco visivo
         const tutorialSteps = [
             { selectors: ['header'], padding: 8 },
             { selectors: ['#lime-greeting-box'], padding: 16 },
-            // Qui calcoliamo un unico "buco" che inglobi sia l'input che la mascotte
             { selectors: ['.input-wrapper', '#lime-app-mascot'], padding: 12 } 
         ];
 
-        /**
-         * Calcola il rettangolo esatto che racchiude tutti i selettori di uno step
-         */
         function getSpotlightRect(stepIndex) {
             const step = tutorialSteps[stepIndex];
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -1749,6 +1753,7 @@
                 const el = document.querySelector(sel);
                 if (el) {
                     const rect = el.getBoundingClientRect();
+                    // Evitiamo elementi nascosti o con dimensioni zero
                     if (rect.width > 0 && rect.height > 0) {
                         minX = Math.min(minX, rect.left);
                         minY = Math.min(minY, rect.top);
@@ -1774,10 +1779,11 @@
             const rect = getSpotlightRect(currentStep);
             const spotlight = document.getElementById('tutorial-spotlight');
             if (rect && spotlight) {
-                spotlight.style.left = rect.left + 'px';
-                spotlight.style.top = rect.top + 'px';
-                spotlight.style.width = rect.width + 'px';
-                spotlight.style.height = rect.height + 'px';
+                // Arrotondiamo i pixel per evitare sfocature (sub-pixel rendering blur)
+                spotlight.style.left = Math.round(rect.left) + 'px';
+                spotlight.style.top = Math.round(rect.top) + 'px';
+                spotlight.style.width = Math.round(rect.width) + 'px';
+                spotlight.style.height = Math.round(rect.height) + 'px';
             }
         }
 
@@ -1787,7 +1793,7 @@
                 closeTutorialInteractive();
                 return;
             }
-            // Mantiene l'interfaccia allineata durante il movimento
+            
             if (tutorialSteps[currentStep].selectors.includes('.input-wrapper')) {
                 if (typeof window.syncAnchoring === 'function') window.syncAnchoring();
             }
@@ -1796,39 +1802,50 @@
 
         window.closeTutorialInteractive = function() {
             document.body.classList.remove('tutorial-active');
+            // Sblocca lo scroll nativo
+            document.body.style.overflow = '';
+            
             document.getElementById('tutorial-blocker').style.display = 'none';
             document.getElementById('tutorial-spotlight').style.display = 'none';
             document.getElementById('tutorial-next-btn').style.display = 'none';
             window.removeEventListener('resize', updateSpotlight);
+            window.removeEventListener('scroll', preventScrollFallback, { passive: false });
             
             currentStep = 0;
             if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: true });
         };
 
+        function preventScrollFallback(e) {
+            e.preventDefault();
+        }
+
         window.startInteractiveTutorial = function() {
             currentStep = 0;
             if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: false });
             
-            // Attiva gli occhi azzurri
             document.body.classList.add('tutorial-active');
             
-            // Mostra UI
+            // Blocca lo scroll del body per mantenere l'allineamento
+            document.body.style.overflow = 'hidden';
+            // Fallback per iOS Safari
+            window.addEventListener('scroll', preventScrollFallback, { passive: false });
+            
             document.getElementById('tutorial-blocker').style.display = 'block';
             document.getElementById('tutorial-spotlight').style.display = 'block';
             document.getElementById('tutorial-next-btn').style.display = 'block';
             
-            // Reagisce al cambio di rotazione dello schermo (es. tablet/smartphone)
             window.addEventListener('resize', updateSpotlight);
             
-            // Posiziona il primo buco senza animazione iniziale per evitare scatti dal punto (0,0)
             const spotlight = document.getElementById('tutorial-spotlight');
             spotlight.style.transition = 'none'; 
             updateSpotlight();
-            // Riattiva l'animazione per i passi successivi
-            setTimeout(() => spotlight.style.transition = '', 50); 
+            
+            // Un reflow forzato garantisce che il browser applichi il no-transition prima di riaccenderlo
+            void spotlight.offsetWidth; 
+            spotlight.style.transition = ''; 
         };
 
-        // Nascondiamo i rimasugli del vecchio tutorial e iniettiamo il tasto di debug
+        // Pulizia vecchia UI e iniezione debug
         const redSquare = document.getElementById('tutorial-red-square');
         if (redSquare) redSquare.style.display = 'none';
 
@@ -1837,17 +1854,17 @@
             const btn = document.createElement('button');
             btn.id = 'debug-tut-btn';
             btn.className = 'debug-tutorial-btn';
-            btn.innerText = 'DEBUG: Start Tutorial Spotlight';
+            btn.innerText = 'DEBUG: Start Tutorial';
             btn.onclick = window.startInteractiveTutorial;
             colorPicker.parentNode.appendChild(btn);
         }
 
-        // Avvio automatico
         const originalUpdateProfileUI = window.updateProfileUI;
         window.updateProfileUI = function(user) {
             if (originalUpdateProfileUI) originalUpdateProfileUI(user);
             if (user && user.user_metadata && user.user_metadata.tutorial_done === false) {
-                window.startInteractiveTutorial();
+                // Piccolo ritardo per assicurarci che il DOM sia renderizzato prima di calcolare i box
+                setTimeout(window.startInteractiveTutorial, 100);
             }
         };
     })();
