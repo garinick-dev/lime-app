@@ -1723,16 +1723,15 @@
     }
     body.tutorial-active #tutorial-click-shield { display: block; }
 
-    /* 5. La Bubble Speech (Posizionata a destra della mascotte) */
+    /* 5. La Bubble Speech */
     #tutorial-speech-bubble {
         position: absolute;
-        bottom: 50%; /* Metà altezza del contenitore della mascotte */
-        left: 155px; /* Appena a destra della viewbox */
+        bottom: 50%; /* Posizione base (pancia della mascotte) */
+        left: 155px; 
         width: 260px;
         background: var(--accent);
         color: #000;
         padding: 14px 18px;
-        /* La codina punta in basso a sinistra, verso la pancia della mascotte */
         border-radius: 20px 20px 20px 4px; 
         font-weight: 500;
         font-size: 0.95rem;
@@ -1740,25 +1739,37 @@
         box-shadow: 0 10px 25px rgba(0,0,0,0.4);
         z-index: 9006;
         
-        /* Centramento verticale esatto e transizione */
         opacity: 0;
         transform: translateY(50%) translateX(10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
+        /* Animiamo bottom e left per farla "volare" fluidamente tra gli step */
+        transition: opacity 0.3s ease, transform 0.3s ease, bottom 0.4s cubic-bezier(0.25, 1, 0.5, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         pointer-events: none;
-        will-change: transform, opacity;
+        will-change: transform, opacity, bottom, left;
     }
     
     body.tutorial-active #tutorial-speech-bubble {
         opacity: 1;
         transform: translateY(50%) translateX(0);
     }
+
+    /* STATO ELEVATO: Si attiva solo durante il Greeting */
+    #tutorial-speech-bubble.bubble-high {
+        bottom: 180px; /* Vola sopra la testa della mascotte */
+        left: 90px;
+    }
     
-    /* Gestione salvavita per gli schermi stretti (Mobile) */
+    /* Responsive per mobile */
     @media (max-width: 768px) {
         #tutorial-speech-bubble {
-            left: 120px; /* Si avvicina al corpo per non uscire dallo schermo */
-            width: 220px; /* Più compatta */
-            bottom: 60%; /* Leggermente più alta per bilanciare la scala */
+            left: 120px;
+            bottom: 60%;
+            width: 220px;
+        }
+        /* Su mobile vola ancora più in alto e si centra per scavalcare il greeting */
+        #tutorial-speech-bubble.bubble-high {
+            bottom: 240px; 
+            left: 40px;
+            width: 250px;
         }
     }
     
@@ -1797,12 +1808,12 @@
 <button id="tutorial-next-btn" onclick="nextTutorialStep()"></button>
 
 <script>
-    (function initTutorialPerfectSpeech() {
+    (function initTutorialFlyingSpeech() {
         let currentIndex = -1;
         
         const tutorialSteps = [
             '.menu-toggle',        // Step 0
-            '#lime-greeting-box',  // Step 1
+            '#lime-greeting-box',  // Step 1 (Qui la bubble volerà in alto)
             '.input-wrapper'       // Step 2
         ];
 
@@ -1827,9 +1838,16 @@
             }
         }
 
-        function updateSpeechBubble(text) {
+        function updateSpeechBubble(text, index) {
             const bubble = document.getElementById('tutorial-speech-bubble');
             bubble.innerText = text;
+            
+            // Gestione del volo: si alza solo se siamo allo step 1 (Greeting)
+            if (index === 1) {
+                bubble.classList.add('bubble-high');
+            } else {
+                bubble.classList.remove('bubble-high');
+            }
             
             bubble.classList.remove('bubble-pop');
             void bubble.offsetWidth; 
@@ -1845,7 +1863,7 @@
             }
 
             updateHighlights();
-            updateSpeechBubble(stepTexts[currentIndex]);
+            updateSpeechBubble(stepTexts[currentIndex], currentIndex);
 
             const btn = document.getElementById('tutorial-next-btn');
             btn.innerText = (currentIndex === tutorialSteps.length - 1) ? "Iniziamo!" : "Avanti";
@@ -1868,7 +1886,6 @@
         window.startTutorial = function() {
             if (document.body.classList.contains('tutorial-active')) return;
 
-            // Ancoriamo fisicamente la bubble dentro il contenitore della mascotte
             const bubble = document.getElementById('tutorial-speech-bubble');
             const mascot = document.getElementById('lime-app-mascot');
             if (bubble && mascot && bubble.parentNode !== mascot) {
@@ -1881,7 +1898,7 @@
             document.body.classList.add('tutorial-active');
             
             updateHighlights();
-            updateSpeechBubble(initialText);
+            updateSpeechBubble(initialText, -1);
             
             const btn = document.getElementById('tutorial-next-btn');
             btn.innerText = "Inizia";
