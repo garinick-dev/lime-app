@@ -1679,52 +1679,108 @@
 
 
 <style>
-    /* 1. Il Velo Scuro: copre tutto con una transizione fluida */
-    #tutorial-overlay {
+    /* 1. Velo di sfocatura globale */
+    #tutorial-blur-overlay {
         position: fixed; inset: 0; z-index: 9000;
-        background: rgba(15, 15, 15, 0.75);
+        background: rgba(80, 80, 80, 0.4);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         opacity: 0; pointer-events: none;
-        transition: opacity 0.3s ease;
+        transition: opacity 0.3s ease; 
+        touch-action: none; 
     }
-    body.tutorial-active #tutorial-overlay {
-        opacity: 1; pointer-events: auto; /* Blocca i click sugli elementi sotto */
-        touch-action: none; /* Blocca lo scroll su mobile */
-    }
-
-    /* 2. Il Vetro: blocca i click ANCHE sugli elementi messi in evidenza */
-    #tutorial-glass {
-        position: fixed; inset: 0; z-index: 9004;
-        background: transparent; display: none;
+    body.tutorial-active #tutorial-blur-overlay { 
+        opacity: 1; pointer-events: auto; 
     }
 
-    /* 3. La Classe Magica: porta gli elementi sopra il velo scuro */
-    .tutorial-highlight {
+    /* 2. LIBERIAMO LE GABBIE! */
+    body.tutorial-active .input-area,
+    body.tutorial-active header {
+        transform: none !important;
+        z-index: auto !important;
+    }
+
+    body.tutorial-active #lime-app-mascot {
+        z-index: 9005 !important;
+    }
+
+    body.tutorial-active #lime-app-mascot .lime-eye {
+        fill: #00d4ff !important;
+        transition: fill 0.3s ease;
+    }
+
+    /* 3. Classe Magica: porta il contenitore esatto sopra il velo */
+    .tutorial-elevated-container {
         position: relative !important; 
-        z-index: 9001 !important;
-        /* Disabilita transizioni pesanti ereditate per garantire scatti fluidi */
-        transition: z-index 0s, box-shadow 0.3s ease !important;
+        z-index: 9002 !important;
+        transition: none !important; 
     }
 
-    /* 4. Pulsante Avanti */
+    /* 4. Scudo invisibile per i click */
+    #tutorial-click-shield {
+        position: fixed; inset: 0; z-index: 9004;
+        display: none; background: transparent;
+    }
+    body.tutorial-active #tutorial-click-shield { display: block; }
+
+    /* 5. La Bubble Speech (Posizionata a destra della mascotte) */
+    #tutorial-speech-bubble {
+        position: absolute;
+        bottom: 50%; /* Metà altezza del contenitore della mascotte */
+        left: 155px; /* Appena a destra della viewbox */
+        width: 260px;
+        background: var(--accent);
+        color: #000;
+        padding: 14px 18px;
+        /* La codina punta in basso a sinistra, verso la pancia della mascotte */
+        border-radius: 20px 20px 20px 4px; 
+        font-weight: 500;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        z-index: 9006;
+        
+        /* Centramento verticale esatto e transizione */
+        opacity: 0;
+        transform: translateY(50%) translateX(10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+        pointer-events: none;
+        will-change: transform, opacity;
+    }
+    
+    body.tutorial-active #tutorial-speech-bubble {
+        opacity: 1;
+        transform: translateY(50%) translateX(0);
+    }
+    
+    /* Gestione salvavita per gli schermi stretti (Mobile) */
+    @media (max-width: 768px) {
+        #tutorial-speech-bubble {
+            left: 120px; /* Si avvicina al corpo per non uscire dallo schermo */
+            width: 220px; /* Più compatta */
+            bottom: 60%; /* Leggermente più alta per bilanciare la scala */
+        }
+    }
+    
+    .bubble-pop {
+        animation: tut-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes tut-pop {
+        0% { transform: translateY(50%) scale(0.95); }
+        50% { transform: translateY(50%) scale(1.02); }
+        100% { transform: translateY(50%) scale(1); }
+    }
+
+    /* 6. Pulsante Avanti */
     #tutorial-next-btn {
         position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
         z-index: 9005; background: #28a745; color: white; border: none;
         padding: 12px 40px; border-radius: 30px; font-weight: 800;
         text-transform: uppercase; cursor: pointer; display: none;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
-        transition: transform 0.2s ease, background 0.2s ease;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: transform 0.2s;
         user-select: none;
     }
-    #tutorial-next-btn:active { 
-        transform: translateX(-50%) scale(0.92); 
-        background: #218838;
-    }
-
-    /* 5. Occhi azzurri della mascotte (Intatto) */
-    body.tutorial-active #lime-app-mascot .lime-eye {
-        fill: #00d4ff !important;
-        transition: fill 0.3s ease;
-    }
+    #tutorial-next-btn:active { transform: translateX(-50%) scale(0.95); }
 
     /* Pulsante debug */
     .debug-tutorial-btn {
@@ -1735,105 +1791,113 @@
     }
 </style>
 
-<div id="tutorial-overlay"></div>
-<div id="tutorial-glass"></div>
-<button id="tutorial-next-btn" onclick="nextTutorialStep()">Avanti</button>
+<div id="tutorial-blur-overlay"></div>
+<div id="tutorial-click-shield"></div>
+<div id="tutorial-speech-bubble"></div>
+<button id="tutorial-next-btn" onclick="nextTutorialStep()"></button>
 
 <script>
-    (function initTutorialElevation() {
-        let currentStep = 0;
-        const mascotSelector = '#lime-app-mascot';
+    (function initTutorialPerfectSpeech() {
+        let currentIndex = -1;
         
-        // Definiamo i selettori esatti. Nessun padding da calcolare.
         const tutorialSteps = [
-            { selectors: ['header'] },
-            { selectors: ['#lime-greeting-box'] },
-            { selectors: ['.input-wrapper'] } // La mascotte è sempre visibile di default
+            '.menu-toggle',        // Step 0
+            '#lime-greeting-box',  // Step 1
+            '.input-wrapper'       // Step 2
         ];
 
-        function applyHighlights() {
-            // 1. Rimuoviamo l'highlight da tutti gli elementi (tranne la mascotte)
-            document.querySelectorAll('.tutorial-highlight').forEach(el => {
-                if (!el.matches(mascotSelector)) {
-                    el.classList.remove('tutorial-highlight');
-                }
+        const initialText = "Ciao! Sono LIME. Ti rubo solo pochi secondi per mostrarti come funziona il tuo nuovo spazio di studio.";
+        const stepTexts = [
+            "Qui in alto a sinistra trovi il menu. Usalo per creare nuove chat, ritrovare i tuoi appunti passati e cambiare le impostazioni.",
+            "Questi sono i suggerimenti rapidi. Ti basta un clic per iniziare subito a studiare o a farti interrogare.",
+            "E questa è la mia casa! Puoi scrivermi, allegare i tuoi PDF o parlarmi con il microfono. Sei pronto a cominciare?"
+        ];
+
+        function updateHighlights() {
+            tutorialSteps.forEach(selector => {
+                const el = document.querySelector(selector);
+                if (el) el.classList.remove('tutorial-elevated-container');
             });
 
-            // 2. Applichiamo l'highlight agli elementi dello step corrente
-            tutorialSteps[currentStep].selectors.forEach(sel => {
-                const elements = document.querySelectorAll(sel);
-                elements.forEach(el => el.classList.add('tutorial-highlight'));
-            });
+            if (currentIndex >= 0 && currentIndex < tutorialSteps.length) {
+                const activeContainer = document.querySelector(tutorialSteps[currentIndex]);
+                if (activeContainer) {
+                    activeContainer.classList.add('tutorial-elevated-container');
+                }
+            }
+        }
+
+        function updateSpeechBubble(text) {
+            const bubble = document.getElementById('tutorial-speech-bubble');
+            bubble.innerText = text;
+            
+            bubble.classList.remove('bubble-pop');
+            void bubble.offsetWidth; 
+            bubble.classList.add('bubble-pop');
         }
 
         window.nextTutorialStep = function() {
-            currentStep++;
-            if (currentStep >= tutorialSteps.length) {
-                closeTutorialInteractive();
+            currentIndex++;
+
+            if (currentIndex >= tutorialSteps.length) {
+                closeTutorial();
                 return;
             }
+
+            updateHighlights();
+            updateSpeechBubble(stepTexts[currentIndex]);
+
+            const btn = document.getElementById('tutorial-next-btn');
+            btn.innerText = (currentIndex === tutorialSteps.length - 1) ? "Iniziamo!" : "Avanti";
             
-            if (tutorialSteps[currentStep].selectors.includes('.input-wrapper')) {
+            if (tutorialSteps[currentIndex] === '.input-wrapper') {
                 if (typeof window.syncAnchoring === 'function') window.syncAnchoring();
             }
-            applyHighlights();
         };
 
-        window.closeTutorialInteractive = function() {
+        function closeTutorial() {
             document.body.classList.remove('tutorial-active');
-            document.body.style.overflow = '';
-            
-            document.getElementById('tutorial-glass').style.display = 'none';
             document.getElementById('tutorial-next-btn').style.display = 'none';
-            window.removeEventListener('scroll', preventScrollFallback, { passive: false });
             
-            // Ripuliamo tutte le classi
-            document.querySelectorAll('.tutorial-highlight').forEach(el => {
-                el.classList.remove('tutorial-highlight');
-            });
+            currentIndex = -1;
+            updateHighlights(); 
             
-            currentStep = 0;
             if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: true });
         };
 
-        function preventScrollFallback(e) {
-            e.preventDefault();
-        }
+        window.startTutorial = function() {
+            if (document.body.classList.contains('tutorial-active')) return;
 
-        window.startInteractiveTutorial = function() {
-            currentStep = 0;
+            // Ancoriamo fisicamente la bubble dentro il contenitore della mascotte
+            const bubble = document.getElementById('tutorial-speech-bubble');
+            const mascot = document.getElementById('lime-app-mascot');
+            if (bubble && mascot && bubble.parentNode !== mascot) {
+                mascot.appendChild(bubble);
+            }
+
+            currentIndex = -1; 
             if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: false });
             
-            // Attiva l'overlay e gli occhi della mascotte
             document.body.classList.add('tutorial-active');
-            document.body.style.overflow = 'hidden';
-            window.addEventListener('scroll', preventScrollFallback, { passive: false });
             
-            // Mostra il vetro protettivo e il bottone
-            document.getElementById('tutorial-glass').style.display = 'block';
-            document.getElementById('tutorial-next-btn').style.display = 'block';
+            updateHighlights();
+            updateSpeechBubble(initialText);
             
-            // Assicuriamoci che la mascotte sia SEMPRE in evidenza fin dall'inizio
-            const mascot = document.querySelector(mascotSelector);
-            if (mascot) mascot.classList.add('tutorial-highlight');
-            
-            applyHighlights();
+            const btn = document.getElementById('tutorial-next-btn');
+            btn.innerText = "Inizia";
+            btn.style.display = 'block';
         };
 
-        // Pulizia vecchia UI e iniezione debug
-        const redSquare = document.getElementById('tutorial-red-square');
-        if (redSquare) redSquare.style.display = 'none';
-
-        const spotlightOld = document.getElementById('tutorial-spotlight');
-        if (spotlightOld) spotlightOld.style.display = 'none';
+        const redSquareOld = document.getElementById('tutorial-red-square');
+        if (redSquareOld) redSquareOld.style.display = 'none';
 
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker && !document.getElementById('debug-tut-btn')) {
             const btn = document.createElement('button');
             btn.id = 'debug-tut-btn';
             btn.className = 'debug-tutorial-btn';
-            btn.innerText = 'DEBUG: Start Tutorial';
-            btn.onclick = window.startInteractiveTutorial;
+            btn.innerText = 'DEBUG: Start Blur Tutorial';
+            btn.onclick = window.startTutorial;
             colorPicker.parentNode.appendChild(btn);
         }
 
@@ -1841,12 +1905,11 @@
         window.updateProfileUI = function(user) {
             if (originalUpdateProfileUI) originalUpdateProfileUI(user);
             if (user && user.user_metadata && user.user_metadata.tutorial_done === false) {
-                setTimeout(window.startInteractiveTutorial, 100);
+                setTimeout(window.startTutorial, 200);
             }
         };
     })();
 </script>
-
     
 
 
