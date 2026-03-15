@@ -1723,11 +1723,9 @@
     }
     body.tutorial-active #tutorial-click-shield { display: block; }
 
-    /* 5. La Bubble Speech */
+    /* 5. La Bubble Speech Nativamente "Fixed" */
     #tutorial-speech-bubble {
-        position: absolute;
-        bottom: 50%; /* Posizione base (pancia della mascotte) */
-        left: 155px; 
+        position: fixed; /* Si muove libera per lo schermo */
         width: 260px;
         background: var(--accent);
         color: #000;
@@ -1740,36 +1738,22 @@
         z-index: 9006;
         
         opacity: 0;
-        transform: translateY(50%) translateX(10px);
-        /* Animiamo bottom e left per farla "volare" fluidamente tra gli step */
-        transition: opacity 0.3s ease, transform 0.3s ease, bottom 0.4s cubic-bezier(0.25, 1, 0.5, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         pointer-events: none;
-        will-change: transform, opacity, bottom, left;
+        will-change: top, left, opacity;
+        
+        /* Transizioni attivate da JS per voli fluidi */
+        transition: top 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                    left 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                    opacity 0.3s ease;
     }
     
     body.tutorial-active #tutorial-speech-bubble {
         opacity: 1;
-        transform: translateY(50%) translateX(0);
     }
 
-    /* STATO ELEVATO: Si attiva solo durante il Greeting */
-    #tutorial-speech-bubble.bubble-high {
-        bottom: 180px; /* Vola sopra la testa della mascotte */
-        left: 90px;
-    }
-    
-    /* Responsive per mobile */
     @media (max-width: 768px) {
         #tutorial-speech-bubble {
-            left: 120px;
-            bottom: 60%;
             width: 220px;
-        }
-        /* Su mobile vola ancora più in alto e si centra per scavalcare il greeting */
-        #tutorial-speech-bubble.bubble-high {
-            bottom: 240px; 
-            left: 40px;
-            width: 250px;
         }
     }
     
@@ -1777,9 +1761,9 @@
         animation: tut-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     @keyframes tut-pop {
-        0% { transform: translateY(50%) scale(0.95); }
-        50% { transform: translateY(50%) scale(1.02); }
-        100% { transform: translateY(50%) scale(1); }
+        0% { transform: scale(0.95); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); }
     }
 
     /* 6. Pulsante Avanti */
@@ -1808,12 +1792,12 @@
 <button id="tutorial-next-btn" onclick="nextTutorialStep()"></button>
 
 <script>
-    (function initTutorialFlyingSpeech() {
+    (function initTutorialPrecisionSpeech() {
         let currentIndex = -1;
         
         const tutorialSteps = [
             '.menu-toggle',        // Step 0
-            '#lime-greeting-box',  // Step 1 (Qui la bubble volerà in alto)
+            '#lime-greeting-box',  // Step 1
             '.input-wrapper'       // Step 2
         ];
 
@@ -1838,17 +1822,51 @@
             }
         }
 
+        // Il cuore matematico del posizionamento
         function updateSpeechBubble(text, index) {
             const bubble = document.getElementById('tutorial-speech-bubble');
             bubble.innerText = text;
             
-            // Gestione del volo: si alza solo se siamo allo step 1 (Greeting)
-            if (index === 1) {
-                bubble.classList.add('bubble-high');
-            } else {
-                bubble.classList.remove('bubble-high');
+            // Forza il ricalcolo dell'altezza del testo inserito
+            const bWidth = bubble.offsetWidth;
+            const bHeight = bubble.offsetHeight;
+
+            if (index === 1) { 
+                // STEP GREETING: Vola ESATTAMENTE sopra il box
+                const greeting = document.querySelector('#lime-greeting-box');
+                if (greeting) {
+                    const gRect = greeting.getBoundingClientRect();
+                    // 15px di spazio dal bordo superiore del greeting
+                    bubble.style.top = (gRect.top - bHeight - 15) + 'px';
+                    
+                    if (window.innerWidth <= 768) {
+                        // Su mobile la centiamo perfettamente allo schermo
+                        bubble.style.left = (window.innerWidth / 2 - bWidth / 2) + 'px';
+                        bubble.style.borderRadius = '20px'; // Arrotondata simmetrica
+                    } else {
+                        // Su desktop la allineiamo al margine sinistro del greeting
+                        bubble.style.left = gRect.left + 'px';
+                        bubble.style.borderRadius = '20px 20px 20px 4px';
+                    }
+                }
+            } else { 
+                // ALTRI STEP: Ancorata dinamicamente alla mascotte
+                const mascot = document.querySelector('#lime-app-mascot');
+                if (mascot) {
+                    const mRect = mascot.getBoundingClientRect();
+                    // Allineamento verticale al centro della mascotte
+                    bubble.style.top = (mRect.top + (mRect.height / 2) - (bHeight / 2)) + 'px';
+
+                    if (window.innerWidth <= 768) {
+                        bubble.style.left = (mRect.right - 20) + 'px'; 
+                    } else {
+                        bubble.style.left = (mRect.right + 15) + 'px'; 
+                    }
+                    bubble.style.borderRadius = '20px 20px 20px 4px'; // Codina puntata alla mascotte
+                }
             }
             
+            // Trigger dell'animazione "pop" per rendere vivo il testo
             bubble.classList.remove('bubble-pop');
             void bubble.offsetWidth; 
             bubble.classList.add('bubble-pop');
@@ -1876,6 +1894,7 @@
         function closeTutorial() {
             document.body.classList.remove('tutorial-active');
             document.getElementById('tutorial-next-btn').style.display = 'none';
+            window.removeEventListener('resize', handleResize);
             
             currentIndex = -1;
             updateHighlights(); 
@@ -1883,28 +1902,41 @@
             if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: true });
         };
 
+        // Ricalcola la posizione esatta se l'utente gira il telefono o ridimensiona la finestra
+        function handleResize() {
+            if (document.body.classList.contains('tutorial-active')) {
+                const bubble = document.getElementById('tutorial-speech-bubble');
+                bubble.style.transition = 'none'; // Spegne l'animazione per evitare scatti durante il resize
+                updateSpeechBubble(bubble.innerText, currentIndex);
+                setTimeout(() => bubble.style.transition = '', 50);
+            }
+        }
+
         window.startTutorial = function() {
             if (document.body.classList.contains('tutorial-active')) return;
-
-            const bubble = document.getElementById('tutorial-speech-bubble');
-            const mascot = document.getElementById('lime-app-mascot');
-            if (bubble && mascot && bubble.parentNode !== mascot) {
-                mascot.appendChild(bubble);
-            }
 
             currentIndex = -1; 
             if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: false });
             
-            document.body.classList.add('tutorial-active');
+            // Blocchiamo le transizioni solo al primissimo avvio per posizionarla istantaneamente
+            const bubble = document.getElementById('tutorial-speech-bubble');
+            bubble.style.transition = 'none';
             
             updateHighlights();
             updateSpeechBubble(initialText, -1);
+            
+            document.body.classList.add('tutorial-active');
+            window.addEventListener('resize', handleResize);
+            
+            // Riattiviamo le transizioni per i voli successivi
+            setTimeout(() => bubble.style.transition = '', 50);
             
             const btn = document.getElementById('tutorial-next-btn');
             btn.innerText = "Inizia";
             btn.style.display = 'block';
         };
 
+        // Pulizia e iniezione debug
         const redSquareOld = document.getElementById('tutorial-red-square');
         if (redSquareOld) redSquareOld.style.display = 'none';
 
