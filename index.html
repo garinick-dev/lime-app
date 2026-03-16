@@ -652,15 +652,28 @@
         }
 
         let lastDate = null; 
-        messages.forEach(m => { 
+
+                messages.forEach(m => { 
             const md = formatDateSeparator(m.created_at); if (md !== lastDate) { fragment.appendChild(createDateSeparatorNode(md)); lastDate = md; } 
+            
             let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
             if (fileMatch) { fileName = fileMatch[1]; rawQuery = rawQuery.replace(fileMatch[0], ""); } 
-            const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; let hasFile = docRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
-            let userHtml = rawQuery.replace(docRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
+            
+            // Il filtro grafico aggiornato per coprire sia i vecchi che i nuovi tag
+            const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; 
+            const newDocRegex = /\[--- DATI ESTRATTI DAL FILE ALLEGATO ---\][\s\S]*?\[--- FINE DATI ESTRATTI ---\]\n?/g;
+            
+            let hasFile = docRegex.test(rawQuery) || newDocRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
+            
+            // Applica la pulizia di entrambi i regex prima di renderizzare il testo
+            let userHtml = rawQuery.replace(docRegex, "").replace(newDocRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
+            
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
+            
             fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
-        }); 
+        });
+
+        
         DOM.chatBox.appendChild(fragment); 
         if (doScrollToBottom) scrollToBottom(true); 
         
