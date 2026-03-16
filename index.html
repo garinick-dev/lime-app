@@ -475,9 +475,13 @@
                 pendingProfileUpdates = {}; 
                 try {
                     await supabaseClient.auth.updateUser({ data: dataToSend });
-                } catch (e) {
-                    console.error("Errore salvataggio profilo:", e);
-                }
+                            } catch (e) { 
+                console.error("DETTAGLIO ERRORE FILE:", e);
+                alert(`Errore elaborazione: ${e.message}`); 
+                isGenerating = false; DOM.sendBtn.disabled = false; 
+                if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
+            } 
+
             }
         }, 1000); 
     }
