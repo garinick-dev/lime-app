@@ -703,15 +703,25 @@
     const formData = new FormData();
     formData.append('file', file);
 
-    // Assicurati che il nome coincida con quello che hai creato su Supabase
     const targetUrl = `${S_URL}/functions/v1/hyper-function`; 
+    
+    // 1. Recuperiamo le intestazioni base
+    const headers = await getAuthHeaders();
+    // 2. Aggiungiamo la chiave anonima (S_KEY è già definita in alto nel tuo codice)
+    headers['apikey'] = S_KEY;
+
     const res = await fetch(targetUrl, {
         method: 'POST',
-        headers: await getAuthHeaders(),
+        headers: headers,
         body: formData
     });
     
-    if (!res.ok) throw new Error("Errore API Vision");
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error("Dettaglio blocco 401:", errText);
+        throw new Error(`Errore API Vision: ${res.status}`);
+    }
+    
     const data = await res.json();
     return data.text || "[Nessun testo rilevato nell'immagine]";
 }
