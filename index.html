@@ -704,7 +704,7 @@
     formData.append('file', file);
 
     // Assicurati che il nome coincida con quello che hai creato su Supabase
-    const targetUrl = `${S_URL}/functions/v1/vision-parser`; 
+    const targetUrl = `${S_URL}/functions/v1/hyper-function`; 
     const res = await fetch(targetUrl, {
         method: 'POST',
         headers: await getAuthHeaders(),
