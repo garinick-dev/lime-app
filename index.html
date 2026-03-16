@@ -863,6 +863,7 @@
         const maxAttempts = 2;
         let success = false;
         let originalConversationId = currentConversationId; 
+        let isContextFull = false;
 
         while (attempt < maxAttempts && !success) {
             attempt++;
@@ -929,7 +930,12 @@
                                     const data = JSON.parse(line.substring(6)); 
                                     if (data.event === 'error') {
                                         hasError = true; 
-                                    } else if (data.event === 'message') { 
+                                        // Se Dify ci dice che i token o il contesto sono finiti, alziamo la bandierina
+                                        const errString = JSON.stringify(data).toLowerCase();
+                                        if (errString.includes('context') || errString.includes('token') || errString.includes('length')) {
+                                            isContextFull = true;
+                                        }
+                                    } else if (data.event === 'message') {
                                         fullAnswer += data.answer; 
                                         if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
                                         
@@ -989,9 +995,15 @@
         if (fullAnswer.trim().length === 0 || botDiv.innerText.trim() === "") success = false;
 
         if (!success) {
-            fullAnswer = `🚫📶 Ci siamo persi! Ritento la risposta? <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
+            if (isContextFull) {
+                // Solo testo, niente bottoni
+                fullAnswer = `🧠 La mia memoria per questa chat è finita. Passiamo ad una nuova chat.`;
+            } else {
+                // Il classico errore di rete con il bottone riprova
+                fullAnswer = `🚫📶 Ci siamo persi! Ritento la risposta? <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
+            }
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-            botDiv.innerHTML = fullAnswer; 
+            botDiv.innerHTML = fullAnswer;
             if(bottomBar) botDiv.appendChild(bottomBar); 
             
             if (!originalConversationId && currentConversationId) {
