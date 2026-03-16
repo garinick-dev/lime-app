@@ -827,8 +827,7 @@
         });
     }
 
-    
-    async function sendMessage() {
+        async function sendMessage() {
         if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
         let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
         
@@ -843,39 +842,53 @@
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
         if (currentFile) { 
-            DOM.attachmentLabel.innerText = "Ottimizzazione ed estrazione dati..."; 
+            DOM.attachmentLabel.innerText = "Preparazione file..."; 
             DOM.attachmentLabel.style.display = 'block';
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    // 1. Compressione
-                    const compressedFile = await compressImage(currentFile);
+                    // FASE 1: Compressione
+                    DOM.attachmentLabel.innerText = "1/3 Compressione immagine...";
+                    let compressedFile;
+                    try { compressedFile = await compressImage(currentFile); }
+                    catch(err) { throw new Error("Compressione fallita: " + err.message); }
                     
-                    // 2. Upload
+                    // FASE 2: Upload
+                    DOM.attachmentLabel.innerText = "2/3 Upload al server...";
                     const formData = new FormData(); formData.append('file', compressedFile); formData.append('user', userId); 
                     let uploadHeaders = await getAuthHeaders(); delete uploadHeaders['Content-Type'];
                     
                     const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: uploadHeaders, body: formData }); 
-                    if (!uploadRes.ok) throw new Error("Errore upload");
+                    if (!uploadRes.ok) throw new Error(`Upload fallito (Codice Server: ${uploadRes.status})`);
                     const fileId = (await uploadRes.json()).id; 
                     
-                    // 3. Estrazione Testo
+                    // FASE 3: Estrazione Testo (La probabile colpevole)
+                    DOM.attachmentLabel.innerText = "3/3 Estrazione del testo in corso...";
                     const extractionPrompt = `Trascrivi fedelmente tutto il testo, le formule e gli esercizi presenti nell'immagine. Non riassumere. Restituisci esclusivamente il testo estratto.`;
                     const extractReqBody = { inputs: {}, query: extractionPrompt, user: userId, response_mode: "blocking", files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: fileId }] };
                     
                     const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' }, body: JSON.stringify(extractReqBody) });
-                    if (!extractRes.ok) throw new Error("Errore estrazione");
                     
-                    extractedText = (await extractRes.json()).answer || "[Nessun testo rilevato nell'immagine]";
+                    if (!extractRes.ok) throw new Error(`Estrazione fallita (Codice Server: ${extractRes.status})`);
+                    
+                    const extractData = await extractRes.json();
+                    if(extractData.event === "error" || extractData.code) throw new Error(`Rifiuto Dify: ${extractData.message || extractData.code}`);
+
+                    extractedText = extractData.answer || "[Nessun testo rilevato nell'immagine]";
                 } else {
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
-                alert("Errore durante l'elaborazione del file."); isGenerating = false; DOM.sendBtn.disabled = false; 
+                // L'ALERT DIAGNOSTICO DEFINITIVO
+                alert(`⚠️ LIME DIAGNOSTICA ⚠️\n\nSi è rotto qui:\n${e.message}`); 
+                isGenerating = false; DOM.sendBtn.disabled = false; 
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
             } 
         }
+
+        // ... qui prosegue con let finalQuery = query || " ";
+
 
         // Il pacchetto pulito e leggero: testuale
         let finalQuery = query || " ";
