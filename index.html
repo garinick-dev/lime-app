@@ -292,6 +292,12 @@
             
             <div class="input-area">
                 <div id="breath-area"></div>
+                <div id="chat-fullness-container" style="width: 100%; max-width: var(--chat-max-width); margin-bottom: 8px; display: none; flex-direction: column; align-items: center;">
+                    <span id="chat-fullness-warning" style="font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; display: none;">Chat quasi piena. Crea una nuova chat</span>
+                    <div style="width: 100%; height: 3px; background: rgba(0,0,0,0.2); border-radius: 2px; overflow: hidden; border: 1px solid var(--border-color);">
+                        <div id="chat-fullness-bar" style="height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease, background-color 0.3s ease;"></div>
+                    </div>
+                </div>
                 <div class="input-wrapper">
                     
                     <div id="lime-app-mascot" class="lime-floating-container">
@@ -345,6 +351,36 @@
 <script>
     let DOM = {};
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
+
+    const MAX_CHAT_CHARS = 150000;
+    let currentChatChars = 0;
+
+    function updateFullnessUI() {
+        if (!DOM.fullnessContainer) return;
+        if (!currentConversationId && currentChatChars === 0) {
+            DOM.fullnessContainer.style.display = 'none';
+            return;
+        }
+        DOM.fullnessContainer.style.display = 'flex';
+        let percent = (currentChatChars / MAX_CHAT_CHARS) * 100;
+        if (percent > 100) percent = 100;
+        
+        DOM.fullnessBar.style.width = `${percent}%`;
+        
+        if (percent >= 90) {
+            DOM.fullnessBar.style.background = '#ff4444';
+            DOM.fullnessWarning.style.display = 'block';
+            DOM.fullnessWarning.style.color = '#ff4444';
+            DOM.fullnessWarning.innerText = percent >= 100 ? "Memoria chat esaurita. Passa a una nuova chat." : "Chat quasi piena. Crea una nuova chat.";
+        } else if (percent >= 75) {
+            DOM.fullnessBar.style.background = '#ff9f43';
+            DOM.fullnessWarning.style.display = 'none';
+        } else {
+            DOM.fullnessBar.style.background = 'var(--accent)';
+            DOM.fullnessWarning.style.display = 'none';
+        }
+    }
+    
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
     let globalStream = null, chatVirtualObserver = null, currentCustomBg = null, capturedChipTitle = null;
     let librariesLoaded = false; 
@@ -638,6 +674,7 @@
     
     function renderMessages(messages, doScrollToBottom = true) { 
         DOM.chatBox.innerHTML = ""; const fragment = document.createDocumentFragment(); 
+        currentChatChars = 0; // Resetta il contatore per ricalcolare il peso della chat
 
         if (currentChatHasMore) {
             const loadBtn = document.createElement('button');
@@ -654,18 +691,35 @@
         let lastDate = null; 
         messages.forEach(m => { 
             const md = formatDateSeparator(m.created_at); if (md !== lastDate) { fragment.appendChild(createDateSeparatorNode(md)); lastDate = md; } 
-            let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
+            
+            let rawQuery = m.query || "";
+            let rawAnswer = m.answer || "";
+            
+            // Calcolo peso
+            currentChatChars += rawQuery.length + rawAnswer.length;
+
+            let fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
             if (fileMatch) { fileName = fileMatch[1]; rawQuery = rawQuery.replace(fileMatch[0], ""); } 
-            const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; let hasFile = docRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
-            let userHtml = rawQuery.replace(docRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
+            
+            // IL FILTRO GRAFICO PERMANENTE (Nasconde sia i vecchi tag che i nuovi)
+            const oldDocRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g;
+            const newDocRegex = /\[--- DATI ESTRATTI DAL FILE ALLEGATO ---\][\s\S]*?\[--- FINE DATI ESTRATTI ---\]\n?/g; 
+            
+            let hasFile = oldDocRegex.test(rawQuery) || newDocRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
+            
+            let userHtml = rawQuery.replace(oldDocRegex, "").replace(newDocRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
-            fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
+            
+            fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', rawAnswer, m.created_at)); 
         }); 
+        
         DOM.chatBox.appendChild(fragment); 
         if (doScrollToBottom) scrollToBottom(true); 
         
         DOM.chatBox.querySelectorAll('.msg-wrapper').forEach(wrapper => { wrapper.classList.add('msg-complete'); if (chatVirtualObserver) chatVirtualObserver.observe(wrapper); });
         if(window.updateGreetingVisibility) window.updateGreetingVisibility(); 
+        
+        updateFullnessUI(); // Aggiorna la barra visiva
     }
 
     window.handleFileSelect = function(e) { 
@@ -803,6 +857,12 @@
         if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
         let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
         
+        // CONTROLLO PREVENTIVO ASSOLUTO (Senza file allegato)
+        if (!currentFile && (currentChatChars + query.length > MAX_CHAT_CHARS)) {
+            alert("Memoria della chat esaurita al 100%. Apri una nuova chat per continuare.");
+            return;
+        }
+
         let newChatTitle = capturedChipTitle ? capturedChipTitle : (query.substring(0, 35) || "Nuova Chat");
         capturedChipTitle = null; 
         
@@ -818,17 +878,11 @@
             DOM.attachmentLabel.style.display = 'block';
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    // FASE 1: UPLOAD E ESTRAZIONE STATELESS (La Distillazione)
                     const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId); 
                     const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
                     const fileId = (await uploadRes.json()).id; 
                     
-                    const extractionPrompt = `Regole per l'Estrazione del Testo:
-1. Divieto Assoluto di Sintesi: Il tuo unico scopo è la trascrizione fedele e integrale. Non riassumere, non tagliare, non spiegare e non risolvere gli esercizi. Limitati a copiare il testo parola per parola.
-2. Precisione Matematica e Strutturale: Trascrivi equazioni, formule e simboli con la massima precisione formale. Mantieni intatti i numeri degli esercizi, gli elenchi puntati e la struttura.
-3. Fedeltà Umanistica: Rispetta scrupolosamente il testo, la punteggiatura e i ritorni a capo. Non correggere eventuali errori.
-4. Filtro del Rumore Visivo: Ignora numeri di pagina, intestazioni irrilevanti, filigrane o elementi grafici inutili.
-5. Output Crudo: Restituisci esclusivamente il testo estratto. Vietato includere frasi introduttive o conclusive. Stampa solo il dato puro.`;
+                    const extractionPrompt = `Regole per l'Estrazione del Testo:\n1. Divieto Assoluto di Sintesi: Il tuo unico scopo è la trascrizione fedele e integrale. Non riassumere, non tagliare, non spiegare e non risolvere gli esercizi. Limitati a copiare il testo parola per parola.\n2. Precisione Matematica e Strutturale: Trascrivi equazioni, formule e simboli con la massima precisione formale. Mantieni intatti i numeri degli esercizi, gli elenchi puntati e la struttura.\n3. Fedeltà Umanistica: Rispetta scrupolosamente il testo, la punteggiatura e i ritorni a capo. Non correggere eventuali errori.\n4. Filtro del Rumore Visivo: Ignora numeri di pagina, intestazioni irrilevanti, filigrane o elementi grafici inutili.\n5. Output Crudo: Restituisci esclusivamente il testo estratto. Vietato includere frasi introduttive o conclusive. Stampa solo il dato puro.`;
                     
                     const extractReqBody = { 
                         inputs: {}, 
@@ -848,7 +902,6 @@
                     const extractData = await extractRes.json();
                     extractedText = extractData.answer || "[Nessun testo rilevato nell'immagine]";
                 } else {
-                    // FASE 1 (Alternativa): Estrazione testuale locale per PDF/TXT
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 
@@ -859,11 +912,33 @@
             } 
         }
 
-        // Costruzione Query Finale (Niente payload di file, solo testo puro!)
         let finalQuery = query || " ";
+        let hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
+        
         if (extractedText) { 
-            finalQuery = `[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
+            finalQuery = `${hiddenFileTag}[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
         }
+
+        // LO SCUDO ANTI-CRASH (Controlla il peso dopo l'estrazione)
+        let queryWeight = finalQuery.length;
+        if (currentChatChars + queryWeight > MAX_CHAT_CHARS) {
+            const userWrapper = createMessageNode('user', displayHtml, null, true);
+            DOM.chatBox.appendChild(userWrapper); 
+            
+            const blockHtml = `🚫 Il file estratto genera troppo testo. La memoria della chat verrebbe superata. Puoi provare a caricare un documento più breve, oppure passare ad una <a href="#" onclick="startNewChat(); return false;" style="color: var(--accent);">chat nuova</a>.`;
+            const botWrapper = createMessageNode('bot', blockHtml, null, true);
+            DOM.chatBox.appendChild(botWrapper);
+            
+            scrollToBottom(true);
+            DOM.inputField.value = ""; clearAttachment(); DOM.inputField.focus(); 
+            isGenerating = false; DOM.sendBtn.disabled = false;
+            if (window.setMascotThinking) window.setMascotThinking(false);
+            return; // Blocca tutto, la chat è salva!
+        }
+
+        // Procediamo se è tutto ok
+        currentChatChars += queryWeight; 
+        updateFullnessUI();
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
         DOM.chatBox.appendChild(userWrapper); scrollToBottom(true); 
@@ -888,7 +963,6 @@
             let streamTimeout = setTimeout(() => controller.abort(), 30000); 
 
             try {
-                // FASE 2: LA VERA CHIAMATA (Senza "files" nell'oggetto e sempre in streaming)
                 const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: "streaming" }; 
                 if (currentConversationId) reqBody.conversation_id = currentConversationId; 
                 
@@ -945,6 +1019,9 @@
                                             if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
                                             chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                                         }
+                                        
+                                        currentChatChars += fullAnswer.length; 
+                                        updateFullnessUI();
                                     } else {
                                         hasError = true; 
                                     }
@@ -967,6 +1044,9 @@
         if (fullAnswer.trim().length === 0 || botDiv.innerText.trim() === "") success = false;
 
         if (!success) {
+            currentChatChars -= queryWeight; // Togli il peso in caso di errore
+            updateFullnessUI();
+
             fullAnswer = `🚫📶 Ci siamo persi! Ritento la risposta? <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
             botDiv.innerHTML = fullAnswer; 
@@ -1373,7 +1453,7 @@
         });
         
         DOM = {
-            chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area'), micBtn: document.getElementById('mic-btn'), attachBtn: document.getElementById('attach-btn'), timerDisplay: document.getElementById('recording-timer'), attachmentLabel: document.getElementById('attachment-label'), fileInput: document.getElementById('file-input'), eduDropdown: document.getElementById('edu-dropdown'), instDropdown: document.getElementById('inst-dropdown'), bgInput: document.getElementById('bg-input')
+            chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area'), micBtn: document.getElementById('mic-btn'), attachBtn: document.getElementById('attach-btn'), timerDisplay: document.getElementById('recording-timer'), attachmentLabel: document.getElementById('attachment-label'), fileInput: document.getElementById('file-input'), eduDropdown: document.getElementById('edu-dropdown'), instDropdown: document.getElementById('inst-dropdown'), bgInput: document.getElementById('bg-input'), fullnessContainer: document.getElementById('chat-fullness-container'), fullnessBar: document.getElementById('chat-fullness-bar'), fullnessWarning: document.getElementById('chat-fullness-warning')
         };
 
         const redSquareBtn = document.getElementById('tutorial-red-square');
