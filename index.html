@@ -2145,6 +2145,87 @@
 
 
 
+
+
+<script>
+(function() {
+    // Limite teorico di sicurezza della chat (modificabile)
+    const MAX_CHARS_LIMIT = 400000;
+    
+    // 1. Creazione degli elementi grafici (Pillola minimalista)
+    const pillContainer = document.createElement('div');
+    pillContainer.id = 'lime-fullness-pill';
+    // Puoi regolare 'bottom' e 'right' qui sotto per posizionarla al millimetro
+    pillContainer.style.cssText = 'position: absolute; bottom: -8px; right: 15px; width: 45px; height: 4px; border-radius: 4px; background: rgba(128, 128, 128, 0.2); overflow: hidden; pointer-events: none; z-index: 100;';
+    
+    const pillFill = document.createElement('div');
+    pillFill.id = 'lime-fullness-fill';
+    pillFill.style.cssText = 'height: 100%; width: 0%; background: var(--accent); transition: width 0.5s ease, background-color 0.5s ease;';
+    
+    pillContainer.appendChild(pillFill);
+    
+    // 2. Iniezione nel DOM alla base dell'input area
+    const initPill = setInterval(() => {
+        const inputArea = document.querySelector('.input-area');
+        if (inputArea) {
+            // Assicuriamoci che l'area sia relative per agganciarci la pillola in absolute
+            if (window.getComputedStyle(inputArea).position === 'static') {
+                inputArea.style.position = 'relative';
+            }
+            inputArea.appendChild(pillContainer);
+            clearInterval(initPill);
+        }
+    }, 500);
+
+    // 3. Logica di calcolo ultra-leggera
+    let lastCharCount = -1;
+    function calculateChatWeight() {
+        const chatBox = document.getElementById('chat-box');
+        if (!chatBox) return;
+        
+        // textContent è iper-performante e conta anche il testo nascosto dai tuoi tag grafici
+        const currentChars = chatBox.textContent.length; 
+        if (currentChars === lastCharCount) return;
+        lastCharCount = currentChars;
+
+        let percent = (currentChars / MAX_CHARS_LIMIT) * 100;
+        if (percent > 100) percent = 100;
+
+        pillFill.style.width = percent + '%';
+        
+        // Cambio colore se ci si avvicina al limite
+        if (percent > 90) {
+            pillFill.style.background = '#ff4444'; // Rosso (Critico)
+        } else if (percent > 75) {
+            pillFill.style.background = '#ff9f43'; // Arancione (Avviso)
+        } else {
+            pillFill.style.background = 'var(--accent)'; // Verde LIME (Ok)
+        }
+    }
+
+    // 4. Observer passivo (scatta solo quando il bot finisce di scrivere)
+    const observer = new MutationObserver(() => {
+        // Il debounce di 1 secondo annulla i ricalcoli continui durante lo streaming
+        clearTimeout(window.limeFullnessTimer);
+        window.limeFullnessTimer = setTimeout(calculateChatWeight, 1000); 
+    });
+
+    const startObserve = setInterval(() => {
+        const chatBox = document.getElementById('chat-box');
+        if (chatBox) {
+            // Osserva tutto ciò che entra, esce o cambia nel chat-box
+            observer.observe(chatBox, { childList: true, subtree: true, characterData: true });
+            clearInterval(startObserve);
+        }
+    }, 500);
+})();
+</script>
+
+
+    
+
+
+
     
     
 
