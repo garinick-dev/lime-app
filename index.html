@@ -839,6 +839,16 @@
                     isImage = false; // Questo riattiva lo streaming fluido per le risposte!
                 } else {
                     extractedText = await extractTextFromFile(currentFile); 
+                    
+                    // Scudo protettivo: blocca i PDF o TXT enormi (25000 caratteri = circa 10-15 pagine)
+                    if (extractedText && extractedText.length > 25000) {
+                        alert("Il file che hai inviato ha troppe pagine: potresti inviarne solo una parte?");
+                        isGenerating = false; 
+                        DOM.sendBtn.disabled = false; 
+                        if (window.setMascotThinking) window.setMascotThinking(false); 
+                        clearAttachment(); // Rimuove il macigno ma salva il testo digitato
+                        return; 
+                    }
                 }
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
