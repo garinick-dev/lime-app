@@ -816,7 +816,7 @@
         }, { root: DOM.chatBox, rootMargin: '600px 0px' });
     }
 
-    async function sendMessage() {
+        async function sendMessage() {
         if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
         let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
         
@@ -828,61 +828,56 @@
         if (exs.length === 0 || exs[exs.length - 1].innerText !== "Oggi") DOM.chatBox.appendChild(createDateSeparatorNode("Oggi"));
 
         let extractedText = null; 
+        let uploadedFileId = null; // Variabile per il flusso nativo e rapido delle foto
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
         if (currentFile) { 
-            DOM.attachmentLabel.innerText = "Elaborazione e distillazione dati..."; 
+            DOM.attachmentLabel.innerText = "Elaborazione file..."; 
             DOM.attachmentLabel.style.display = 'block';
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    // FASE 1: UPLOAD E ESTRAZIONE STATELESS (La Distillazione)
-                    const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId); 
-                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
-                    const fileId = (await uploadRes.json()).id; 
+                    // UPLOAD FULMINEO IMMAGINI: Nessuna estrazione OCR preventiva, lo fa Dify.
+                    const formData = new FormData(); 
+                    formData.append('file', currentFile); 
+                    formData.append('user', userId); 
                     
-                    const extractionPrompt = `Regole per l'Estrazione del Testo:
-1. Divieto Assoluto di Sintesi: Il tuo unico scopo è la trascrizione fedele e integrale. Non riassumere, non tagliare, non spiegare e non risolvere gli esercizi. Limitati a copiare il testo parola per parola.
-2. Precisione Matematica e Strutturale: Trascrivi equazioni, formule e simboli con la massima precisione formale. Mantieni intatti i numeri degli esercizi, gli elenchi puntati e la struttura.
-3. Fedeltà Umanistica: Rispetta scrupolosamente il testo, la punteggiatura e i ritorni a capo. Non correggere eventuali errori.
-4. Filtro del Rumore Visivo: Ignora numeri di pagina, intestazioni irrilevanti, filigrane o elementi grafici inutili.
-5. Output Crudo: Restituisci esclusivamente il testo estratto. Vietato includere frasi introduttive o conclusive. Stampa solo il dato puro.`;
+                    let uploadHeaders = await getAuthHeaders();
+                    // Cruciale: rimuoviamo Content-Type affinché il browser gestisca il boundary del FormData
+                    delete uploadHeaders['Content-Type']; 
+
+                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { 
+                        method: 'POST', 
+                        headers: uploadHeaders, 
+                        body: formData 
+                    }); 
                     
-                    const extractReqBody = { 
-                        inputs: {}, 
-                        query: extractionPrompt, 
-                        user: userId, 
-                        response_mode: "blocking",
-                        files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: fileId }]
-                    };
-                    
-                    const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, {
-                        method: 'POST',
-                        headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' },
-                        body: JSON.stringify(extractReqBody)
-                    });
-                    
-                    if (!extractRes.ok) throw new Error("Errore estrazione");
-                    const extractData = await extractRes.json();
-                    extractedText = extractData.answer || "[Nessun testo rilevato nell'immagine]";
+                    if (!uploadRes.ok) throw new Error("Errore upload immagine");
+                    uploadedFileId = (await uploadRes.json()).id; 
                 } else {
-                    // FASE 1 (Alternativa): Estrazione testuale locale per PDF/TXT
+                    // PDF e TXT: Estrazione testo locale veloce
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
-                alert("Errore durante l'elaborazione del file."); isGenerating = false; DOM.sendBtn.disabled = false; 
+                console.error("Errore file:", e);
+                alert("Errore durante l'elaborazione del file. Riprova."); 
+                isGenerating = false; DOM.sendBtn.disabled = false; 
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
             } 
         }
 
-                // Costruzione Query Finale (Niente payload di file, solo testo puro!)
+        // COSTRUZIONE DELLA QUERY
         let finalQuery = query || " ";
-        if (extractedText) { 
-            let hiddenFileName = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
-            finalQuery = `${hiddenFileName}[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
-        }
+        let hiddenFileName = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
 
+        if (extractedText) { 
+            // Query per PDF/TXT
+            finalQuery = `${hiddenFileName}[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
+        } else if (currentFile && currentFile.type.startsWith('image/')) {
+            // Query per Immagini (assicura che il nome file sia salvato nello storico visivo)
+            finalQuery = `${hiddenFileName}${finalQuery}`;
+        }
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
         DOM.chatBox.appendChild(userWrapper); scrollToBottom(true); 
@@ -907,9 +902,14 @@
             let streamTimeout = setTimeout(() => controller.abort(), 30000); 
 
             try {
-                // FASE 2: LA VERA CHIAMATA (Senza "files" nell'oggetto e sempre in streaming)
+                // CHIAMATA A DIFY
                 const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: "streaming" }; 
                 if (currentConversationId) reqBody.conversation_id = currentConversationId; 
+                
+                // Allega l'ID dell'immagine caricata
+                if (uploadedFileId) {
+                    reqBody.files = [{ type: 'image', transfer_method: 'local_file', upload_file_id: uploadedFileId }];
+                }
                 
                 const authHeaders = await getAuthHeaders(); 
                 const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { 
@@ -945,7 +945,8 @@
                                         const updateUI = () => {
                                             renderQueued = false; 
                                             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                                            let safeMathText = formatLaTeX(fullAnswer);
+                                            // Chiamata sicura al formattatore
+                                            let safeMathText = typeof formatLaTeX === "function" ? formatLaTeX(fullAnswer) : fullAnswer;
                                             botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
                                             if(bottomBar) botDiv.appendChild(bottomBar); 
                                             scrollToBottom(); 
@@ -986,8 +987,7 @@
         if (fullAnswer.trim().length === 0 || botDiv.innerText.trim() === "") success = false;
 
         if (!success) {
-            // Se l'API rifiuta il messaggio per intasamento o errore, stampiamo questo avviso
-            fullAnswer = `⚠️ Per questa chat la mia memoria è arrivata al limite. Ti consiglio di crearne una nuova.`;
+            fullAnswer = `⚠️ Per questa chat la mia memoria è arrivata al limite o c'è stato un problema di rete. Ti consiglio di crearne una nuova.`;
             
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
             botDiv.innerHTML = fullAnswer; 
@@ -1032,6 +1032,7 @@
             }
         }, 600);
     }
+
 
     window.retryLastMessage = function(btn) {
         // Recupera il testo salvato nel bottone
