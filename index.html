@@ -699,6 +699,23 @@
         } return ""; 
     }
 
+    async function extractTextFromImage(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Assicurati che il nome coincida con quello che hai creato su Supabase
+    const targetUrl = `${S_URL}/functions/v1/vision-parser`; 
+    const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: await getAuthHeaders(),
+        body: formData
+    });
+    
+    if (!res.ok) throw new Error("Errore API Vision");
+    const data = await res.json();
+    return data.text || "[Nessun testo rilevato nell'immagine]";
+}
+
     async function encodeToWAV(audioBlob) { 
         const audioContext = new (window.AudioContext || window.webkitAudioContext)(); const arrayBuffer = await audioBlob.arrayBuffer(), audioBuffer = await audioContext.decodeAudioData(arrayBuffer); 
         const sampleRate = audioBuffer.sampleRate, resultBuffer = audioBuffer.getChannelData(0); const buffer = new ArrayBuffer(44 + resultBuffer.length * 2), view = new DataView(buffer); 
@@ -814,18 +831,18 @@
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
         if (currentFile) { 
-            DOM.attachmentLabel.innerText = "Elaborazione..."; 
+            DOM.attachmentLabel.innerText = "Analisi immagine in corso..."; 
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    isImage = true; const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId); 
-                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
-                    filePayload.push({ type: 'image', transfer_method: 'local_file', upload_file_id: (await uploadRes.json()).id }); 
+                    // Ora l'immagine passa dalla tua Edge Function, non da Dify
+                    extractedText = await extractTextFromImage(currentFile);
+                    isImage = false; // Questo riattiva lo streaming fluido per le risposte!
                 } else {
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
-                alert("Errore file"); isGenerating = false; DOM.sendBtn.disabled = false; 
+                alert("Errore durante l'analisi del file."); isGenerating = false; DOM.sendBtn.disabled = false; 
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
             } 
         }
