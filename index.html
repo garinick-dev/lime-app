@@ -2149,63 +2149,59 @@
 
 <script>
 (function() {
-    // Limite teorico di sicurezza della chat (modificabile)
     const MAX_CHARS_LIMIT = 400000;
     
-    // 1. Creazione degli elementi grafici (Pillola minimalista)
+    // 1. Contenitore largo esattamente quanto la tua chat, per allineare la pillola a destra
+    const pillWrapper = document.createElement('div');
+    pillWrapper.style.cssText = 'width: 100%; max-width: var(--chat-max-width); display: flex; justify-content: flex-end; margin-bottom: 6px; padding-right: 15px; pointer-events: none; z-index: 100;';
+    
+    // 2. La pillola grafica
     const pillContainer = document.createElement('div');
-    pillContainer.id = 'lime-fullness-pill';
-    // Puoi regolare 'bottom' e 'right' qui sotto per posizionarla al millimetro
-    pillContainer.style.cssText = 'position: absolute; bottom: -8px; right: 15px; width: 45px; height: 4px; border-radius: 4px; background: rgba(128, 128, 128, 0.2); overflow: hidden; pointer-events: none; z-index: 100;';
+    pillContainer.style.cssText = 'width: 60px; height: 6px; border-radius: 6px; background: rgba(150, 150, 150, 0.2); overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05);';
     
     const pillFill = document.createElement('div');
     pillFill.id = 'lime-fullness-fill';
-    pillFill.style.cssText = 'height: 100%; width: 0%; background: var(--accent); transition: width 0.5s ease, background-color 0.5s ease;';
+    pillFill.style.cssText = 'height: 100%; width: 2%; background: var(--accent); transition: width 0.5s ease, background-color 0.5s ease;';
     
     pillContainer.appendChild(pillFill);
+    pillWrapper.appendChild(pillContainer);
     
-    // 2. Iniezione nel DOM alla base dell'input area
+    // 3. Inserimento strutturale (niente posizionamento assoluto)
     const initPill = setInterval(() => {
         const inputArea = document.querySelector('.input-area');
-        if (inputArea) {
-            // Assicuriamoci che l'area sia relative per agganciarci la pillola in absolute
-            if (window.getComputedStyle(inputArea).position === 'static') {
-                inputArea.style.position = 'relative';
-            }
-            inputArea.appendChild(pillContainer);
+        const inputWrapper = document.querySelector('.input-wrapper');
+        // Inserisce la pillola esattamente TRA l'area invisibile e la barra in cui scrivi
+        if (inputArea && inputWrapper) {
+            inputArea.insertBefore(pillWrapper, inputWrapper);
             clearInterval(initPill);
         }
     }, 500);
 
-    // 3. Logica di calcolo ultra-leggera
     let lastCharCount = -1;
     function calculateChatWeight() {
         const chatBox = document.getElementById('chat-box');
         if (!chatBox) return;
         
-        // textContent è iper-performante e conta anche il testo nascosto dai tuoi tag grafici
         const currentChars = chatBox.textContent.length; 
         if (currentChars === lastCharCount) return;
         lastCharCount = currentChars;
 
         let percent = (currentChars / MAX_CHARS_LIMIT) * 100;
         if (percent > 100) percent = 100;
+        if (percent < 2) percent = 2; // Lascia sempre un puntino colorato visibile
 
         pillFill.style.width = percent + '%';
         
-        // Cambio colore se ci si avvicina al limite
         if (percent > 90) {
-            pillFill.style.background = '#ff4444'; // Rosso (Critico)
+            pillFill.style.background = '#ff4444'; 
         } else if (percent > 75) {
-            pillFill.style.background = '#ff9f43'; // Arancione (Avviso)
+            pillFill.style.background = '#ff9f43'; 
         } else {
-            pillFill.style.background = 'var(--accent)'; // Verde LIME (Ok)
+            pillFill.style.background = 'var(--accent)'; 
         }
     }
 
-    // 4. Observer passivo (scatta solo quando il bot finisce di scrivere)
     const observer = new MutationObserver(() => {
-        // Il debounce di 1 secondo annulla i ricalcoli continui durante lo streaming
         clearTimeout(window.limeFullnessTimer);
         window.limeFullnessTimer = setTimeout(calculateChatWeight, 1000); 
     });
@@ -2213,13 +2209,14 @@
     const startObserve = setInterval(() => {
         const chatBox = document.getElementById('chat-box');
         if (chatBox) {
-            // Osserva tutto ciò che entra, esce o cambia nel chat-box
             observer.observe(chatBox, { childList: true, subtree: true, characterData: true });
             clearInterval(startObserve);
+            setTimeout(calculateChatWeight, 1000); // Calcolo iniziale forzato
         }
     }, 500);
 })();
 </script>
+
 
 
     
