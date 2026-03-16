@@ -861,19 +861,41 @@
                     if (!uploadRes.ok) throw new Error(`Upload fallito (Codice Server: ${uploadRes.status})`);
                     const fileId = (await uploadRes.json()).id; 
                     
-                    // FASE 3: Estrazione Testo (La probabile colpevole)
-                    DOM.attachmentLabel.innerText = "3/3 Estrazione del testo in corso...";
+                                        // FASE 3: Estrazione Testo in Streaming (Addio 504 Timeout)
+                    DOM.attachmentLabel.innerText = "3/3 Lettura del testo in corso...";
                     const extractionPrompt = `Trascrivi fedelmente tutto il testo, le formule e gli esercizi presenti nell'immagine. Non riassumere. Restituisci esclusivamente il testo estratto.`;
-                    const extractReqBody = { inputs: {}, query: extractionPrompt, user: userId, response_mode: "blocking", files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: fileId }] };
+                    const extractReqBody = { inputs: {}, query: extractionPrompt, user: userId, response_mode: "streaming", files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: fileId }] };
                     
                     const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' }, body: JSON.stringify(extractReqBody) });
                     
                     if (!extractRes.ok) throw new Error(`Estrazione fallita (Codice Server: ${extractRes.status})`);
                     
-                    const extractData = await extractRes.json();
-                    if(extractData.event === "error" || extractData.code) throw new Error(`Rifiuto Dify: ${extractData.message || extractData.code}`);
+                    const reader = extractRes.body.getReader();
+                    const decoder = new TextDecoder("utf-8"); 
+                    let buffer = "";
+                    extractedText = ""; // Inizializza vuoto per riempirlo a scatti
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n\n');
+                        buffer = lines.pop();
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                try {
+                                    const data = JSON.parse(line.substring(6));
+                                    if (data.event === 'error') throw new Error(data.message || "Errore stream Dify");
+                                    if (data.event === 'message') {
+                                        extractedText += data.answer; // Accumula il testo silenziosamente
+                                    }
+                                } catch(e) {}
+                            }
+                        }
+                    }
 
-                    extractedText = extractData.answer || "[Nessun testo rilevato nell'immagine]";
+                    if (!extractedText || extractedText.trim() === "") extractedText = "[Nessun testo rilevato nell'immagine]";
+
                 } else {
                     extractedText = await extractTextFromFile(currentFile); 
                 }
