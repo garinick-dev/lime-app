@@ -699,6 +699,45 @@
         } return ""; 
     }
 
+        async function compressImageToBase64(file, maxSize = 1500, quality = 0.8) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            // Creiamo un puntatore diretto per evitare picchi di RAM
+            const objectUrl = URL.createObjectURL(file);
+            
+            img.onload = () => {
+                URL.revokeObjectURL(objectUrl); // Pulizia immediata
+                let width = img.width;
+                let height = img.height;
+                
+                // Manteniamo le proporzioni intatte
+                if (width > height) {
+                    if (width > maxSize) { height = Math.round((height * maxSize) / width); width = maxSize; }
+                } else {
+                    if (height > maxSize) { width = Math.round((width * maxSize) / height); height = maxSize; }
+                }
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = width; 
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Esportiamo direttamente in Base64 (Data URL) pronto per OpenAI
+                const base64String = canvas.toDataURL('image/webp', quality);
+                resolve(base64String);
+            };
+            
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error("Impossibile caricare l'immagine"));
+            };
+            
+            img.src = objectUrl; // Innesca la lettura
+        });
+    }
+
+
             async function compressImageLocally(file, maxSize = 1500, quality = 0.8) {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -858,52 +897,40 @@
                 let filePayload = [], extractedText = null, isImage = false; 
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
-        if (currentFile) { 
+                if (currentFile) { 
             DOM.attachmentLabel.innerText = "Elaborazione..."; 
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    DOM.attachmentLabel.innerText = "Lettura visiva in corso...";
+                    DOM.attachmentLabel.innerText = "Analisi visiva in corso...";
                     
-                    // 1. Schiaccia l'immagine offline
-                    const compressedFile = await compressImageLocally(currentFile, 1500, 0.8);
+                    // 1. Comprime la foto localmente e la trasforma in Base64 leggerissimo
+                    const base64Image = await compressImageToBase64(currentFile, 1500, 0.8);
                     
-                    // 2. Carica il file piuma sul server
-                    const formData = new FormData(); 
-                    formData.append('file', compressedFile); 
-                    formData.append('user', userId); 
-                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
-                    const uploadedFileId = (await uploadRes.json()).id;
-                    
-                                        // 3. Esegui la chat fantasma (Usa e Getta)
-                    const extractBody = {
-                        inputs: {},
-                        query: "Estrai accuratamente tutto il testo leggibile da questa immagine. Se non c'è testo rilevante, descrivi dettagliatamente cosa vedi (soggetti, colori, contesto). Non aggiungere convenevoli o introduzioni.",
-                        user: userId,
-                        response_mode: "blocking",
-                        files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: uploadedFileId }]
-                    };
-                    const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, {
+                    // 2. Spedisce il Base64 al tuo futuro endpoint per OpenAI
+                    const visionRes = await fetch(`/api/vision`, {
                         method: 'POST',
-                        headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' },
-                        body: JSON.stringify(extractBody)
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: base64Image })
                     });
                     
-                    if (!extractRes.ok) throw new Error("Il modello visivo non ha risposto correttamente");
-                    const extractData = await extractRes.json();
+                    if (!visionRes.ok) throw new Error("Il modello visivo non ha risposto correttamente");
+                    const visionData = await visionRes.json();
                     
-                    // 4. Salva il risultato e inganna la chat principale facendole credere sia un documento
-                    extractedText = extractData.answer || "Immagine analizzata, ma nessuna informazione rilevante trovata.";
-                    // Nota: Non settiamo "isImage = true" apposta. Così la chat principale rimane in modalità streaming fluida.
+                    // 3. Salva la descrizione di OpenAI facendola passare per un documento di testo
+                    extractedText = visionData.description || "Immagine analizzata, ma nessuna informazione trovata.";
                     
                 } else {
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
-                alert("Errore file"); isGenerating = false; DOM.sendBtn.disabled = false; 
+                console.error(e);
+                alert("Errore durante l'elaborazione del file."); 
+                isGenerating = false; DOM.sendBtn.disabled = false; 
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
             } 
         }
+
 
 
         let finalQuery = query || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
