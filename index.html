@@ -863,7 +863,13 @@
                     
                                         // FASE 3: Estrazione Testo in Streaming (Addio 504 Timeout)
                     DOM.attachmentLabel.innerText = "3/3 Lettura del testo in corso...";
-                    const extractionPrompt = `Trascrivi fedelmente tutto il testo, le formule e gli esercizi presenti nell'immagine. Non riassumere. Restituisci esclusivamente il testo estratto.`;
+                    const extractionPrompt = `Sei un estrattore OCR puro e invisibile, non un assistente conversazionale. Il tuo UNICO compito è trascrivere fedelmente il testo, le formule e gli esercizi presenti nell'immagine.
+REGOLE ASSOLUTE:
+1. DIVIETO ASSOLUTO di usare frasi introduttive o conclusive (es. VIETATO scrivere "Ecco il testo", "Certamente", "Nell'immagine c'è...").
+2. Non spiegare e non risolvere nulla. Copia e basta.
+3. L'output deve contenere ESCLUSIVAMENTE il testo estratto, crudo e diretto.
+4. Se l'immagine non contiene testo leggibile, scrivi solo ed esclusivamente la stringa: [Nessun testo rilevato nell'immagine]`;
+
                     const extractReqBody = { inputs: {}, query: extractionPrompt, user: userId, response_mode: "streaming", files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: fileId }] };
                     
                     const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' }, body: JSON.stringify(extractReqBody) });
