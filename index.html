@@ -699,49 +699,6 @@
         } return ""; 
     }
 
-        async function compressImageToBase64(file, maxSize = 1500, quality = 0.8) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            // Creiamo un puntatore diretto per evitare picchi di RAM
-            const objectUrl = URL.createObjectURL(file);
-            
-            img.onload = () => {
-                URL.revokeObjectURL(objectUrl); // Pulizia immediata
-                let width = img.width;
-                let height = img.height;
-                
-                // Manteniamo le proporzioni intatte
-                if (width > height) {
-                    if (width > maxSize) { height = Math.round((height * maxSize) / width); width = maxSize; }
-                } else {
-                    if (height > maxSize) { width = Math.round((width * maxSize) / height); height = maxSize; }
-                }
-                
-                const canvas = document.createElement('canvas');
-                canvas.width = width; 
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Esportiamo direttamente in Base64 (Data URL) pronto per OpenAI
-                const base64String = canvas.toDataURL('image/webp', quality);
-                resolve(base64String);
-            };
-            
-            img.onerror = () => {
-                URL.revokeObjectURL(objectUrl);
-                reject(new Error("Impossibile caricare l'immagine"));
-            };
-            
-            img.src = objectUrl; // Innesca la lettura
-        });
-    }
-
-
-            
-
-
-
     async function encodeToWAV(audioBlob) { 
         const audioContext = new (window.AudioContext || window.webkitAudioContext)(); const arrayBuffer = await audioBlob.arrayBuffer(), audioBuffer = await audioContext.decodeAudioData(arrayBuffer); 
         const sampleRate = audioBuffer.sampleRate, resultBuffer = audioBuffer.getChannelData(0); const buffer = new ArrayBuffer(44 + resultBuffer.length * 2), view = new DataView(buffer); 
@@ -853,44 +810,25 @@
         const exs = DOM.chatBox.querySelectorAll('.date-separator-text'); 
         if (exs.length === 0 || exs[exs.length - 1].innerText !== "Oggi") DOM.chatBox.appendChild(createDateSeparatorNode("Oggi"));
 
-                let filePayload = [], extractedText = null, isImage = false; 
+        let filePayload = [], extractedText = null, isImage = false; 
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
-                if (currentFile) { 
+        if (currentFile) { 
             DOM.attachmentLabel.innerText = "Elaborazione..."; 
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    DOM.attachmentLabel.innerText = "Analisi visiva in corso...";
-                    
-                    // 1. Comprime la foto localmente e la trasforma in Base64 leggerissimo
-                    const base64Image = await compressImageToBase64(currentFile, 1500, 0.8);
-                    
-                    // 2. Spedisce il Base64 al tuo futuro endpoint per OpenAI
-                    const visionRes = await fetch(`/api/vision`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image: base64Image })
-                    });
-                    
-                    if (!visionRes.ok) throw new Error("Il modello visivo non ha risposto correttamente");
-                    const visionData = await visionRes.json();
-                    
-                    // 3. Salva la descrizione di OpenAI facendola passare per un documento di testo
-                    extractedText = visionData.description || "Immagine analizzata, ma nessuna informazione trovata.";
-                    
+                    isImage = true; const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId); 
+                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
+                    filePayload.push({ type: 'image', transfer_method: 'local_file', upload_file_id: (await uploadRes.json()).id }); 
                 } else {
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
-                console.error(e);
-                alert("Errore durante l'elaborazione del file."); 
-                isGenerating = false; DOM.sendBtn.disabled = false; 
+                alert("Errore file"); isGenerating = false; DOM.sendBtn.disabled = false; 
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
             } 
         }
-
-
 
         let finalQuery = query || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
         if (extractedText) finalQuery = `${hiddenFileTag}${INJECT_START}\n${extractedText}\n${INJECT_END}\n${finalQuery}`; 
