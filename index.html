@@ -292,12 +292,6 @@
             
             <div class="input-area">
                 <div id="breath-area"></div>
-                <div id="chat-fullness-container" style="width: 100%; max-width: var(--chat-max-width); margin-bottom: 8px; display: none; flex-direction: column; align-items: center;">
-                    <span id="chat-fullness-warning" style="font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; display: none;">Chat quasi piena. Crea una nuova chat</span>
-                    <div style="width: 100%; height: 3px; background: rgba(0,0,0,0.2); border-radius: 2px; overflow: hidden; border: 1px solid var(--border-color);">
-                        <div id="chat-fullness-bar" style="height: 100%; width: 0%; background: var(--accent); transition: width 0.3s ease, background-color 0.3s ease;"></div>
-                    </div>
-                </div>
                 <div class="input-wrapper">
                     
                     <div id="lime-app-mascot" class="lime-floating-container">
@@ -351,36 +345,6 @@
 <script>
     let DOM = {};
     let userId = null, currentConversationId = null, isGenerating = false, authMode = 'login', isUserScrolling = false, currentFile = null;
-
-    const MAX_CHAT_CHARS = 150000;
-    let currentChatChars = 0;
-
-    function updateFullnessUI() {
-        if (!DOM.fullnessContainer) return;
-        if (!currentConversationId && currentChatChars === 0) {
-            DOM.fullnessContainer.style.display = 'none';
-            return;
-        }
-        DOM.fullnessContainer.style.display = 'flex';
-        let percent = (currentChatChars / MAX_CHAT_CHARS) * 100;
-        if (percent > 100) percent = 100;
-        
-        DOM.fullnessBar.style.width = `${percent}%`;
-        
-        if (percent >= 90) {
-            DOM.fullnessBar.style.background = '#ff4444';
-            DOM.fullnessWarning.style.display = 'block';
-            DOM.fullnessWarning.style.color = '#ff4444';
-            DOM.fullnessWarning.innerText = percent >= 100 ? "Memoria chat esaurita. Passa a una nuova chat." : "Chat quasi piena. Crea una nuova chat.";
-        } else if (percent >= 75) {
-            DOM.fullnessBar.style.background = '#ff9f43';
-            DOM.fullnessWarning.style.display = 'none';
-        } else {
-            DOM.fullnessBar.style.background = 'var(--accent)';
-            DOM.fullnessWarning.style.display = 'none';
-        }
-    }
-    
     let mediaRecorder = null, audioChunks = [], isRecording = false, recordingTimer = null, recordingSeconds = 0;
     let globalStream = null, chatVirtualObserver = null, currentCustomBg = null, capturedChipTitle = null;
     let librariesLoaded = false; 
@@ -674,7 +638,6 @@
     
     function renderMessages(messages, doScrollToBottom = true) { 
         DOM.chatBox.innerHTML = ""; const fragment = document.createDocumentFragment(); 
-        currentChatChars = 0; // Resetta il contatore per ricalcolare il peso della chat
 
         if (currentChatHasMore) {
             const loadBtn = document.createElement('button');
@@ -691,35 +654,18 @@
         let lastDate = null; 
         messages.forEach(m => { 
             const md = formatDateSeparator(m.created_at); if (md !== lastDate) { fragment.appendChild(createDateSeparatorNode(md)); lastDate = md; } 
-            
-            let rawQuery = m.query || "";
-            let rawAnswer = m.answer || "";
-            
-            // Calcolo peso
-            currentChatChars += rawQuery.length + rawAnswer.length;
-
-            let fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
+            let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
             if (fileMatch) { fileName = fileMatch[1]; rawQuery = rawQuery.replace(fileMatch[0], ""); } 
-            
-            // IL FILTRO GRAFICO PERMANENTE (Nasconde sia i vecchi tag che i nuovi)
-            const oldDocRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g;
-            const newDocRegex = /\[--- DATI ESTRATTI DAL FILE ALLEGATO ---\][\s\S]*?\[--- FINE DATI ESTRATTI ---\]\n?/g; 
-            
-            let hasFile = oldDocRegex.test(rawQuery) || newDocRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
-            
-            let userHtml = rawQuery.replace(oldDocRegex, "").replace(newDocRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
+            const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; let hasFile = docRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
+            let userHtml = rawQuery.replace(docRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
-            
-            fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', rawAnswer, m.created_at)); 
+            fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
         }); 
-        
         DOM.chatBox.appendChild(fragment); 
         if (doScrollToBottom) scrollToBottom(true); 
         
         DOM.chatBox.querySelectorAll('.msg-wrapper').forEach(wrapper => { wrapper.classList.add('msg-complete'); if (chatVirtualObserver) chatVirtualObserver.observe(wrapper); });
         if(window.updateGreetingVisibility) window.updateGreetingVisibility(); 
-        
-        updateFullnessUI(); // Aggiorna la barra visiva
     }
 
     window.handleFileSelect = function(e) { 
@@ -857,12 +803,6 @@
         if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
         let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
         
-        // CONTROLLO PREVENTIVO ASSOLUTO (Senza file allegato)
-        if (!currentFile && (currentChatChars + query.length > MAX_CHAT_CHARS)) {
-            alert("Memoria della chat esaurita al 100%. Apri una nuova chat per continuare.");
-            return;
-        }
-
         let newChatTitle = capturedChipTitle ? capturedChipTitle : (query.substring(0, 35) || "Nuova Chat");
         capturedChipTitle = null; 
         
@@ -878,11 +818,17 @@
             DOM.attachmentLabel.style.display = 'block';
             try { 
                 if (currentFile.type.startsWith('image/')) { 
+                    // FASE 1: UPLOAD E ESTRAZIONE STATELESS (La Distillazione)
                     const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId); 
                     const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
                     const fileId = (await uploadRes.json()).id; 
                     
-                    const extractionPrompt = `Regole per l'Estrazione del Testo:\n1. Divieto Assoluto di Sintesi: Il tuo unico scopo è la trascrizione fedele e integrale. Non riassumere, non tagliare, non spiegare e non risolvere gli esercizi. Limitati a copiare il testo parola per parola.\n2. Precisione Matematica e Strutturale: Trascrivi equazioni, formule e simboli con la massima precisione formale. Mantieni intatti i numeri degli esercizi, gli elenchi puntati e la struttura.\n3. Fedeltà Umanistica: Rispetta scrupolosamente il testo, la punteggiatura e i ritorni a capo. Non correggere eventuali errori.\n4. Filtro del Rumore Visivo: Ignora numeri di pagina, intestazioni irrilevanti, filigrane o elementi grafici inutili.\n5. Output Crudo: Restituisci esclusivamente il testo estratto. Vietato includere frasi introduttive o conclusive. Stampa solo il dato puro.`;
+                    const extractionPrompt = `Regole per l'Estrazione del Testo:
+1. Divieto Assoluto di Sintesi: Il tuo unico scopo è la trascrizione fedele e integrale. Non riassumere, non tagliare, non spiegare e non risolvere gli esercizi. Limitati a copiare il testo parola per parola.
+2. Precisione Matematica e Strutturale: Trascrivi equazioni, formule e simboli con la massima precisione formale. Mantieni intatti i numeri degli esercizi, gli elenchi puntati e la struttura.
+3. Fedeltà Umanistica: Rispetta scrupolosamente il testo, la punteggiatura e i ritorni a capo. Non correggere eventuali errori.
+4. Filtro del Rumore Visivo: Ignora numeri di pagina, intestazioni irrilevanti, filigrane o elementi grafici inutili.
+5. Output Crudo: Restituisci esclusivamente il testo estratto. Vietato includere frasi introduttive o conclusive. Stampa solo il dato puro.`;
                     
                     const extractReqBody = { 
                         inputs: {}, 
@@ -902,6 +848,7 @@
                     const extractData = await extractRes.json();
                     extractedText = extractData.answer || "[Nessun testo rilevato nell'immagine]";
                 } else {
+                    // FASE 1 (Alternativa): Estrazione testuale locale per PDF/TXT
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 
@@ -912,33 +859,11 @@
             } 
         }
 
+        // Costruzione Query Finale (Niente payload di file, solo testo puro!)
         let finalQuery = query || " ";
-        let hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
-        
         if (extractedText) { 
-            finalQuery = `${hiddenFileTag}[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
+            finalQuery = `[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
         }
-
-        // LO SCUDO ANTI-CRASH (Controlla il peso dopo l'estrazione)
-        let queryWeight = finalQuery.length;
-        if (currentChatChars + queryWeight > MAX_CHAT_CHARS) {
-            const userWrapper = createMessageNode('user', displayHtml, null, true);
-            DOM.chatBox.appendChild(userWrapper); 
-            
-            const blockHtml = `🚫 Il file estratto genera troppo testo. La memoria della chat verrebbe superata. Puoi provare a caricare un documento più breve, oppure passare ad una <a href="#" onclick="startNewChat(); return false;" style="color: var(--accent);">chat nuova</a>.`;
-            const botWrapper = createMessageNode('bot', blockHtml, null, true);
-            DOM.chatBox.appendChild(botWrapper);
-            
-            scrollToBottom(true);
-            DOM.inputField.value = ""; clearAttachment(); DOM.inputField.focus(); 
-            isGenerating = false; DOM.sendBtn.disabled = false;
-            if (window.setMascotThinking) window.setMascotThinking(false);
-            return; // Blocca tutto, la chat è salva!
-        }
-
-        // Procediamo se è tutto ok
-        currentChatChars += queryWeight; 
-        updateFullnessUI();
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
         DOM.chatBox.appendChild(userWrapper); scrollToBottom(true); 
@@ -963,6 +888,7 @@
             let streamTimeout = setTimeout(() => controller.abort(), 30000); 
 
             try {
+                // FASE 2: LA VERA CHIAMATA (Senza "files" nell'oggetto e sempre in streaming)
                 const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: "streaming" }; 
                 if (currentConversationId) reqBody.conversation_id = currentConversationId; 
                 
@@ -1019,9 +945,6 @@
                                             if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
                                             chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                                         }
-                                        
-                                        currentChatChars += fullAnswer.length; 
-                                        updateFullnessUI();
                                     } else {
                                         hasError = true; 
                                     }
@@ -1044,10 +967,9 @@
         if (fullAnswer.trim().length === 0 || botDiv.innerText.trim() === "") success = false;
 
         if (!success) {
-            currentChatChars -= queryWeight; // Togli il peso in caso di errore
-            updateFullnessUI();
-
-            fullAnswer = `🚫📶 Ci siamo persi! Ritento la risposta? <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
+            // Se l'API rifiuta il messaggio per intasamento o errore, stampiamo questo avviso
+            fullAnswer = `⚠️ Per questa chat la mia memoria è arrivata al limite. Ti consiglio di crearne una nuova.`;
+            
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
             botDiv.innerHTML = fullAnswer; 
             if(bottomBar) botDiv.appendChild(bottomBar); 
@@ -1453,7 +1375,7 @@
         });
         
         DOM = {
-            chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area'), micBtn: document.getElementById('mic-btn'), attachBtn: document.getElementById('attach-btn'), timerDisplay: document.getElementById('recording-timer'), attachmentLabel: document.getElementById('attachment-label'), fileInput: document.getElementById('file-input'), eduDropdown: document.getElementById('edu-dropdown'), instDropdown: document.getElementById('inst-dropdown'), bgInput: document.getElementById('bg-input'), fullnessContainer: document.getElementById('chat-fullness-container'), fullnessBar: document.getElementById('chat-fullness-bar'), fullnessWarning: document.getElementById('chat-fullness-warning')
+            chatBox: document.getElementById('chat-box'), inputField: document.getElementById('user-input'), sendBtn: document.getElementById('send-btn'), sidebar: document.getElementById('sidebar'), backdrop: document.getElementById('sidebar-backdrop'), historyList: document.getElementById('history-list'), greetingBox: document.getElementById('lime-greeting-box'), mascotContainer: document.getElementById('lime-app-mascot'), inputArea: document.querySelector('.input-area'), micBtn: document.getElementById('mic-btn'), attachBtn: document.getElementById('attach-btn'), timerDisplay: document.getElementById('recording-timer'), attachmentLabel: document.getElementById('attachment-label'), fileInput: document.getElementById('file-input'), eduDropdown: document.getElementById('edu-dropdown'), instDropdown: document.getElementById('inst-dropdown'), bgInput: document.getElementById('bg-input')
         };
 
         const redSquareBtn = document.getElementById('tutorial-red-square');
@@ -1752,8 +1674,9 @@
 
 
 
+
+
 <style>
-    /* 1. Velo di sfocatura globale */
     #tutorial-blur-overlay {
         position: fixed; inset: 0; z-index: 9000;
         background: rgba(80, 80, 80, 0.4);
@@ -1763,11 +1686,8 @@
         transition: opacity 0.3s ease; 
         touch-action: none; 
     }
-    body.tutorial-active #tutorial-blur-overlay { 
-        opacity: 1; pointer-events: auto; 
-    }
+    body.tutorial-active #tutorial-blur-overlay { opacity: 1; pointer-events: auto; }
 
-    /* 2. LIBERIAMO LE GABBIE! */
     body.tutorial-active .input-area,
     body.tutorial-active header {
         transform: none !important;
@@ -1778,29 +1698,36 @@
         z-index: 9005 !important;
     }
 
-    body.tutorial-active #lime-app-mascot .lime-eye {
-        fill: #00d4ff !important;
-        transition: fill 0.3s ease;
-    }
-
-    /* 3. Classe Magica: porta il contenitore esatto sopra il velo */
     .tutorial-elevated-container {
         position: relative !important; 
         z-index: 9002 !important;
         transition: none !important; 
     }
 
-    /* 4. Scudo invisibile per i click */
     #tutorial-click-shield {
         position: fixed; inset: 0; z-index: 9004;
         display: none; background: transparent;
     }
     body.tutorial-active #tutorial-click-shield { display: block; }
 
-    /* 5. La Bubble Speech Nativamente "Fixed" */
-    #tutorial-speech-bubble {
-        position: fixed; /* Si muove libera per lo schermo */
+    #tutorial-speech-container {
+        position: fixed; 
         width: 260px;
+        z-index: 9006;
+        display: flex;
+        flex-direction: column;
+        gap: 12px; 
+        pointer-events: none;
+        transition: top 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                    left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        will-change: top, left;
+    }
+
+    @media (max-width: 768px) {
+        #tutorial-speech-container { width: 220px; }
+    }
+
+    .tut-bubble-msg {
         background: var(--accent);
         color: #000;
         padding: 14px 18px;
@@ -1809,49 +1736,46 @@
         font-size: 0.95rem;
         line-height: 1.4;
         box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-        z-index: 9006;
-        
-        opacity: 0;
-        pointer-events: none;
-        will-change: top, left, opacity;
-        
-        /* Transizioni attivate da JS per voli fluidi */
-        transition: top 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
-                    left 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
-                    opacity 0.3s ease;
-    }
-    
-    body.tutorial-active #tutorial-speech-bubble {
-        opacity: 1;
+        animation: tut-pop-in 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        transform-origin: bottom left;
     }
 
-    @media (max-width: 768px) {
-        #tutorial-speech-bubble {
-            width: 220px;
-        }
+    #tutorial-speech-container.center-mode .tut-bubble-msg {
+        border-radius: 20px;
+        transform-origin: bottom center;
     }
     
-    .bubble-pop {
-        animation: tut-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-    @keyframes tut-pop {
-        0% { transform: scale(0.95); }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(1); }
+    @keyframes tut-pop-in {
+        0% { transform: scale(0.8); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
     }
 
-    /* 6. Pulsante Avanti */
     #tutorial-next-btn {
-        position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-        z-index: 9005; background: #28a745; color: white; border: none;
-        padding: 12px 40px; border-radius: 30px; font-weight: 800;
-        text-transform: uppercase; cursor: pointer; display: none;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5); transition: transform 0.2s;
+        position: fixed; 
+        top: 20px; 
+        right: 20px; 
+        width: 70px; 
+        height: 70px;
+        z-index: 9005; 
+        background: #28a745; 
+        color: white; 
+        border: none;
+        border-radius: 50%;
+        font-weight: 800;
+        font-size: 0.75rem; 
+        text-transform: uppercase; 
+        cursor: pointer; 
+        display: none; 
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        line-height: 1.1;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
+        transition: transform 0.2s, opacity 0.3s;
         user-select: none;
     }
-    #tutorial-next-btn:active { transform: translateX(-50%) scale(0.95); }
+    #tutorial-next-btn:active { transform: scale(0.92); }
 
-    /* Pulsante debug */
     .debug-tutorial-btn {
         width: 100%; margin-top: 15px; padding: 8px;
         background: var(--input-bg); border: 1px dashed var(--border-color);
@@ -1862,127 +1786,135 @@
 
 <div id="tutorial-blur-overlay"></div>
 <div id="tutorial-click-shield"></div>
-<div id="tutorial-speech-bubble"></div>
+<div id="tutorial-speech-container"></div>
 <button id="tutorial-next-btn" onclick="nextTutorialStep()"></button>
 
 <script>
-    (function initTutorialPrecisionSpeech() {
+    (function initTutorialEngine() {
         let currentIndex = -1;
         
         const tutorialSteps = [
-            '.menu-toggle',        // Step 0
-            '#lime-greeting-box',  // Step 1
-            '.input-wrapper'       // Step 2
+            { selector: '.menu-toggle', text: "Qui in alto a sinistra trovi il menu. Usalo per creare nuove chat, ritrovare i tuoi appunti passati e cambiare le impostazioni.", clearPrevious: false },
+            { selector: '#lime-greeting-box', text: "Questi sono i suggerimenti rapidi. Ti basta un clic per iniziare subito a studiare o a farti interrogare.", clearPrevious: true },
+            { selector: '.input-wrapper', text: "E questa è la mia casa! Puoi scrivermi, allegare i tuoi PDF o parlarmi con il microfono. Sei pronto a cominciare?", clearPrevious: true }
         ];
 
         const initialText = "Ciao! Sono LIME. Ti rubo solo pochi secondi per mostrarti come funziona il tuo nuovo spazio di studio.";
-        const stepTexts = [
-            "Qui in alto a sinistra trovi il menu. Usalo per creare nuove chat, ritrovare i tuoi appunti passati e cambiare le impostazioni.",
-            "Questi sono i suggerimenti rapidi. Ti basta un clic per iniziare subito a studiare o a farti interrogare.",
-            "E questa è la mia casa! Puoi scrivermi, allegare i tuoi PDF o parlarmi con il microfono. Sei pronto a cominciare?"
-        ];
 
         function updateHighlights() {
-            tutorialSteps.forEach(selector => {
-                const el = document.querySelector(selector);
+            tutorialSteps.forEach(step => {
+                const el = document.querySelector(step.selector);
                 if (el) el.classList.remove('tutorial-elevated-container');
             });
 
             if (currentIndex >= 0 && currentIndex < tutorialSteps.length) {
-                const activeContainer = document.querySelector(tutorialSteps[currentIndex]);
-                if (activeContainer) {
-                    activeContainer.classList.add('tutorial-elevated-container');
-                }
+                const activeContainer = document.querySelector(tutorialSteps[currentIndex].selector);
+                if (activeContainer) activeContainer.classList.add('tutorial-elevated-container');
             }
         }
 
-        // Il cuore matematico del posizionamento
-        function updateSpeechBubble(text, index) {
-            const bubble = document.getElementById('tutorial-speech-bubble');
-            bubble.innerText = text;
-            
-            // Forza il ricalcolo dell'altezza del testo inserito
-            const bWidth = bubble.offsetWidth;
-            const bHeight = bubble.offsetHeight;
+        function repositionContainer(index) {
+            const container = document.getElementById('tutorial-speech-container');
+            const bWidth = container.offsetWidth;
+            const bHeight = container.offsetHeight;
 
             if (index === 1) { 
-                // STEP GREETING: Vola ESATTAMENTE sopra il box
+                container.classList.add('center-mode');
                 const greeting = document.querySelector('#lime-greeting-box');
                 if (greeting) {
                     const gRect = greeting.getBoundingClientRect();
-                    // 15px di spazio dal bordo superiore del greeting
-                    bubble.style.top = (gRect.top - bHeight - 15) + 'px';
-                    
-                    if (window.innerWidth <= 768) {
-                        // Su mobile la centiamo perfettamente allo schermo
-                        bubble.style.left = (window.innerWidth / 2 - bWidth / 2) + 'px';
-                        bubble.style.borderRadius = '20px'; // Arrotondata simmetrica
-                    } else {
-                        // Su desktop la allineiamo al margine sinistro del greeting
-                        bubble.style.left = gRect.left + 'px';
-                        bubble.style.borderRadius = '20px 20px 20px 4px';
-                    }
+                    container.style.top = (gRect.top - bHeight - 15) + 'px';
+                    container.style.left = (window.innerWidth / 2 - bWidth / 2) + 'px';
                 }
             } else { 
-                // ALTRI STEP: Ancorata dinamicamente alla mascotte
+                container.classList.remove('center-mode');
                 const mascot = document.querySelector('#lime-app-mascot');
                 if (mascot) {
                     const mRect = mascot.getBoundingClientRect();
-                    // Allineamento verticale al centro della mascotte
-                    bubble.style.top = (mRect.top + (mRect.height / 2) - (bHeight / 2)) + 'px';
-
-                    if (window.innerWidth <= 768) {
-                        bubble.style.left = (mRect.right - 20) + 'px'; 
-                    } else {
-                        bubble.style.left = (mRect.right + 15) + 'px'; 
-                    }
-                    bubble.style.borderRadius = '20px 20px 20px 4px'; // Codina puntata alla mascotte
+                    container.style.top = (mRect.top + (mRect.height / 2) - bHeight + 25) + 'px';
+                    if (window.innerWidth <= 768) container.style.left = (mRect.right - 20) + 'px'; 
+                    else container.style.left = (mRect.right + 15) + 'px'; 
                 }
             }
+        }
+
+        function updateSpeechBubble(text, index) {
+            const container = document.getElementById('tutorial-speech-container');
+            if (index === -1 || (index >= 0 && tutorialSteps[index].clearPrevious)) container.innerHTML = '';
             
-            // Trigger dell'animazione "pop" per rendere vivo il testo
-            bubble.classList.remove('bubble-pop');
-            void bubble.offsetWidth; 
-            bubble.classList.add('bubble-pop');
+            const msgNode = document.createElement('div');
+            msgNode.className = 'tut-bubble-msg';
+            msgNode.innerText = text;
+            container.appendChild(msgNode);
+            
+            setTimeout(() => repositionContainer(index), 0);
         }
 
         window.nextTutorialStep = function() {
-            currentIndex++;
+            const btn = document.getElementById('tutorial-next-btn');
 
-            if (currentIndex >= tutorialSteps.length) {
-                closeTutorial();
-                return;
+            if (document.body.classList.contains('tutorial-sleeping')) {
+                // Via il sonno, entra il doppio blink
+                document.body.classList.remove('tutorial-sleeping');
+                document.body.classList.add('tutorial-waking-up');
+                
+                btn.style.opacity = '0.5';
+                btn.style.pointerEvents = 'none';
+                
+                setTimeout(() => {
+                    // Fine blink, entra il sorriso
+                    document.body.classList.remove('tutorial-waking-up');
+                    document.body.classList.add('tutorial-smiling');
+                    
+                    const container = document.getElementById('tutorial-speech-container');
+                    container.style.transition = 'none';
+                    updateSpeechBubble(initialText, -1);
+                    setTimeout(() => container.style.transition = '', 50);
+                    
+                    btn.innerText = "Avanti";
+                    btn.style.opacity = '1';
+                    btn.style.pointerEvents = 'auto';
+
+                    // Il sorriso svanisce dopo 2 secondi e riprende lo sguardo normale
+                    setTimeout(() => {
+                        document.body.classList.remove('tutorial-smiling');
+                    }, 2000);
+
+                }, 1300);
+                
+                return; 
             }
 
-            updateHighlights();
-            updateSpeechBubble(stepTexts[currentIndex], currentIndex);
+            currentIndex++;
+            if (currentIndex >= tutorialSteps.length) { closeTutorial(); return; }
 
-            const btn = document.getElementById('tutorial-next-btn');
-            btn.innerText = (currentIndex === tutorialSteps.length - 1) ? "Iniziamo!" : "Avanti";
+            updateHighlights();
+            updateSpeechBubble(tutorialSteps[currentIndex].text, currentIndex);
+
+            btn.innerText = (currentIndex === tutorialSteps.length - 1) ? "Via!" : "Avanti";
             
-            if (tutorialSteps[currentIndex] === '.input-wrapper') {
+            if (tutorialSteps[currentIndex].selector === '.input-wrapper') {
                 if (typeof window.syncAnchoring === 'function') window.syncAnchoring();
             }
         };
 
         function closeTutorial() {
-            document.body.classList.remove('tutorial-active');
+            document.body.classList.remove('tutorial-active', 'tutorial-sleeping', 'tutorial-waking-up', 'tutorial-smiling');
             document.getElementById('tutorial-next-btn').style.display = 'none';
             window.removeEventListener('resize', handleResize);
+            document.getElementById('tutorial-speech-container').innerHTML = '';
             
             currentIndex = -1;
             updateHighlights(); 
-            
             if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: true });
         };
 
-        // Ricalcola la posizione esatta se l'utente gira il telefono o ridimensiona la finestra
         function handleResize() {
-            if (document.body.classList.contains('tutorial-active')) {
-                const bubble = document.getElementById('tutorial-speech-bubble');
-                bubble.style.transition = 'none'; // Spegne l'animazione per evitare scatti durante il resize
-                updateSpeechBubble(bubble.innerText, currentIndex);
-                setTimeout(() => bubble.style.transition = '', 50);
+            if (document.body.classList.contains('tutorial-active') && !document.body.classList.contains('tutorial-sleeping')) {
+                const container = document.getElementById('tutorial-speech-container');
+                container.style.transition = 'none'; 
+                repositionContainer(currentIndex);
+                setTimeout(() => container.style.transition = '', 50);
             }
         }
 
@@ -1992,34 +1924,33 @@
             currentIndex = -1; 
             if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: false });
             
-            // Blocchiamo le transizioni solo al primissimo avvio per posizionarla istantaneamente
-            const bubble = document.getElementById('tutorial-speech-bubble');
-            bubble.style.transition = 'none';
+            const container = document.getElementById('tutorial-speech-container');
+            const btn = document.getElementById('tutorial-next-btn');
+            container.style.transition = 'none';
+            container.innerHTML = ''; 
             
             updateHighlights();
-            updateSpeechBubble(initialText, -1);
             
-            document.body.classList.add('tutorial-active');
+            document.body.classList.add('tutorial-active', 'tutorial-sleeping');
+            
+            btn.style.display = 'none';
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+            
             window.addEventListener('resize', handleResize);
             
-            // Riattiviamo le transizioni per i voli successivi
-            setTimeout(() => bubble.style.transition = '', 50);
-            
-            const btn = document.getElementById('tutorial-next-btn');
-            btn.innerText = "Inizia";
-            btn.style.display = 'block';
+            setTimeout(() => {
+                btn.innerText = "Inizia";
+                btn.style.display = 'flex';
+            }, 3000);
         };
-
-        // Pulizia e iniezione debug
-        const redSquareOld = document.getElementById('tutorial-red-square');
-        if (redSquareOld) redSquareOld.style.display = 'none';
 
         const colorPicker = document.getElementById('color-picker');
         if (colorPicker && !document.getElementById('debug-tut-btn')) {
             const btn = document.createElement('button');
             btn.id = 'debug-tut-btn';
             btn.className = 'debug-tutorial-btn';
-            btn.innerText = 'DEBUG: Start Blur Tutorial';
+            btn.innerText = 'DEBUG: Start Tutorial';
             btn.onclick = window.startTutorial;
             colorPicker.parentNode.appendChild(btn);
         }
@@ -2027,13 +1958,190 @@
         const originalUpdateProfileUI = window.updateProfileUI;
         window.updateProfileUI = function(user) {
             if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) {
-                setTimeout(window.startTutorial, 200);
-            }
+            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) setTimeout(window.startTutorial, 200);
         };
     })();
 </script>
-    
+
+
+
+
+
+
+
+
+<style>
+    /* 1. ANIMAZIONE SONNO (Step 0) - CODICE ORIGINALE INTATTO */
+    @keyframes tut-breathing {
+        0%, 100% { transform: scale(1, 1) translateY(0); }
+        50% { transform: scale(1.06, 0.92) translateY(3px); } 
+    }
+    body.tutorial-active.tutorial-sleeping #lime-app-mascot .lime-body-group {
+        transform-origin: 100px 225px !important;
+        animation: tut-breathing 2.5s ease-in-out infinite !important;
+    }
+    body.tutorial-active.tutorial-sleeping #lime-app-mascot .lime-eye {
+        transform: scaleY(0.1) translate(0, 0) !important;
+    }
+
+    /* ---- LE "Z Z Z" ANIMATE ---- */
+    #tutorial-zzz-container {
+        position: fixed; width: 60px; height: 60px; display: none; pointer-events: none; z-index: 9006;
+    }
+    body.tutorial-active.tutorial-sleeping #tutorial-zzz-container { display: block; }
+    .tut-z {
+        position: absolute; font-weight: 900; color: var(--accent, #00d4ff); 
+        font-family: 'Comic Sans MS', cursive, sans-serif; text-transform: uppercase;
+        opacity: 0; animation: tut-zzz-float 2.5s ease-in-out infinite;
+    }
+    .tut-z:nth-child(1) { bottom: 0; left: 0; font-size: 1.2rem; }
+    .tut-z:nth-child(2) { bottom: 20px; left: 20px; font-size: 1.6rem; animation-delay: 0.8s; }
+    .tut-z:nth-child(3) { bottom: 45px; left: 45px; font-size: 2.2rem; animation-delay: 1.6s; }
+
+    @keyframes tut-zzz-float {
+        0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
+        20% { opacity: 1; }
+        100% { opacity: 0; transform: translate(20px, -30px) scale(1.2); }
+    }
+
+    /* ---- 2. FASE RISVEGLIO: DOPPIO BLINK ---- */
+    @keyframes tut-double-blink {
+        0%   { transform: scaleY(0.1); } 
+        15%  { transform: scaleY(1.1); }
+        65%  { transform: scaleY(0.1); }
+        75%  { transform: scaleY(1); }
+        85%  { transform: scaleY(0.1); }
+        100% { transform: scaleY(1); }
+    }
+    body.tutorial-active.tutorial-waking-up #lime-app-mascot .lime-eye {
+        animation: tut-double-blink 1.3s ease-in-out forwards !important;
+    }
+
+    /* ---- 3. NUOVI OCCHI A CURVA (HTML INJECTED) ---- */
+    .tut-eye-curve {
+        position: fixed;
+        width: 22px; height: 12px;
+        border: 4px solid var(--accent, #00d4ff);
+        border-top: none;
+        border-radius: 0 0 50% 50% / 0 0 100% 100%; /* Curva a "U" perfetta */
+        background: transparent;
+        z-index: 9007;
+        pointer-events: none;
+        display: none;
+        box-sizing: border-box;
+    }
+    body.tutorial-active.tutorial-smiling .tut-eye-curve { display: block; }
+
+    /* Nascondiamo le pupille SVG originali SOLO durante il sorriso */
+    body.tutorial-active.tutorial-smiling #lime-app-mascot .lime-eye {
+        opacity: 0 !important;
+    }
+
+    /* ---- 4. SGUARDO INTELLIGENTE ---- */
+    body.tutorial-active:not(.tutorial-sleeping):not(.tutorial-waking-up):not(.tutorial-smiling) .lime-eye.tutorial-gaze-lock {
+        transform: translate(calc(var(--tut-lx, 0px) + var(--tut-converge, 0px)), var(--tut-ly, 0px)) !important;
+        transition: transform 0.4s ease-in-out !important;
+        opacity: 1 !important;
+    }
+</style>
+
+<script>
+    (function initTutorialAnimationsFixed() {
+        const mascot = document.querySelector('#lime-app-mascot');
+        if (!mascot) return;
+
+        // Iniezione Z e Occhi a Curva
+        if (!document.getElementById('tutorial-zzz-container')) {
+            const zDiv = document.createElement('div');
+            zDiv.id = 'tutorial-zzz-container';
+            zDiv.innerHTML = '<div class="tut-z">z</div><div class="tut-z">z</div><div class="tut-z">z</div>';
+            document.body.appendChild(zDiv);
+
+            const eyeL = document.createElement('div'); eyeL.id = 'tut-eye-l'; eyeL.className = 'tut-eye-curve';
+            const eyeR = document.createElement('div'); eyeR.id = 'tut-eye-r'; eyeR.className = 'tut-eye-curve';
+            document.body.appendChild(eyeL); document.body.appendChild(eyeR);
+        }
+
+        const zDiv = document.getElementById('tutorial-zzz-container');
+        const eyeL = document.getElementById('tut-eye-l');
+        const eyeR = document.getElementById('tut-eye-r');
+
+        function syncMascotteExtras() {
+            if (document.body.classList.contains('tutorial-active')) {
+                const rect = mascot.getBoundingClientRect();
+                const eyesSVG = document.querySelectorAll('.lime-eye');
+                
+                // Sincronizza ZZZ
+                if (document.body.classList.contains('tutorial-sleeping')) {
+                    zDiv.style.top = (rect.top + rect.height / 2 - 30) + 'px';
+                    zDiv.style.left = (rect.right - 20) + 'px';
+                }
+
+                // Sincronizza OCCHI CURVI (basandosi sulla posizione reale delle pupille SVG)
+                if (document.body.classList.contains('tutorial-smiling') && eyesSVG.length >= 2) {
+                    const lRect = eyesSVG[0].getBoundingClientRect();
+                    const rRect = eyesSVG[1].getBoundingClientRect();
+
+                    eyeL.style.top = lRect.top + 'px';
+                    eyeL.style.left = lRect.left + 'px';
+                    eyeR.style.top = rRect.top + 'px';
+                    eyeR.style.left = rRect.left + 'px';
+                }
+                requestAnimationFrame(syncMascotteExtras);
+            }
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            let shouldUpdate = false;
+            mutations.forEach(m => {
+                if (m.attributeName === 'class') {
+                    if (m.target === document.body) {
+                        shouldUpdate = true;
+                        if (document.body.classList.contains('tutorial-active')) syncMascotteExtras();
+                    }
+                }
+            });
+            if (shouldUpdate) setTimeout(applyGazeToTarget, 50); 
+        });
+
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+        // LOGICA SGUARDO (Max Movement e Convergence rimangono invariati)
+        const MAX_EYE_MOVEMENT = 16; const CONVERGENCE_PX = 7;
+        function applyGazeToTarget() {
+            const eyes = document.querySelectorAll('.lime-eye');
+            if (eyes.length < 2) return;
+            if (!document.body.classList.contains('tutorial-active') || 
+                document.body.classList.contains('tutorial-sleeping') ||
+                document.body.classList.contains('tutorial-waking-up') ||
+                document.body.classList.contains('tutorial-smiling')) {
+                eyes.forEach(e => { e.classList.remove('tutorial-gaze-lock'); e.style.removeProperty('--tut-converge'); });
+                return;
+            }
+            eyes.forEach(e => e.classList.add('tutorial-gaze-lock'));
+            const activeTarget = document.querySelector('.tutorial-elevated-container');
+            if (!activeTarget) return;
+            eyes[0].style.setProperty('--tut-converge', `${CONVERGENCE_PX}px`);
+            eyes[1].style.setProperty('--tut-converge', `-${CONVERGENCE_PX}px`);
+            const mRect = mascot.getBoundingClientRect();
+            const tRect = activeTarget.getBoundingClientRect();
+            const dx = (tRect.left + tRect.width/2) - (mRect.left + mRect.width/2);
+            const dy = (tRect.top + tRect.height/2) - (mRect.top + mRect.height/2);
+            const distance = Math.sqrt(dx*dx + dy*dy);
+            if (distance > 0) {
+                eyes.forEach(e => {
+                    e.style.setProperty('--tut-lx', (dx/distance * MAX_EYE_MOVEMENT) + 'px');
+                    e.style.setProperty('--tut-ly', (dy/distance * MAX_EYE_MOVEMENT) + 'px');
+                });
+            }
+        }
+    })();
+</script>
+
+
+
+
+
 
 
 
