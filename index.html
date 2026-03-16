@@ -872,11 +872,13 @@
             } 
         }
 
-        // Costruzione Query Finale (Niente payload di file, solo testo puro!)
+                // Costruzione Query Finale (Niente payload di file, solo testo puro!)
         let finalQuery = query || " ";
         if (extractedText) { 
-            finalQuery = `[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
+            let hiddenFileName = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
+            finalQuery = `${hiddenFileName}[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
         }
+
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
         DOM.chatBox.appendChild(userWrapper); scrollToBottom(true); 
