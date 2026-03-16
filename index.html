@@ -699,6 +699,40 @@
         } return ""; 
     }
 
+        async function compressImageLocally(file, maxSize = 1500, quality = 0.8) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = event => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    let width = img.width;
+                    let height = img.height;
+                    // Calcola le nuove dimensioni mantenendo le proporzioni intatte
+                    if (width > height) {
+                        if (width > maxSize) { height = Math.round((height * maxSize) / width); width = maxSize; }
+                    } else {
+                        if (height > maxSize) { width = Math.round((width * maxSize) / height); height = maxSize; }
+                    }
+                    // Disegna l'immagine su un canvas invisibile
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    // Esporta in formato WebP iper-leggero
+                    canvas.toBlob(blob => {
+                        if (blob) resolve(new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", { type: 'image/webp' }));
+                        else reject(new Error("Errore compressione canvas"));
+                    }, 'image/webp', quality);
+                };
+                img.onerror = reject;
+            };
+            reader.onerror = reject;
+        });
+    }
+
+
     async function encodeToWAV(audioBlob) { 
         const audioContext = new (window.AudioContext || window.webkitAudioContext)(); const arrayBuffer = await audioBlob.arrayBuffer(), audioBuffer = await audioContext.decodeAudioData(arrayBuffer); 
         const sampleRate = audioBuffer.sampleRate, resultBuffer = audioBuffer.getChannelData(0); const buffer = new ArrayBuffer(44 + resultBuffer.length * 2), view = new DataView(buffer); 
@@ -810,16 +844,44 @@
         const exs = DOM.chatBox.querySelectorAll('.date-separator-text'); 
         if (exs.length === 0 || exs[exs.length - 1].innerText !== "Oggi") DOM.chatBox.appendChild(createDateSeparatorNode("Oggi"));
 
-        let filePayload = [], extractedText = null, isImage = false; 
+                let filePayload = [], extractedText = null, isImage = false; 
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
         if (currentFile) { 
             DOM.attachmentLabel.innerText = "Elaborazione..."; 
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    isImage = true; const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId); 
+                    DOM.attachmentLabel.innerText = "Lettura visiva in corso...";
+                    
+                    // 1. Schiaccia l'immagine offline
+                    const compressedFile = await compressImageLocally(currentFile, 1500, 0.8);
+                    
+                    // 2. Carica il file piuma sul server
+                    const formData = new FormData(); 
+                    formData.append('file', compressedFile); 
+                    formData.append('user', userId); 
                     const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
-                    filePayload.push({ type: 'image', transfer_method: 'local_file', upload_file_id: (await uploadRes.json()).id }); 
+                    const uploadedFileId = (await uploadRes.json()).id;
+                    
+                    // 3. Esegui la chat fantasma (Usa e Getta)
+                    const extractBody = {
+                        inputs: {},
+                        query: "Estrai accuratamente tutto il testo leggibile da questa immagine. Se non c'è testo rilevante, descrivi dettagliatamente cosa vedi (soggetti, colori, contesto). Non aggiungere convenevoli o introduzioni.",
+                        user: userId,
+                        response_mode: "blocking",
+                        files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: uploadedFileId }]
+                    };
+                    const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, {
+                        method: 'POST',
+                        headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' },
+                        body: JSON.stringify(extractBody)
+                    });
+                    const extractData = await extractRes.json();
+                    
+                    // 4. Salva il risultato e inganna la chat principale facendole credere sia un documento
+                    extractedText = extractData.answer || "Immagine analizzata, ma nessuna informazione rilevante trovata.";
+                    // Nota: Non settiamo "isImage = true" apposta. Così la chat principale rimane in modalità streaming fluida.
+                    
                 } else {
                     extractedText = await extractTextFromFile(currentFile); 
                 }
@@ -829,6 +891,7 @@
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
             } 
         }
+
 
         let finalQuery = query || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
         if (extractedText) finalQuery = `${hiddenFileTag}${INJECT_START}\n${extractedText}\n${INJECT_END}\n${finalQuery}`; 
