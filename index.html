@@ -475,13 +475,9 @@
                 pendingProfileUpdates = {}; 
                 try {
                     await supabaseClient.auth.updateUser({ data: dataToSend });
-                            } catch (e) { 
-                console.error("DETTAGLIO ERRORE FILE:", e);
-                alert(`Errore elaborazione: ${e.message}`); 
-                isGenerating = false; DOM.sendBtn.disabled = false; 
-                if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
-            } 
-
+                } catch (e) {
+                    console.error("Errore salvataggio profilo:", e);
+                }
             }
         }, 1000); 
     }
@@ -656,28 +652,15 @@
         }
 
         let lastDate = null; 
-
-                messages.forEach(m => { 
+        messages.forEach(m => { 
             const md = formatDateSeparator(m.created_at); if (md !== lastDate) { fragment.appendChild(createDateSeparatorNode(md)); lastDate = md; } 
-            
             let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
             if (fileMatch) { fileName = fileMatch[1]; rawQuery = rawQuery.replace(fileMatch[0], ""); } 
-            
-            // Il filtro grafico aggiornato per coprire sia i vecchi che i nuovi tag
-            const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; 
-            const newDocRegex = /\[--- DATI ESTRATTI DAL FILE ALLEGATO ---\][\s\S]*?\[--- FINE DATI ESTRATTI ---\]\n?/g;
-            
-            let hasFile = docRegex.test(rawQuery) || newDocRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
-            
-            // Applica la pulizia di entrambi i regex prima di renderizzare il testo
-            let userHtml = rawQuery.replace(docRegex, "").replace(newDocRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
-            
+            const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; let hasFile = docRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
+            let userHtml = rawQuery.replace(docRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
-            
             fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
-        });
-
-        
+        }); 
         DOM.chatBox.appendChild(fragment); 
         if (doScrollToBottom) scrollToBottom(true); 
         
@@ -828,55 +811,58 @@
         if (exs.length === 0 || exs[exs.length - 1].innerText !== "Oggi") DOM.chatBox.appendChild(createDateSeparatorNode("Oggi"));
 
         let extractedText = null; 
-        let uploadedFileId = null; // Variabile per il flusso nativo e rapido delle foto
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
         if (currentFile) { 
-            DOM.attachmentLabel.innerText = "Elaborazione file..."; 
+            DOM.attachmentLabel.innerText = "Elaborazione e distillazione dati..."; 
             DOM.attachmentLabel.style.display = 'block';
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    // UPLOAD FULMINEO IMMAGINI: Nessuna estrazione OCR preventiva, lo fa Dify.
-                    const formData = new FormData(); 
-                    formData.append('file', currentFile); 
-                    formData.append('user', userId); 
+                    // FASE 1: UPLOAD E ESTRAZIONE STATELESS (La Distillazione)
+                    const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId); 
+                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
+                    const fileId = (await uploadRes.json()).id; 
                     
-                    let uploadHeaders = await getAuthHeaders();
-                    // Cruciale: rimuoviamo Content-Type affinché il browser gestisca il boundary del FormData
-                    delete uploadHeaders['Content-Type']; 
-
-                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { 
-                        method: 'POST', 
-                        headers: uploadHeaders, 
-                        body: formData 
-                    }); 
+                    const extractionPrompt = `Regole per l'Estrazione del Testo:
+1. Divieto Assoluto di Sintesi: Il tuo unico scopo è la trascrizione fedele e integrale. Non riassumere, non tagliare, non spiegare e non risolvere gli esercizi. Limitati a copiare il testo parola per parola.
+2. Precisione Matematica e Strutturale: Trascrivi equazioni, formule e simboli con la massima precisione formale. Mantieni intatti i numeri degli esercizi, gli elenchi puntati e la struttura.
+3. Fedeltà Umanistica: Rispetta scrupolosamente il testo, la punteggiatura e i ritorni a capo. Non correggere eventuali errori.
+4. Filtro del Rumore Visivo: Ignora numeri di pagina, intestazioni irrilevanti, filigrane o elementi grafici inutili.
+5. Output Crudo: Restituisci esclusivamente il testo estratto. Vietato includere frasi introduttive o conclusive. Stampa solo il dato puro.`;
                     
-                    if (!uploadRes.ok) throw new Error("Errore upload immagine");
-                    uploadedFileId = (await uploadRes.json()).id; 
+                    const extractReqBody = { 
+                        inputs: {}, 
+                        query: extractionPrompt, 
+                        user: userId, 
+                        response_mode: "blocking",
+                        files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: fileId }]
+                    };
+                    
+                    const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, {
+                        method: 'POST',
+                        headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' },
+                        body: JSON.stringify(extractReqBody)
+                    });
+                    
+                    if (!extractRes.ok) throw new Error("Errore estrazione");
+                    const extractData = await extractRes.json();
+                    extractedText = extractData.answer || "[Nessun testo rilevato nell'immagine]";
                 } else {
-                    // PDF e TXT: Estrazione testo locale veloce
+                    // FASE 1 (Alternativa): Estrazione testuale locale per PDF/TXT
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
-                console.error("Errore file:", e);
-                alert("Errore durante l'elaborazione del file. Riprova."); 
-                isGenerating = false; DOM.sendBtn.disabled = false; 
+                alert("Errore durante l'elaborazione del file."); isGenerating = false; DOM.sendBtn.disabled = false; 
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
             } 
         }
 
-        // COSTRUZIONE DELLA QUERY
+        // Costruzione Query Finale (Niente payload di file, solo testo puro!)
         let finalQuery = query || " ";
-        let hiddenFileName = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
-
         if (extractedText) { 
-            // Query per PDF/TXT
-            finalQuery = `${hiddenFileName}[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
-        } else if (currentFile && currentFile.type.startsWith('image/')) {
-            // Query per Immagini (assicura che il nome file sia salvato nello storico visivo)
-            finalQuery = `${hiddenFileName}${finalQuery}`;
+            finalQuery = `[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
         }
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
@@ -902,14 +888,9 @@
             let streamTimeout = setTimeout(() => controller.abort(), 30000); 
 
             try {
-                // CHIAMATA A DIFY
+                // FASE 2: LA VERA CHIAMATA (Senza "files" nell'oggetto e sempre in streaming)
                 const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: "streaming" }; 
                 if (currentConversationId) reqBody.conversation_id = currentConversationId; 
-                
-                // Allega l'ID dell'immagine caricata
-                if (uploadedFileId) {
-                    reqBody.files = [{ type: 'image', transfer_method: 'local_file', upload_file_id: uploadedFileId }];
-                }
                 
                 const authHeaders = await getAuthHeaders(); 
                 const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { 
@@ -945,8 +926,7 @@
                                         const updateUI = () => {
                                             renderQueued = false; 
                                             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                                            // Chiamata sicura al formattatore
-                                            let safeMathText = typeof formatLaTeX === "function" ? formatLaTeX(fullAnswer) : fullAnswer;
+                                            let safeMathText = formatLaTeX(fullAnswer);
                                             botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
                                             if(bottomBar) botDiv.appendChild(bottomBar); 
                                             scrollToBottom(); 
@@ -987,8 +967,7 @@
         if (fullAnswer.trim().length === 0 || botDiv.innerText.trim() === "") success = false;
 
         if (!success) {
-            fullAnswer = `⚠️ Per questa chat la mia memoria è arrivata al limite o c'è stato un problema di rete. Ti consiglio di crearne una nuova.`;
-            
+            fullAnswer = `🚫📶 Ci siamo persi! Ritento la risposta? <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
             const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
             botDiv.innerHTML = fullAnswer; 
             if(bottomBar) botDiv.appendChild(bottomBar); 
@@ -1535,637 +1514,6 @@
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
     });
 </script>  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<style>
-    /* Colora i titoli delle chat di esempio con l'accento scelto dall'utente */
-    div[id^="chat-starter-"] .chat-title {
-        color: var(--accent) !important;
-        font-weight: 800 !important;
-    }
-
-    /* Blocca i click sull'input wrapper senza alterarne minimamente l'aspetto visivo */
-    body.starter-chat-active .input-wrapper {
-        pointer-events: none;
-        user-select: none;
-    }
-</style>
-
-<script>
-    (function initPatchEsempiReadOnlyMinimal() {
-        const fakeFileHtml = `
-            <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 12px; width: fit-content; margin: 12px 0;">
-                <span style="font-size: 1.8rem;">📄</span>
-                <div style="display: flex; flex-direction: column; text-align: left;">
-                    <span style="font-weight: bold; color: var(--accent); font-size: 0.9rem;">appunti_storia_roma.pdf</span>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">Documento PDF • 1.2 MB</span>
-                </div>
-            </div>
-        `;
-
-        const LIME_STARTER_PACK = {
-            "starter-1": { 
-                title: "💡 Benvenuto in LIME", 
-                msgs: [
-                    { query: "Ciao LIME, cosa posso fare qui?", answer: "Ciao! Benvenuto nel tuo nuovo spazio di studio. 🚀 Qui puoi caricarmi i tuoi appunti, chiedermi riassunti o farti interrogare per la prossima verifica." },
-                    { query: "Davvero? E come funziona per le interrogazioni?", answer: "Basta scrivermi: 'Fammi 5 domande a risposta multipla su questo argomento' e io ti testerò uno alla volta, correggendoti se sbagli. Sono programmato per essere veloce e dritto al punto!" }
-                ] 
-            },
-            "starter-2": { 
-                title: "📚 Come usare i File", 
-                msgs: [
-                    { query: "Posso farti leggere i miei documenti?", answer: "Certamente. Clicca sulla graffetta 📎 in basso a sinistra, carica un PDF, un'immagine o un file di testo e io lo leggerò per te." },
-                    { query: `Ecco un esempio pratico:<br>${fakeFileHtml}Puoi riassumere i punti chiave di questo documento?`, answer: "Analizzando il tuo documento, ecco i punti fondamentali:\n\n1. Fondazione di Roma (753 a.C.)\n2. Età Repubblicana e guerre puniche\n3. Nascita dell'Impero con Augusto\n\nVuoi che approfondisca uno di questi periodi storici?" }
-                ] 
-            },
-            "starter-3": { 
-                title: "🧪 Test di Chimica (Esempio)", 
-                msgs: [
-                    { query: "Voglio mettermi alla prova su un argomento a caso.", answer: "Ottimo spirito! Iniziamo con qualcosa di semplice: sapresti dirmi qual è il simbolo chimico dell'oro? ✨" },
-                    { query: "Penso sia Au.", answer: "Esatto! Deriva dal latino 'Aurum'. E quello dell'Argento lo ricordi?" },
-                    { query: "Ag!", answer: "Perfetto, 'Argentum'. Sei andato benissimo. Quando vuoi fare sul serio, crea una Nuova Chat e iniziamo a studiare i tuoi veri programmi scolastici!" }
-                ] 
-            }
-        };
-
-        const originalUpdateProfile = window.updateProfileUI;
-        window.updateProfileUI = async function(user) {
-            if (originalUpdateProfile) originalUpdateProfile(user);
-            
-            if (user && user.user_metadata && !user.user_metadata.starter_chats_injected) {
-                const starterRows = Object.keys(LIME_STARTER_PACK).map(fakeId => ({
-                    user_id: user.id,
-                    title: LIME_STARTER_PACK[fakeId].title,
-                    dify_id: fakeId 
-                }));
-                
-                await supabaseClient.from('conversations').insert(starterRows);
-                
-                if (typeof queueProfileUpdate === 'function') {
-                    queueProfileUpdate({ starter_chats_injected: true });
-                }
-                if (typeof loadHistory === 'function') loadHistory();
-            }
-        };
-
-        const originalLoadChat = window.loadChat;
-        window.loadChat = async function(id) {
-            const chatInput = document.getElementById('chat-input') || document.querySelector('.input-area textarea');
-            
-            if (id && LIME_STARTER_PACK[id]) {
-                currentConversationId = id;
-                if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar();
-                
-                chatCache[id] = LIME_STARTER_PACK[id].msgs;
-                if (typeof renderMessages === 'function') renderMessages(chatCache[id]);
-                
-                document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active-chat'));
-                const activeItem = document.getElementById(`chat-${id}`);
-                if (activeItem) activeItem.classList.add('active-chat');
-
-                // ATTIVAZIONE SOLA LETTURA SULLA PROMPT BAR
-                document.body.classList.add('starter-chat-active');
-                if (chatInput) {
-                    if (!chatInput.hasAttribute('data-orig-placeholder')) {
-                        chatInput.setAttribute('data-orig-placeholder', chatInput.getAttribute('placeholder') || 'Scrivi a LIME...');
-                    }
-                    // Testo minimale richiesto
-                    chatInput.setAttribute('placeholder', "chat d'esempio");
-                    chatInput.disabled = true;
-                }
-                return;
-            }
-            
-            // DISATTIVAZIONE SOLA LETTURA (Chat normale)
-            document.body.classList.remove('starter-chat-active');
-            if (chatInput) {
-                chatInput.disabled = false;
-                if (chatInput.hasAttribute('data-orig-placeholder')) {
-                    chatInput.setAttribute('placeholder', chatInput.getAttribute('data-orig-placeholder'));
-                }
-            }
-            if (originalLoadChat) return originalLoadChat(id);
-        };
-
-        // Ripristino quando si clicca "Nuova Chat"
-        document.addEventListener('click', function(e) {
-            const isNewChatBtn = e.target.closest('#new-chat-btn') || e.target.closest('.new-chat');
-            if (isNewChatBtn) {
-                document.body.classList.remove('starter-chat-active');
-                const chatInput = document.getElementById('chat-input') || document.querySelector('.input-area textarea');
-                if (chatInput) {
-                    chatInput.disabled = false;
-                    if (chatInput.hasAttribute('data-orig-placeholder')) {
-                        chatInput.setAttribute('placeholder', chatInput.getAttribute('data-orig-placeholder'));
-                    }
-                }
-            }
-        });
-
-        // Pulsante di debug per resettare tutto
-        const originalStartTutorial = window.startInteractiveTutorial;
-        if (originalStartTutorial) {
-            window.startInteractiveTutorial = function() {
-                if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ starter_chats_injected: false });
-                originalStartTutorial();
-            };
-        }
-    })();
-</script>
-    
-
-
-
-
-
-
-
-
-
-
-<style>
-    #tutorial-blur-overlay {
-        position: fixed; inset: 0; z-index: 9000;
-        background: rgba(80, 80, 80, 0.4);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        opacity: 0; pointer-events: none;
-        transition: opacity 0.3s ease; 
-        touch-action: none; 
-    }
-    body.tutorial-active #tutorial-blur-overlay { opacity: 1; pointer-events: auto; }
-
-    body.tutorial-active .input-area,
-    body.tutorial-active header {
-        transform: none !important;
-        z-index: auto !important;
-    }
-
-    body.tutorial-active #lime-app-mascot {
-        z-index: 9005 !important;
-    }
-
-    .tutorial-elevated-container {
-        position: relative !important; 
-        z-index: 9002 !important;
-        transition: none !important; 
-    }
-
-    #tutorial-click-shield {
-        position: fixed; inset: 0; z-index: 9004;
-        display: none; background: transparent;
-    }
-    body.tutorial-active #tutorial-click-shield { display: block; }
-
-    #tutorial-speech-container {
-        position: fixed; 
-        width: 260px;
-        z-index: 9006;
-        display: flex;
-        flex-direction: column;
-        gap: 12px; 
-        pointer-events: none;
-        transition: top 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
-                    left 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-        will-change: top, left;
-    }
-
-    @media (max-width: 768px) {
-        #tutorial-speech-container { width: 220px; }
-    }
-
-    .tut-bubble-msg {
-        background: var(--accent);
-        color: #000;
-        padding: 14px 18px;
-        border-radius: 20px 20px 20px 4px; 
-        font-weight: 500;
-        font-size: 0.95rem;
-        line-height: 1.4;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-        animation: tut-pop-in 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        transform-origin: bottom left;
-    }
-
-    #tutorial-speech-container.center-mode .tut-bubble-msg {
-        border-radius: 20px;
-        transform-origin: bottom center;
-    }
-    
-    @keyframes tut-pop-in {
-        0% { transform: scale(0.8); opacity: 0; }
-        100% { transform: scale(1); opacity: 1; }
-    }
-
-    #tutorial-next-btn {
-        position: fixed; 
-        top: 20px; 
-        right: 20px; 
-        width: 70px; 
-        height: 70px;
-        z-index: 9005; 
-        background: #28a745; 
-        color: white; 
-        border: none;
-        border-radius: 50%;
-        font-weight: 800;
-        font-size: 0.75rem; 
-        text-transform: uppercase; 
-        cursor: pointer; 
-        display: none; 
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        line-height: 1.1;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
-        transition: transform 0.2s, opacity 0.3s;
-        user-select: none;
-    }
-    #tutorial-next-btn:active { transform: scale(0.92); }
-
-    .debug-tutorial-btn {
-        width: 100%; margin-top: 15px; padding: 8px;
-        background: var(--input-bg); border: 1px dashed var(--border-color);
-        color: var(--text-muted); border-radius: 8px; font-size: 0.75rem;
-        font-weight: bold; text-transform: uppercase; cursor: pointer;
-    }
-</style>
-
-<div id="tutorial-blur-overlay"></div>
-<div id="tutorial-click-shield"></div>
-<div id="tutorial-speech-container"></div>
-<button id="tutorial-next-btn" onclick="nextTutorialStep()"></button>
-
-<script>
-    (function initTutorialEngine() {
-        let currentIndex = -1;
-        
-        const tutorialSteps = [
-            { selector: '.menu-toggle', text: "Qui in alto a sinistra trovi il menu. Usalo per creare nuove chat, ritrovare i tuoi appunti passati e cambiare le impostazioni.", clearPrevious: false },
-            { selector: '#lime-greeting-box', text: "Questi sono i suggerimenti rapidi. Ti basta un clic per iniziare subito a studiare o a farti interrogare.", clearPrevious: true },
-            { selector: '.input-wrapper', text: "E questa è la mia casa! Puoi scrivermi, allegare i tuoi PDF o parlarmi con il microfono. Sei pronto a cominciare?", clearPrevious: true }
-        ];
-
-        const initialText = "Ciao! Sono LIME. Ti rubo solo pochi secondi per mostrarti come funziona il tuo nuovo spazio di studio.";
-
-        function updateHighlights() {
-            tutorialSteps.forEach(step => {
-                const el = document.querySelector(step.selector);
-                if (el) el.classList.remove('tutorial-elevated-container');
-            });
-
-            if (currentIndex >= 0 && currentIndex < tutorialSteps.length) {
-                const activeContainer = document.querySelector(tutorialSteps[currentIndex].selector);
-                if (activeContainer) activeContainer.classList.add('tutorial-elevated-container');
-            }
-        }
-
-        function repositionContainer(index) {
-            const container = document.getElementById('tutorial-speech-container');
-            const bWidth = container.offsetWidth;
-            const bHeight = container.offsetHeight;
-
-            if (index === 1) { 
-                container.classList.add('center-mode');
-                const greeting = document.querySelector('#lime-greeting-box');
-                if (greeting) {
-                    const gRect = greeting.getBoundingClientRect();
-                    container.style.top = (gRect.top - bHeight - 15) + 'px';
-                    container.style.left = (window.innerWidth / 2 - bWidth / 2) + 'px';
-                }
-            } else { 
-                container.classList.remove('center-mode');
-                const mascot = document.querySelector('#lime-app-mascot');
-                if (mascot) {
-                    const mRect = mascot.getBoundingClientRect();
-                    container.style.top = (mRect.top + (mRect.height / 2) - bHeight + 25) + 'px';
-                    if (window.innerWidth <= 768) container.style.left = (mRect.right - 20) + 'px'; 
-                    else container.style.left = (mRect.right + 15) + 'px'; 
-                }
-            }
-        }
-
-        function updateSpeechBubble(text, index) {
-            const container = document.getElementById('tutorial-speech-container');
-            if (index === -1 || (index >= 0 && tutorialSteps[index].clearPrevious)) container.innerHTML = '';
-            
-            const msgNode = document.createElement('div');
-            msgNode.className = 'tut-bubble-msg';
-            msgNode.innerText = text;
-            container.appendChild(msgNode);
-            
-            setTimeout(() => repositionContainer(index), 0);
-        }
-
-        window.nextTutorialStep = function() {
-            const btn = document.getElementById('tutorial-next-btn');
-
-            if (document.body.classList.contains('tutorial-sleeping')) {
-                // Via il sonno, entra il doppio blink
-                document.body.classList.remove('tutorial-sleeping');
-                document.body.classList.add('tutorial-waking-up');
-                
-                btn.style.opacity = '0.5';
-                btn.style.pointerEvents = 'none';
-                
-                setTimeout(() => {
-                    // Fine blink, entra il sorriso
-                    document.body.classList.remove('tutorial-waking-up');
-                    document.body.classList.add('tutorial-smiling');
-                    
-                    const container = document.getElementById('tutorial-speech-container');
-                    container.style.transition = 'none';
-                    updateSpeechBubble(initialText, -1);
-                    setTimeout(() => container.style.transition = '', 50);
-                    
-                    btn.innerText = "Avanti";
-                    btn.style.opacity = '1';
-                    btn.style.pointerEvents = 'auto';
-
-                    // Il sorriso svanisce dopo 2 secondi e riprende lo sguardo normale
-                    setTimeout(() => {
-                        document.body.classList.remove('tutorial-smiling');
-                    }, 2000);
-
-                }, 1300);
-                
-                return; 
-            }
-
-            currentIndex++;
-            if (currentIndex >= tutorialSteps.length) { closeTutorial(); return; }
-
-            updateHighlights();
-            updateSpeechBubble(tutorialSteps[currentIndex].text, currentIndex);
-
-            btn.innerText = (currentIndex === tutorialSteps.length - 1) ? "Via!" : "Avanti";
-            
-            if (tutorialSteps[currentIndex].selector === '.input-wrapper') {
-                if (typeof window.syncAnchoring === 'function') window.syncAnchoring();
-            }
-        };
-
-        function closeTutorial() {
-            document.body.classList.remove('tutorial-active', 'tutorial-sleeping', 'tutorial-waking-up', 'tutorial-smiling');
-            document.getElementById('tutorial-next-btn').style.display = 'none';
-            window.removeEventListener('resize', handleResize);
-            document.getElementById('tutorial-speech-container').innerHTML = '';
-            
-            currentIndex = -1;
-            updateHighlights(); 
-            if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: true });
-        };
-
-        function handleResize() {
-            if (document.body.classList.contains('tutorial-active') && !document.body.classList.contains('tutorial-sleeping')) {
-                const container = document.getElementById('tutorial-speech-container');
-                container.style.transition = 'none'; 
-                repositionContainer(currentIndex);
-                setTimeout(() => container.style.transition = '', 50);
-            }
-        }
-
-        window.startTutorial = function() {
-            if (document.body.classList.contains('tutorial-active')) return;
-
-            currentIndex = -1; 
-            if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ tutorial_done: false });
-            
-            const container = document.getElementById('tutorial-speech-container');
-            const btn = document.getElementById('tutorial-next-btn');
-            container.style.transition = 'none';
-            container.innerHTML = ''; 
-            
-            updateHighlights();
-            
-            document.body.classList.add('tutorial-active', 'tutorial-sleeping');
-            
-            btn.style.display = 'none';
-            btn.style.opacity = '1';
-            btn.style.pointerEvents = 'auto';
-            
-            window.addEventListener('resize', handleResize);
-            
-            setTimeout(() => {
-                btn.innerText = "Inizia";
-                btn.style.display = 'flex';
-            }, 3000);
-        };
-
-        const colorPicker = document.getElementById('color-picker');
-        if (colorPicker && !document.getElementById('debug-tut-btn')) {
-            const btn = document.createElement('button');
-            btn.id = 'debug-tut-btn';
-            btn.className = 'debug-tutorial-btn';
-            btn.innerText = 'DEBUG: Start Tutorial';
-            btn.onclick = window.startTutorial;
-            colorPicker.parentNode.appendChild(btn);
-        }
-
-        const originalUpdateProfileUI = window.updateProfileUI;
-        window.updateProfileUI = function(user) {
-            if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) setTimeout(window.startTutorial, 200);
-        };
-    })();
-</script>
-
-
-
-
-
-
-
-
-<style>
-    /* 1. ANIMAZIONE SONNO (Step 0) - CODICE ORIGINALE INTATTO */
-    @keyframes tut-breathing {
-        0%, 100% { transform: scale(1, 1) translateY(0); }
-        50% { transform: scale(1.06, 0.92) translateY(3px); } 
-    }
-    body.tutorial-active.tutorial-sleeping #lime-app-mascot .lime-body-group {
-        transform-origin: 100px 225px !important;
-        animation: tut-breathing 2.5s ease-in-out infinite !important;
-    }
-    body.tutorial-active.tutorial-sleeping #lime-app-mascot .lime-eye {
-        transform: scaleY(0.1) translate(0, 0) !important;
-    }
-
-    /* ---- LE "Z Z Z" ANIMATE ---- */
-    #tutorial-zzz-container {
-        position: fixed; width: 60px; height: 60px; display: none; pointer-events: none; z-index: 9006;
-    }
-    body.tutorial-active.tutorial-sleeping #tutorial-zzz-container { display: block; }
-    .tut-z {
-        position: absolute; font-weight: 900; color: var(--accent, #00d4ff); 
-        font-family: 'Comic Sans MS', cursive, sans-serif; text-transform: uppercase;
-        opacity: 0; animation: tut-zzz-float 2.5s ease-in-out infinite;
-    }
-    .tut-z:nth-child(1) { bottom: 0; left: 0; font-size: 1.2rem; }
-    .tut-z:nth-child(2) { bottom: 20px; left: 20px; font-size: 1.6rem; animation-delay: 0.8s; }
-    .tut-z:nth-child(3) { bottom: 45px; left: 45px; font-size: 2.2rem; animation-delay: 1.6s; }
-
-    @keyframes tut-zzz-float {
-        0% { opacity: 0; transform: translate(0, 0) scale(0.8); }
-        20% { opacity: 1; }
-        100% { opacity: 0; transform: translate(20px, -30px) scale(1.2); }
-    }
-
-    /* ---- 2. FASE RISVEGLIO: DOPPIO BLINK ---- */
-    @keyframes tut-double-blink {
-        0%   { transform: scaleY(0.1); } 
-        15%  { transform: scaleY(1.1); }
-        65%  { transform: scaleY(0.1); }
-        75%  { transform: scaleY(1); }
-        85%  { transform: scaleY(0.1); }
-        100% { transform: scaleY(1); }
-    }
-    body.tutorial-active.tutorial-waking-up #lime-app-mascot .lime-eye {
-        animation: tut-double-blink 1.3s ease-in-out forwards !important;
-    }
-
-    /* ---- 3. NUOVI OCCHI A CURVA (HTML INJECTED) ---- */
-    .tut-eye-curve {
-        position: fixed;
-        width: 22px; height: 12px;
-        border: 4px solid var(--accent, #00d4ff);
-        border-top: none;
-        border-radius: 0 0 50% 50% / 0 0 100% 100%; /* Curva a "U" perfetta */
-        background: transparent;
-        z-index: 9007;
-        pointer-events: none;
-        display: none;
-        box-sizing: border-box;
-    }
-    body.tutorial-active.tutorial-smiling .tut-eye-curve { display: block; }
-
-    /* Nascondiamo le pupille SVG originali SOLO durante il sorriso */
-    body.tutorial-active.tutorial-smiling #lime-app-mascot .lime-eye {
-        opacity: 0 !important;
-    }
-
-    /* ---- 4. SGUARDO INTELLIGENTE ---- */
-    body.tutorial-active:not(.tutorial-sleeping):not(.tutorial-waking-up):not(.tutorial-smiling) .lime-eye.tutorial-gaze-lock {
-        transform: translate(calc(var(--tut-lx, 0px) + var(--tut-converge, 0px)), var(--tut-ly, 0px)) !important;
-        transition: transform 0.4s ease-in-out !important;
-        opacity: 1 !important;
-    }
-</style>
-
-<script>
-    (function initTutorialAnimationsFixed() {
-        const mascot = document.querySelector('#lime-app-mascot');
-        if (!mascot) return;
-
-        // Iniezione Z e Occhi a Curva
-        if (!document.getElementById('tutorial-zzz-container')) {
-            const zDiv = document.createElement('div');
-            zDiv.id = 'tutorial-zzz-container';
-            zDiv.innerHTML = '<div class="tut-z">z</div><div class="tut-z">z</div><div class="tut-z">z</div>';
-            document.body.appendChild(zDiv);
-
-            const eyeL = document.createElement('div'); eyeL.id = 'tut-eye-l'; eyeL.className = 'tut-eye-curve';
-            const eyeR = document.createElement('div'); eyeR.id = 'tut-eye-r'; eyeR.className = 'tut-eye-curve';
-            document.body.appendChild(eyeL); document.body.appendChild(eyeR);
-        }
-
-        const zDiv = document.getElementById('tutorial-zzz-container');
-        const eyeL = document.getElementById('tut-eye-l');
-        const eyeR = document.getElementById('tut-eye-r');
-
-        function syncMascotteExtras() {
-            if (document.body.classList.contains('tutorial-active')) {
-                const rect = mascot.getBoundingClientRect();
-                const eyesSVG = document.querySelectorAll('.lime-eye');
-                
-                // Sincronizza ZZZ
-                if (document.body.classList.contains('tutorial-sleeping')) {
-                    zDiv.style.top = (rect.top + rect.height / 2 - 30) + 'px';
-                    zDiv.style.left = (rect.right - 20) + 'px';
-                }
-
-                // Sincronizza OCCHI CURVI (basandosi sulla posizione reale delle pupille SVG)
-                if (document.body.classList.contains('tutorial-smiling') && eyesSVG.length >= 2) {
-                    const lRect = eyesSVG[0].getBoundingClientRect();
-                    const rRect = eyesSVG[1].getBoundingClientRect();
-
-                    eyeL.style.top = lRect.top + 'px';
-                    eyeL.style.left = lRect.left + 'px';
-                    eyeR.style.top = rRect.top + 'px';
-                    eyeR.style.left = rRect.left + 'px';
-                }
-                requestAnimationFrame(syncMascotteExtras);
-            }
-        }
-
-        const observer = new MutationObserver((mutations) => {
-            let shouldUpdate = false;
-            mutations.forEach(m => {
-                if (m.attributeName === 'class') {
-                    if (m.target === document.body) {
-                        shouldUpdate = true;
-                        if (document.body.classList.contains('tutorial-active')) syncMascotteExtras();
-                    }
-                }
-            });
-            if (shouldUpdate) setTimeout(applyGazeToTarget, 50); 
-        });
-
-        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
-        // LOGICA SGUARDO (Max Movement e Convergence rimangono invariati)
-        const MAX_EYE_MOVEMENT = 16; const CONVERGENCE_PX = 7;
-        function applyGazeToTarget() {
-            const eyes = document.querySelectorAll('.lime-eye');
-            if (eyes.length < 2) return;
-            if (!document.body.classList.contains('tutorial-active') || 
-                document.body.classList.contains('tutorial-sleeping') ||
-                document.body.classList.contains('tutorial-waking-up') ||
-                document.body.classList.contains('tutorial-smiling')) {
-                eyes.forEach(e => { e.classList.remove('tutorial-gaze-lock'); e.style.removeProperty('--tut-converge'); });
-                return;
-            }
-            eyes.forEach(e => e.classList.add('tutorial-gaze-lock'));
-            const activeTarget = document.querySelector('.tutorial-elevated-container');
-            if (!activeTarget) return;
-            eyes[0].style.setProperty('--tut-converge', `${CONVERGENCE_PX}px`);
-            eyes[1].style.setProperty('--tut-converge', `-${CONVERGENCE_PX}px`);
-            const mRect = mascot.getBoundingClientRect();
-            const tRect = activeTarget.getBoundingClientRect();
-            const dx = (tRect.left + tRect.width/2) - (mRect.left + mRect.width/2);
-            const dy = (tRect.top + tRect.height/2) - (mRect.top + mRect.height/2);
-            const distance = Math.sqrt(dx*dx + dy*dy);
-            if (distance > 0) {
-                eyes.forEach(e => {
-                    e.style.setProperty('--tut-lx', (dx/distance * MAX_EYE_MOVEMENT) + 'px');
-                    e.style.setProperty('--tut-ly', (dy/distance * MAX_EYE_MOVEMENT) + 'px');
-                });
-            }
-        }
-    })();
-</script>
-
-
-
-
-
-
-
-
-    
 
 
 
