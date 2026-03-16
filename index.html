@@ -828,8 +828,7 @@
     }
 
     
-
-        async function sendMessage() {
+    async function sendMessage() {
         if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
         let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
         
@@ -844,41 +843,30 @@
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
         if (currentFile) { 
-            DOM.attachmentLabel.innerText = "Elaborazione e distillazione dati..."; 
+            DOM.attachmentLabel.innerText = "Ottimizzazione ed estrazione dati..."; 
             DOM.attachmentLabel.style.display = 'block';
             try { 
                 if (currentFile.type.startsWith('image/')) { 
-                    // FASE 1: UPLOAD E ESTRAZIONE STATELESS (La Distillazione)
-                    const formData = new FormData(); formData.append('file', currentFile); formData.append('user', userId); 
-                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: await getAuthHeaders(), body: formData }); 
+                    // 1. Compressione
+                    const compressedFile = await compressImage(currentFile);
+                    
+                    // 2. Upload
+                    const formData = new FormData(); formData.append('file', compressedFile); formData.append('user', userId); 
+                    let uploadHeaders = await getAuthHeaders(); delete uploadHeaders['Content-Type'];
+                    
+                    const uploadRes = await fetch(`${EDGE_FUNCTION_URL}?path=/files/upload`, { method: 'POST', headers: uploadHeaders, body: formData }); 
+                    if (!uploadRes.ok) throw new Error("Errore upload");
                     const fileId = (await uploadRes.json()).id; 
                     
-                    const extractionPrompt = `Regole per l'Estrazione del Testo:
-1. Divieto Assoluto di Sintesi: Il tuo unico scopo è la trascrizione fedele e integrale. Non riassumere, non tagliare, non spiegare e non risolvere gli esercizi. Limitati a copiare il testo parola per parola.
-2. Precisione Matematica e Strutturale: Trascrivi equazioni, formule e simboli con la massima precisione formale. Mantieni intatti i numeri degli esercizi, gli elenchi puntati e la struttura.
-3. Fedeltà Umanistica: Rispetta scrupolosamente il testo, la punteggiatura e i ritorni a capo. Non correggere eventuali errori.
-4. Filtro del Rumore Visivo: Ignora numeri di pagina, intestazioni irrilevanti, filigrane o elementi grafici inutili.
-5. Output Crudo: Restituisci esclusivamente il testo estratto. Vietato includere frasi introduttive o conclusive. Stampa solo il dato puro.`;
+                    // 3. Estrazione Testo
+                    const extractionPrompt = `Trascrivi fedelmente tutto il testo, le formule e gli esercizi presenti nell'immagine. Non riassumere. Restituisci esclusivamente il testo estratto.`;
+                    const extractReqBody = { inputs: {}, query: extractionPrompt, user: userId, response_mode: "blocking", files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: fileId }] };
                     
-                    const extractReqBody = { 
-                        inputs: {}, 
-                        query: extractionPrompt, 
-                        user: userId, 
-                        response_mode: "blocking",
-                        files: [{ type: 'image', transfer_method: 'local_file', upload_file_id: fileId }]
-                    };
-                    
-                    const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, {
-                        method: 'POST',
-                        headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' },
-                        body: JSON.stringify(extractReqBody)
-                    });
-                    
+                    const extractRes = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' }, body: JSON.stringify(extractReqBody) });
                     if (!extractRes.ok) throw new Error("Errore estrazione");
-                    const extractData = await extractRes.json();
-                    extractedText = extractData.answer || "[Nessun testo rilevato nell'immagine]";
+                    
+                    extractedText = (await extractRes.json()).answer || "[Nessun testo rilevato nell'immagine]";
                 } else {
-                    // FASE 1 (Alternativa): Estrazione testuale locale per PDF/TXT
                     extractedText = await extractTextFromFile(currentFile); 
                 }
                 
@@ -889,10 +877,12 @@
             } 
         }
 
-        // Costruzione Query Finale (Niente payload di file, solo testo puro!)
+        // Il pacchetto pulito e leggero: testuale
         let finalQuery = query || " ";
+        let hiddenFileName = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
+        
         if (extractedText) { 
-            finalQuery = `[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
+            finalQuery = `${hiddenFileName}[--- DATI ESTRATTI DAL FILE ALLEGATO ---]\n${extractedText}\n[--- FINE DATI ESTRATTI ---]\n\nDomanda dell'utente: ${finalQuery}`; 
         }
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
@@ -903,70 +893,48 @@
         const botWrapper = createMessageNode('bot', "...", null); const botDiv = botWrapper.querySelector('.bot-msg'); DOM.chatBox.appendChild(botWrapper); 
         
         let fullAnswer = "", renderQueued = false, isThinkingLocal = true;
-        let attempt = 0;
-        const maxAttempts = 2;
-        let success = false;
-        let originalConversationId = currentConversationId; 
+        let attempt = 0; const maxAttempts = 2; let success = false; let originalConversationId = currentConversationId; 
 
         while (attempt < maxAttempts && !success) {
-            attempt++;
-            fullAnswer = "";
-            let hasError = false;
-            isThinkingLocal = true;
-            
-            const controller = new AbortController();
-            let streamTimeout = setTimeout(() => controller.abort(), 30000); 
+            attempt++; fullAnswer = ""; let hasError = false; isThinkingLocal = true;
+            const controller = new AbortController(); let streamTimeout = setTimeout(() => controller.abort(), 30000); 
 
             try {
-                // FASE 2: LA VERA CHIAMATA (Senza "files" nell'oggetto e sempre in streaming)
+                // Notare l'assenza del file nel reqBody: inviamo solo il testo estratto!
                 const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: "streaming" }; 
                 if (currentConversationId) reqBody.conversation_id = currentConversationId; 
                 
-                const authHeaders = await getAuthHeaders(); 
-                const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { 
-                    method: 'POST', 
-                    headers: { ...authHeaders, 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(reqBody),
-                    signal: controller.signal
-                });
-
+                const res = await fetch(`${EDGE_FUNCTION_URL}?path=/chat-messages`, { method: 'POST', headers: { ...(await getAuthHeaders()), 'Content-Type': 'application/json' }, body: JSON.stringify(reqBody), signal: controller.signal });
                 if (!res.ok) throw new Error(`Errore Server: ${res.status}`);
 
                 const reader = res.body.getReader(), decoder = new TextDecoder("utf-8"); let buffer = ""; 
                 while (true) { 
-                    clearTimeout(streamTimeout);
-                    streamTimeout = setTimeout(() => controller.abort(), 20000); 
-                    
-                    const { done, value } = await reader.read(); 
-                    if (done) { clearTimeout(streamTimeout); break; } 
+                    clearTimeout(streamTimeout); streamTimeout = setTimeout(() => controller.abort(), 20000); 
+                    const { done, value } = await reader.read(); if (done) { clearTimeout(streamTimeout); break; } 
                     
                     buffer += decoder.decode(value, { stream: true }); const lines = buffer.split('\n\n'); buffer = lines.pop(); 
                     for (const line of lines) { 
                         if (line.startsWith('data: ')) { 
                             try { 
                                 const data = JSON.parse(line.substring(6)); 
-                                if (data.event === 'error') {
-                                    hasError = true; 
-                                } else if (data.event === 'message') { 
+                                if (data.event === 'error') hasError = true; 
+                                else if (data.event === 'message') { 
                                     fullAnswer += data.answer; 
                                     if (isThinkingLocal && fullAnswer.trim().length > 0) { isThinkingLocal = false; if (window.setMascotThinking) window.setMascotThinking(false); }
                                     
                                     if (!renderQueued) { 
                                         renderQueued = true; 
                                         const updateUI = () => {
-                                            renderQueued = false; 
-                                            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-                                            let safeMathText = formatLaTeX(fullAnswer);
+                                            renderQueued = false; const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
+                                            let safeMathText = typeof formatLaTeX === "function" ? formatLaTeX(fullAnswer) : fullAnswer;
                                             botDiv.innerHTML = window.marked ? DOMPurify.sanitize(marked.parse(safeMathText)) : (window.DOMPurify ? DOMPurify.sanitize(safeMathText) : safeMathText); 
-                                            if(bottomBar) botDiv.appendChild(bottomBar); 
-                                            scrollToBottom(); 
+                                            if(bottomBar) botDiv.appendChild(bottomBar); scrollToBottom(); 
                                         };
                                         if (document.hidden) updateUI(); else requestAnimationFrame(updateUI);
                                     } 
                                 } else if (data.event === 'message_end') { 
                                     if (fullAnswer.trim().length > 0) {
                                         success = true;
-                                        
                                         const finalizeUI = () => { botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); };
                                         if (document.hidden) finalizeUI(); else requestAnimationFrame(finalizeUI);
                                          
@@ -975,72 +943,45 @@
                                             if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
                                             chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                                         }
-                                    } else {
-                                        hasError = true; 
-                                    }
+                                    } else hasError = true; 
                                 } 
                             } catch (e) {} 
                         } 
                     } 
                     if (hasError) { clearTimeout(streamTimeout); break; } 
                 } 
-            } catch (e) {
-                clearTimeout(streamTimeout);
-                hasError = true; 
-            }
+            } catch (e) { clearTimeout(streamTimeout); hasError = true; }
 
-            if (hasError && attempt < maxAttempts) {
-                await new Promise(r => setTimeout(r, 1000)); 
-            }
+            if (hasError && attempt < maxAttempts) await new Promise(r => setTimeout(r, 1000)); 
         } 
         
         if (fullAnswer.trim().length === 0 || botDiv.innerText.trim() === "") success = false;
 
         if (!success) {
             fullAnswer = `🚫📶 Ci siamo persi! Ritento la risposta? <br><br><button onclick="retryLastMessage(this)" data-query="${encodeURIComponent(query)}" style="background: var(--accent); color: #000; font-weight: bold; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: transform 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">Riprova</button>`;
-            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
-            botDiv.innerHTML = fullAnswer; 
-            if(bottomBar) botDiv.appendChild(bottomBar); 
+            const bottomBar = botDiv.querySelector('.msg-bottom-bar'); botDiv.innerHTML = fullAnswer; if(bottomBar) botDiv.appendChild(bottomBar); 
             
             if (!originalConversationId && currentConversationId) {
-                supabaseClient.from('conversations').delete().eq('dify_id', currentConversationId).then(() => {
-                    delete chatCache[currentConversationId];
-                    currentConversationId = null;
-                    loadHistory();
-                });
-            } else if (!originalConversationId) {
-                currentConversationId = null;
-            }
+                supabaseClient.from('conversations').delete().eq('dify_id', currentConversationId).then(() => { delete chatCache[currentConversationId]; currentConversationId = null; loadHistory(); });
+            } else if (!originalConversationId) currentConversationId = null;
         }
 
         if (success && currentConversationId) {
             const chatIndex = allChats.findIndex(c => String(c.dify_id) === String(currentConversationId));
             if (chatIndex > -1) {
-                const [activeChat] = allChats.splice(chatIndex, 1);
-                allChats.unshift(activeChat);
-                renderHistoryList();
-                supabaseClient.from('conversations')
-                    .update({ created_at: new Date().toISOString() })
-                    .eq('dify_id', currentConversationId)
-                    .then(({ error }) => { if (error) console.error("Errore fissaggio chat:", error.message); });
+                const [activeChat] = allChats.splice(chatIndex, 1); allChats.unshift(activeChat); renderHistoryList();
+                supabaseClient.from('conversations').update({ created_at: new Date().toISOString() }).eq('dify_id', currentConversationId).then(({ error }) => { if (error) console.error("Errore fissaggio chat:", error.message); });
             } else {
-                const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); 
-                if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
+                const activeSidebarItem = document.getElementById(`chat-${currentConversationId}`); if (activeSidebarItem) DOM.historyList.prepend(activeSidebarItem);
             }
         }
 
-        isGenerating = false; 
-        if (window.setMascotThinking) window.setMascotThinking(false); 
-        DOM.sendBtn.disabled = false; scrollToBottom(true); 
-        userWrapper.classList.add('msg-complete'); botWrapper.classList.add('msg-complete');
+        isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; scrollToBottom(true); userWrapper.classList.add('msg-complete'); botWrapper.classList.add('msg-complete');
         
-        setTimeout(() => {
-            if (chatVirtualObserver) { 
-                chatVirtualObserver.observe(userWrapper); 
-                chatVirtualObserver.observe(botWrapper); 
-            }
-        }, 600);
+        setTimeout(() => { if (chatVirtualObserver) { chatVirtualObserver.observe(userWrapper); chatVirtualObserver.observe(botWrapper); } }, 600);
     }
+
+    
 
 
     window.retryLastMessage = function(btn) {
