@@ -2423,7 +2423,7 @@
 <script>
 
 // ==========================================
-// PATCH INTERCETTATORE FOTOCAMERA E RITAGLIO (PULSANTI GEMELLI E MANIGLIE INTERNE)
+// PATCH INTERCETTATORE FOTOCAMERA E RITAGLIO (CON ROTAZIONE)
 // ==========================================
 (function() {
     // 1. Creiamo e iniettiamo l'interfaccia a schermo intero
@@ -2446,6 +2446,12 @@
                 <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <line x1="19" y1="19" x2="5" y2="5" style="fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3;"></line>
                     <line x1="19" y1="5" x2="5" y2="19" style="fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3;"></line>
+                </svg>
+            </button>
+
+            <button id="lime-btn-ruota" style="background:none; border:none; color:var(--accent); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:10px; transition: opacity 0.2s;">
+                <svg width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="currentColor" fill-rule="evenodd" d="M20.4852814,14 L12,22.4852814 L3.51471863,14 L12,5.51471863 L20.4852814,14 Z M6.34314575,14 L12,19.6568542 L17.6568542,14 L12,8.34314575 L6.34314575,14 Z M4.15672797,4.28593933 C6.18580699,2.22227176 8.98673097,1 12,1 C15.9721115,1 19.5752376,3.12390371 21.5277839,6.49927404 L19.7965722,7.50072596 C18.1979627,4.73720691 15.2508538,3 12,3 C9.38603956,3 6.96846584,4.12319378 5.29042786,6 L8,6 L8,8 L2.40310647,8 L2.00227469,2.0674107 L3.99772531,1.9325893 L4.15672797,4.28593933 Z"></path>
                 </svg>
             </button>
             
@@ -2481,6 +2487,7 @@
             tempFile = file;
             const url = URL.createObjectURL(file);
             preview.onload = () => {
+                // Resetta il ritaglio al massimo
                 cropState = { x: 0, y: 0, w: 100, h: 100 };
                 cropBox.style.display = 'block';
                 
@@ -2523,6 +2530,37 @@
     document.getElementById('lime-btn-riprova').onclick = () => {
         closeOverlay();
         DOM.fileInput.click(); 
+    };
+
+    // Tasto Ruota: ruota fisicamente il file a sinistra e ricarica
+    document.getElementById('lime-btn-ruota').onclick = () => {
+        const btnRuota = document.getElementById('lime-btn-ruota');
+        btnRuota.style.opacity = '0.5';
+        btnRuota.style.pointerEvents = 'none';
+
+        const img = new Image();
+        img.onload = async () => {
+            const canvas = document.createElement('canvas');
+            // Invertiamo altezza e larghezza per la rotazione di 90 gradi
+            canvas.width = img.height;
+            canvas.height = img.width;
+            const ctx = canvas.getContext('2d');
+            
+            // Logica di rotazione antioraria (-90 gradi)
+            ctx.translate(0, canvas.height);
+            ctx.rotate(-Math.PI / 2);
+            ctx.drawImage(img, 0, 0);
+
+            const blob = await new Promise(res => canvas.toBlob(res, tempFile.type || 'image/jpeg', 0.9));
+            tempFile = new File([blob], tempFile.name || 'rotated.jpg', { type: tempFile.type || 'image/jpeg' });
+            
+            // Ricarica nel preview (questo scatenerà preview.onload resettando la griglia perfettamente)
+            preview.src = URL.createObjectURL(tempFile);
+            
+            btnRuota.style.opacity = '1';
+            btnRuota.style.pointerEvents = 'auto';
+        };
+        img.src = URL.createObjectURL(tempFile);
     };
 
     document.getElementById('lime-btn-conferma').onclick = async () => {
