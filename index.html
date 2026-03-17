@@ -1718,6 +1718,26 @@
 
 
 
+
+> { if (!currentCustomBg) updateDefaultBackground(); }, 150);
+    });
+</script>  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <style>
     #tutorial-blur-overlay {
         position: fixed; inset: 0; z-index: 9000;
@@ -1780,6 +1800,7 @@
         box-shadow: 0 10px 25px rgba(0,0,0,0.4);
         animation: tut-pop-in 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         transform-origin: bottom left;
+        pointer-events: auto; /* Sblocca l'interazione con i menu a tendina! */
     }
 
     #tutorial-speech-container.center-mode .tut-bubble-msg {
@@ -1824,6 +1845,37 @@
         color: var(--text-muted); border-radius: 8px; font-size: 0.75rem;
         font-weight: bold; text-transform: uppercase; cursor: pointer;
     }
+
+
+/* ---- STILI PER IL FORM DEL TUTORIAL ---- */
+    .tut-select-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .tut-select-group select {
+        appearance: none; -webkit-appearance: none;
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.15);
+        background-color: rgba(255,255,255,0.95);
+        color: #1a1a1a;
+        font-weight: 700;
+        font-size: 0.95rem;
+        outline: none;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 14px;
+        transition: border-color 0.2s;
+    }
+    .tut-select-group select:focus {
+        border-color: #000;
+    }
+
 </style>
 
 <div id="tutorial-blur-overlay"></div>
@@ -1832,26 +1884,34 @@
 <button id="tutorial-next-btn" onclick="nextTutorialStep()"></button>
 
 <script>
-    (function initTutorialEngine() {
+   (function initTutorialEngine() {
         let currentIndex = -1;
         
+        // Abbiamo aggiunto il 5° step con il flag isGreeting per il saluto finale
         const tutorialSteps = [
             { selector: '.menu-toggle', text: "Qui in alto a sinistra trovi il menu. Usalo per creare nuove chat, ritrovare i tuoi appunti passati e cambiare le impostazioni.", clearPrevious: false },
             { selector: '#lime-greeting-box', text: "Questi sono i suggerimenti rapidi. Ti basta un clic per iniziare subito a studiare o a farti interrogare.", clearPrevious: true },
-            { selector: '.input-wrapper', text: "E questa è la mia casa! Puoi scrivermi, allegare i tuoi PDF o parlarmi con il microfono. Sei pronto a cominciare?", clearPrevious: true }
+            { selector: '.input-wrapper', text: "E questa è la mia casa! Puoi scrivermi, allegare i tuoi PDF o parlarmi con il microfono.", clearPrevious: true },
+            { selector: 'center', text: "Per iniziare, conosciamoci meglio. Che classe frequenti, e in quale istituto?", clearPrevious: true, isForm: true },
+            { selector: 'center', text: "Perfetto! Piacere di conoscerti {nome}, e buono studio!", clearPrevious: true, isGreeting: true }
         ];
 
         const initialText = "Ciao! Sono LIME. Ti rubo solo pochi secondi per mostrarti come funziona il tuo nuovo spazio di studio.";
 
         function updateHighlights() {
             tutorialSteps.forEach(step => {
-                const el = document.querySelector(step.selector);
-                if (el) el.classList.remove('tutorial-elevated-container');
+                if (step.selector !== 'center') {
+                    const el = document.querySelector(step.selector);
+                    if (el) el.classList.remove('tutorial-elevated-container');
+                }
             });
 
             if (currentIndex >= 0 && currentIndex < tutorialSteps.length) {
-                const activeContainer = document.querySelector(tutorialSteps[currentIndex].selector);
-                if (activeContainer) activeContainer.classList.add('tutorial-elevated-container');
+                const step = tutorialSteps[currentIndex];
+                if (step.selector !== 'center') {
+                    const activeContainer = document.querySelector(step.selector);
+                    if (activeContainer) activeContainer.classList.add('tutorial-elevated-container');
+                }
             }
         }
 
@@ -1860,7 +1920,11 @@
             const bWidth = container.offsetWidth;
             const bHeight = container.offsetHeight;
 
-            if (index === 1) { 
+            if (index >= 0 && tutorialSteps[index].selector === 'center') {
+                container.classList.add('center-mode');
+                container.style.top = (window.innerHeight / 2 - bHeight / 2) + 'px';
+                container.style.left = (window.innerWidth / 2 - bWidth / 2) + 'px';
+            } else if (index === 1) { 
                 container.classList.add('center-mode');
                 const greeting = document.querySelector('#lime-greeting-box');
                 if (greeting) {
@@ -1886,17 +1950,72 @@
             
             const msgNode = document.createElement('div');
             msgNode.className = 'tut-bubble-msg';
-            msgNode.innerText = text;
-            container.appendChild(msgNode);
             
+            // Logica per inserire dinamicamente il nome utente
+            let displayText = text;
+            if (index >= 0 && tutorialSteps[index].isGreeting) {
+                let userName = document.getElementById('settings-user-name')?.innerText || "";
+                if (userName === "Nome Utente" || userName === "?") userName = "";
+                // Se c'è un nome lo inseriamo con lo spazio, altrimenti togliamo la variabile in modo pulito
+                displayText = text.replace(' {nome},', userName ? ` ${userName},` : ',');
+            }
+            
+            if (index >= 0 && tutorialSteps[index].isForm) {
+                msgNode.innerHTML = `
+                    <p style="margin: 0 0 5px 0;">${displayText}</p>
+                    <div class="tut-select-group">
+                        <select id="tut-edu-level" onchange="window.checkTutorialForm()">
+                            <option value="" disabled selected>Classe frequentata...</option>
+                            <option value="1">1ª Superiore</option>
+                            <option value="2">2ª Superiore</option>
+                            <option value="3">3ª Superiore</option>
+                            <option value="4">4ª Superiore</option>
+                            <option value="5">5ª Superiore</option>
+                        </select>
+                        <select id="tut-inst-type" onchange="window.checkTutorialForm()">
+                            <option value="" disabled selected>Tipo di istituto...</option>
+                            <option value="Liceo">Liceo</option>
+                            <option value="Tecnico">Tecnico</option>
+                            <option value="Professionale">Professionale</option>
+                        </select>
+                    </div>
+                `;
+            } else {
+                msgNode.innerText = displayText;
+            }
+            
+            container.appendChild(msgNode);
             setTimeout(() => repositionContainer(index), 0);
         }
+
+        window.checkTutorialForm = function() {
+            const edu = document.getElementById('tut-edu-level')?.value;
+            const inst = document.getElementById('tut-inst-type')?.value;
+            const btn = document.getElementById('tutorial-next-btn');
+            
+            if (edu && inst) {
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+                
+                localStorage.setItem('lime_edu_level', edu);
+                localStorage.setItem('lime_inst_type', inst);
+                if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ lime_edu_level: edu, lime_inst_type: inst });
+                
+                const sidebarEdu = document.getElementById('edu-dropdown');
+                const sidebarInst = document.getElementById('inst-dropdown');
+                if (sidebarEdu) sidebarEdu.value = edu;
+                if (sidebarInst) sidebarInst.value = inst;
+                
+            } else {
+                btn.style.opacity = '0.5';
+                btn.style.pointerEvents = 'none';
+            }
+        };
 
         window.nextTutorialStep = function() {
             const btn = document.getElementById('tutorial-next-btn');
 
             if (document.body.classList.contains('tutorial-sleeping')) {
-                // Via il sonno, entra il doppio blink
                 document.body.classList.remove('tutorial-sleeping');
                 document.body.classList.add('tutorial-waking-up');
                 
@@ -1904,7 +2023,6 @@
                 btn.style.pointerEvents = 'none';
                 
                 setTimeout(() => {
-                    // Fine blink, entra il sorriso
                     document.body.classList.remove('tutorial-waking-up');
                     document.body.classList.add('tutorial-smiling');
                     
@@ -1917,7 +2035,6 @@
                     btn.style.opacity = '1';
                     btn.style.pointerEvents = 'auto';
 
-                    // Il sorriso svanisce dopo 2 secondi e riprende lo sguardo normale
                     setTimeout(() => {
                         document.body.classList.remove('tutorial-smiling');
                     }, 2000);
@@ -1933,13 +2050,27 @@
             updateHighlights();
             updateSpeechBubble(tutorialSteps[currentIndex].text, currentIndex);
 
-            btn.innerText = (currentIndex === tutorialSteps.length - 1) ? "Via!" : "Avanti";
+            // Gestione dei testi del pulsante e animazioni facciali
+            if (tutorialSteps[currentIndex].isForm) {
+                btn.innerText = "Avanti"; 
+                window.checkTutorialForm(); 
+            } else if (tutorialSteps[currentIndex].isGreeting) {
+                // Il tocco magico: riattiviamo il sorriso per il saluto finale!
+                document.body.classList.add('tutorial-smiling');
+                
+                btn.innerText = "Inizia!";
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            } else {
+                btn.innerText = "Avanti";
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
+            }
             
             if (tutorialSteps[currentIndex].selector === '.input-wrapper') {
                 if (typeof window.syncAnchoring === 'function') window.syncAnchoring();
             }
         };
-
         function closeTutorial() {
             document.body.classList.remove('tutorial-active', 'tutorial-sleeping', 'tutorial-waking-up', 'tutorial-smiling');
             document.getElementById('tutorial-next-btn').style.display = 'none';
@@ -2013,7 +2144,7 @@
 
 
 <style>
-    /* 1. ANIMAZIONE SONNO (Step 0) - CODICE ORIGINALE INTATTO */
+    /* 1. ANIMAZIONE SONNO (Step 0) */
     @keyframes tut-breathing {
         0%, 100% { transform: scale(1, 1) translateY(0); }
         50% { transform: scale(1.06, 0.92) translateY(3px); } 
@@ -2036,7 +2167,7 @@
     body.tutorial-active.tutorial-sleeping #tutorial-zzz-container { display: block; }
     
     .tut-z {
-        position: absolute; font-weight: 900; color: var(--accent, #00d4ff); 
+        position: absolute; font-weight: 900; color: var(--accent); 
         font-family: 'Comic Sans MS', cursive, sans-serif; text-transform: uppercase;
         opacity: 0; animation: tut-zzz-float 2.5s ease-in-out infinite;
     }
@@ -2054,12 +2185,12 @@
     /* ---- 2. FASE RISVEGLIO: DOPPIO BLINK ---- */
     @keyframes tut-double-blink {
         0%   { transform: scaleY(0.1) translateY(2px); } 
-        15%  { transform: scaleY(1.1) translateY(0); }  /* Sgrana leggermente */
+        15%  { transform: scaleY(1.1) translateY(0); }  
         25%  { transform: scaleY(1) translateY(0); }
-        55%  { transform: scaleY(1) translateY(0); }    /* Mette a fuoco */
-        65%  { transform: scaleY(0.1) translateY(0); }  /* Primo blink */
+        55%  { transform: scaleY(1) translateY(0); }    
+        65%  { transform: scaleY(0.1) translateY(0); }  
         75%  { transform: scaleY(1) translateY(0); }
-        85%  { transform: scaleY(0.1) translateY(0); }  /* Secondo blink */
+        85%  { transform: scaleY(0.1) translateY(0); }  
         95%  { transform: scaleY(1) translateY(0); }
         100% { transform: scaleY(1) translateY(0); }
     }
@@ -2069,82 +2200,60 @@
         animation: tut-double-blink 1.3s ease-in-out forwards !important;
     }
 
-    /* ---- 3. FASE SALUTO: OCCHI SORRIDENTI A "C" CURVA (Tecnica Pseudo-elementi) ---- */
+    /* ---- 3. FASE SALUTO: OCCHI SORRIDENTI (SVG INIETTATO) ---- */
     
-    /* Contenitore occhi: usiamo ::before e ::after per creare gli archi felici */
-    body.tutorial-active.tutorial-smiling #lime-app-mascot #lime-app-mascot_Layer_1 {
-        position: relative;
-    }
-
-    /* Configurazione comune per i due archi felici */
-    body.tutorial-active.tutorial-smiling #lime-app-mascot #lime-app-mascot_Layer_1::before,
-    body.tutorial-active.tutorial-smiling #lime-app-mascot #lime-app-mascot_Layer_1::after {
-        content: '';
-        position: absolute;
-        /* Dimensione dell'arco (come una grossa pupilla) */
-        width: 18px; 
-        height: 18px;
-        /* Colore dell'accento utente */
-        border: 4px solid var(--accent, #00d4ff);
-        /* Nascondiamo i bordi laterali e superiori, lasciando solo l'arco inferiore */
-        border-top-color: transparent;
-        border-left-color: transparent;
-        border-right-color: transparent;
-        /* Creiamo la curvatura perfetta a "C" */
-        border-radius: 50%;
-        box-sizing: border-box;
-        z-index: 10;
-        
-        /* Animazione di apparizione morbida (in sincrono col fumetto) */
-        animation: tut-c-eyes-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        transform-origin: center;
-        /* Nascondiamo matematicamente l'eccedenza per un tratto pulito */
-        clip-path: inset(50% 0 0 0); /* Mostra solo la metà inferiore */
-    }
-
-    @keyframes tut-c-eyes-pop {
-        0% { transform: scale(0) translateY(10px); opacity: 0; }
-        100% { transform: scale(1) translateY(0); opacity: 1; }
-    }
-
-    /* Posizionamento Occhio Sinistro Curvo */
-    body.tutorial-active.tutorial-smiling #lime-app-mascot #lime-app-mascot_Layer_1::before {
-        top: 215px; /* Allineato all'altezza occhi originale */
-        left: 81px; /* Coordinata X occhio sinistro nativo */
-    }
-
-    /* Posizionamento Occhio Destro Curvo */
-    body.tutorial-active.tutorial-smiling #lime-app-mascot #lime-app-mascot_Layer_1::after {
-        top: 215px;
-        left: 119px; /* Coordinata X occhio destro nativo */
-    }
-
-    /* IMPORTANTE: Nascondiamo le pupille SVG originali mentre sorride per non sovrapporle */
-    body.tutorial-active.tutorial-smiling #lime-app-mascot .lime-eye {
+    body.tutorial-active.tutorial-smiling #lime-eyes-group .lime-eye {
         opacity: 0 !important;
-        transition: opacity 0.2s ease !important;
+        transition: transform 0.2s ease-out, opacity 0s !important;
     }
 
-    /* Ripristino opacità pupille quando non sorride */
-    body.tutorial-active:not(.tutorial-smiling) #lime-app-mascot .lime-eye {
+    body.tutorial-active.tutorial-smiling #lime-eyes-group .lime-eye-smile {
         opacity: 1;
-        transition: opacity 0.4s ease 0.3s; /* Rientrano dolcemente dopo il sorriso */
+        transform: scale(1);
     }
 
-    /* ---- 4. SGUARDO INTELLIGENTE (Invariato, ma con gestione transizioni sorriso) ---- */
-    body.tutorial-active:not(.tutorial-sleeping) #lime-app-mascot .lime-eye {
-        fill: #00d4ff !important;
-    }
-
+    /* ---- 4. SGUARDO INTELLIGENTE ---- */
+    
     /* Applica lo sguardo guidato solo quando non sta dormendo, non si sta svegliando e non sta sorridendo */
     body.tutorial-active:not(.tutorial-sleeping):not(.tutorial-waking-up):not(.tutorial-smiling) .lime-eye.tutorial-gaze-lock {
         transform: translate(calc(var(--tut-lx, 0px) + var(--tut-converge, 0px)), var(--tut-ly, 0px)) !important;
-        /* Transizione fluida quando rientra dal sorriso */
         transition: transform 0.4s ease-in-out, opacity 0.4s ease !important;
     }
 </style>
 
 <script>
+
+
+(function injectSmileEyes() {
+        const eyesGroup = document.getElementById('lime-eyes-group');
+        if (eyesGroup && !document.querySelector('.lime-eye-smile')) {
+            const pathD = "M49 56.89l-.15-.2l-.43-.55l-.53-.57c-.22-.25-.48-.49-.73-.75s-.56-.51-.84-.72c-.26-.2-.54-.39-.84-.54c-.2-.11-.42-.2-.65-.25a.739.739 0 0 0-.21 0H44.45h.27h-.55c-.15 0-.05 0 0 0h.08c.08 0 0 0 0 0h-.11c-.23.05-.45.13-.66.25c-.29.16-.58.34-.84.54c-.29.22-.57.46-.83.72c-.53.51-1 1-1.3 1.39l-.52.6l-.23.27a4.231 4.231 0 0 1-5.62.61a3.54 3.54 0 0 1-1.47-3.48s.07-.4.26-1.11c.3-1.01.72-1.99 1.25-2.91c.85-1.5 2-2.81 3.38-3.85c.91-.7 1.92-1.26 3-1.65c.3-.12.61-.21.92-.29c.33-.1.66-.17 1-.23l.61-.09l.51-.06h1.85c.34 0 .67.09 1 .14c.64.11 1.28.28 1.89.51c1.08.39 2.09.95 3 1.65c1.38 1.04 2.53 2.35 3.38 3.85c.31.52.58 1.07.8 1.63c.19.45.35.9.48 1.37c.07.24.13.48.16.72v.25c.3 2.04-1.12 3.94-3.16 4.24c-.05.01-.1.01-.15.02c-1.46.21-2.92-.37-3.85-1.51z";
+            
+            const createSmile = (x, cx) => {
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute("class", "lime-eye-shape lime-eye-smile");
+                
+                // overflow: visible per non mozzare l'arco ai lati
+                svg.setAttribute("style", `transform-origin: ${cx}px 175px; overflow: visible;`);
+                
+                // Dimensioni e posizioni ancorate al punto focale dell'occhio nativo
+                svg.setAttribute("x", x);
+                svg.setAttribute("y", "165");
+                svg.setAttribute("width", "20");
+                svg.setAttribute("height", "20");
+                
+                // ViewBox riallineato: la coordinata X a 37 e la Y a 44.5 centrano il path perfetto!
+                svg.setAttribute("viewBox", "37 44.5 17 17"); 
+                svg.innerHTML = `<path fill="#1a1a1a" d="${pathD}" />`;
+                return svg;
+            };
+
+            // Iniettiamo rispettando la simmetria assoluta
+            eyesGroup.appendChild(createSmile("55", 65));
+            eyesGroup.appendChild(createSmile("125", 135));
+        }
+    })();
+
     (function initTutorialAnimations() {
         // ---- INIEZIONE "Z" POSIZIONATE A META' CORPO ----
         const mascot = document.querySelector('#lime-app-mascot');
@@ -2258,6 +2367,12 @@
         });
     })();
 </script>
+    
+
+
+
+
+
 
 
 
