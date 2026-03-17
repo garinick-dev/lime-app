@@ -2421,8 +2421,9 @@
 
 
 <script>
+
 // ==========================================
-// PATCH INTERCETTATORE FOTOCAMERA E RITAGLIO (LOGICA AUTOMATICA E SVG UPDATED)
+// PATCH INTERCETTATORE FOTOCAMERA E RITAGLIO (PULSANTI GEMELLI E MANIGLIE INTERNE)
 // ==========================================
 (function() {
     // 1. Creiamo e iniettiamo l'interfaccia a schermo intero
@@ -2432,18 +2433,19 @@
             <img id="lime-photo-preview" style="max-width:100%; max-height:100%; object-fit:contain; pointer-events:none;">
             
             <div id="lime-crop-box" style="display:none; position:absolute; border:2px solid var(--accent); box-shadow: 0 0 0 9999px rgba(0,0,0,0.7); touch-action:none;">
-                <div class="crop-handle top-left" style="position:absolute; top:-4px; left:-4px; width:24px; height:24px; background:var(--accent); border-radius:0;"></div>
-                <div class="crop-handle top-right" style="position:absolute; top:-4px; right:-4px; width:24px; height:24px; background:var(--accent); border-radius:0;"></div>
-                <div class="crop-handle bottom-left" style="position:absolute; bottom:-4px; left:-4px; width:24px; height:24px; background:var(--accent); border-radius:0;"></div>
-                <div class="crop-handle bottom-right" style="position:absolute; bottom:-4px; right:-4px; width:24px; height:24px; background:var(--accent); border-radius:0;"></div>
+                <div class="crop-handle top-left" style="position:absolute; top:4px; left:4px; width:24px; height:24px; background:var(--accent); border-radius:0;"></div>
+                <div class="crop-handle top-right" style="position:absolute; top:4px; right:4px; width:24px; height:24px; background:var(--accent); border-radius:0;"></div>
+                <div class="crop-handle bottom-left" style="position:absolute; bottom:4px; left:4px; width:24px; height:24px; background:var(--accent); border-radius:0;"></div>
+                <div class="crop-handle bottom-right" style="position:absolute; bottom:4px; right:4px; width:24px; height:24px; background:var(--accent); border-radius:0;"></div>
             </div>
         </div>
         
-        <div style="height:90px; background:#151515; display:flex; justify-content:space-around; align-items:center; padding:0 15px; padding-bottom:env(safe-area-inset-bottom); border-top:1px solid #222;">
+        <div style="height:100px; background:#151515; display:flex; justify-content:space-evenly; align-items:center; padding:0 15px; padding-bottom:env(safe-area-inset-bottom); border-top:1px solid #222;">
             
-            <button id="lime-btn-riprova" style="background:none; border:none; color:#ff4444; cursor:pointer; padding:15px; display:flex; align-items:center; justify-content:center;">
-                <svg width="24" height="24" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-                    <path fill="currentColor" fill-rule="evenodd" d="M3.107 3.107c.238-.238.623-.238.86 0l4.033 4.033 4.033-4.033c.238-.238.623-.238.861 0 .238.238.238.623 0 .86l-4.033 4.033 4.033 4.034c.238.237.238.622 0 .86-.238.238-.623.238-.86 0L8 8.927l-4.033 4.033c-.238.238-.623.238-.86 0-.238-.238-.238-.623 0-.86L7.14 8.066 3.107 4.033a.609.609 0 0 1 0-.86z" clip-rule="evenodd"/>
+            <button id="lime-btn-riprova" style="background:#ff4444; color:#fff; border:none; width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transform:translateZ(0); transition: opacity 0.2s;">
+                <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="19" y1="19" x2="5" y2="5" style="fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3;"></line>
+                    <line x1="19" y1="5" x2="5" y2="19" style="fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 3;"></line>
                 </svg>
             </button>
             
@@ -2465,10 +2467,10 @@
 
     let tempFile = null;
     let imgRect = { width: 0, height: 0, left: 0, top: 0, natW: 0, natH: 0 };
-    let cropState = { x: 0, y: 0, w: 100, h: 100 }; // percentuali default full image
+    let cropState = { x: 0, y: 0, w: 100, h: 100 }; 
     let activeHandle = null;
 
-    // 2. Intercettiamo silenziosamente la funzione originale di LIME
+    // 2. Intercettiamo silenziosamente la funzione originale
     const originalHandleFileSelect = window.handleFileSelect;
 
     window.handleFileSelect = function(e) {
@@ -2479,19 +2481,16 @@
             tempFile = file;
             const url = URL.createObjectURL(file);
             preview.onload = () => {
-                // Logica Automatica: resetta e mostra subito il ritaglio al massimo
                 cropState = { x: 0, y: 0, w: 100, h: 100 };
                 cropBox.style.display = 'block';
                 
-                // Show overlay smoothly
                 overlay.style.display = 'flex';
                 setTimeout(() => { overlay.style.opacity = '1'; }, 10);
-                setTimeout(updateImgRect, 50); // Calcola le dimensioni reali
+                setTimeout(updateImgRect, 50); 
             };
             preview.src = url;
             e.target.value = ''; 
         } else {
-            // PDF o TXT lascia fare all'originale
             originalHandleFileSelect({ target: { files: [file] } });
         }
     };
@@ -2523,7 +2522,6 @@
     // 3. Azioni dei bottoni
     document.getElementById('lime-btn-riprova').onclick = () => {
         closeOverlay();
-        // Riaccende la fotocamera tramite il pulsante nativo standard
         DOM.fileInput.click(); 
     };
 
@@ -2534,7 +2532,6 @@
         
         let finalFile = tempFile;
 
-        // Esegue SEMPRE il ritaglio in base alla selezione (anche se full image)
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const sx = (cropState.x / 100) * imgRect.natW, sy = (cropState.y / 100) * imgRect.natH;
@@ -2550,11 +2547,10 @@
         btnConf.style.opacity = '1';
         btnConf.style.pointerEvents = 'auto';
         
-        // Allega all'interfaccia standard senza inviare
         originalHandleFileSelect({ target: { files: [finalFile] } });
     };
 
-    // 4. Logica Touch & Mouse (Ultra-snappy)
+    // 4. Logica Touch & Mouse
     let startTouch = null, startCrop = null;
 
     const dragStart = (x, y, target) => {
@@ -2568,16 +2564,13 @@
         let nx = startCrop.x, ny = startCrop.y, nw = startCrop.w, nh = startCrop.h;
 
         if (activeHandle === 'move') { nx += dx; ny += dy; } else {
-            // Logica dei lati
             if (activeHandle.includes('left')) { nx += dx; nw -= dx; }
             if (activeHandle.includes('right')) { nw += dx; }
             if (activeHandle.includes('top')) { ny += dy; nh -= dy; }
             if (activeHandle.includes('bottom')) { nh += dy; }
         }
 
-        // Limiti minimi (15%)
         if (nw < 15) nw = 15; if (nh < 15) nh = 15;
-        // Limiti confini immagine
         if (nx < 0) nx = 0; if (ny < 0) ny = 0;
         if (nx + nw > 100) { if(activeHandle==='move') nx = 100 - nw; else nw = 100 - nx; }
         if (ny + nh > 100) { if(activeHandle==='move') ny = 100 - nh; else nh = 100 - ny; }
@@ -2597,7 +2590,6 @@
         document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
     });
 })();
-    
 
     
 </script>
