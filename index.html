@@ -2128,10 +2128,18 @@
             colorPicker.parentNode.appendChild(btn);
         }
 
+        // Override della funzione di profilo per intercettare i nuovi iscritti
         const originalUpdateProfileUI = window.updateProfileUI;
         window.updateProfileUI = function(user) {
             if (originalUpdateProfileUI) originalUpdateProfileUI(user);
-            if (user && user.user_metadata && user.user_metadata.tutorial_done === false) setTimeout(window.startTutorial, 200);
+            
+            // Se l'utente è loggato e non ha MAI completato il tutorial (undefined o false)
+            if (user) {
+                const md = user.user_metadata || {};
+                if (md.tutorial_done !== true) {
+                    setTimeout(window.startTutorial, 200);
+                }
+            }
         };
     })();
 </script>
