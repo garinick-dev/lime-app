@@ -2383,6 +2383,190 @@
 
 
 
+<script>
+
+// ==========================================
+// PATCH INTERCETTATORE FOTOCAMERA E RITAGLIO
+// ==========================================
+(function() {
+    // 1. Creiamo e iniettiamo l'interfaccia a schermo intero
+    const overlayHTML = `
+    <div id="lime-photo-overlay" style="display:none; position:fixed; inset:0; background:#0e0e0e; z-index:99999; flex-direction:column; touch-action:none;">
+        <div id="lime-photo-container" style="flex:1; position:relative; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+            <img id="lime-photo-preview" style="max-width:100%; max-height:100%; object-fit:contain; pointer-events:none;">
+            
+            <div id="lime-crop-box" style="display:none; position:absolute; border:2px solid var(--accent); box-shadow: 0 0 0 9999px rgba(0,0,0,0.7); touch-action:none;">
+                <div class="crop-handle top-left" style="position:absolute; top:-12px; left:-12px; width:24px; height:24px; background:var(--accent); border-radius:50%;"></div>
+                <div class="crop-handle top-right" style="position:absolute; top:-12px; right:-12px; width:24px; height:24px; background:var(--accent); border-radius:50%;"></div>
+                <div class="crop-handle bottom-left" style="position:absolute; bottom:-12px; left:-12px; width:24px; height:24px; background:var(--accent); border-radius:50%;"></div>
+                <div class="crop-handle bottom-right" style="position:absolute; bottom:-12px; right:-12px; width:24px; height:24px; background:var(--accent); border-radius:50%;"></div>
+            </div>
+        </div>
+        
+        <div style="height:90px; background:#151515; display:flex; justify-content:space-around; align-items:center; padding:0 15px; padding-bottom:env(safe-area-inset-bottom); border-top:1px solid #222;">
+            <button id="lime-btn-riprova" style="background:none; border:none; color:#ff4444; font-size:16px; font-weight:bold; cursor:pointer; padding:10px;">Riprova</button>
+            <button id="lime-btn-ritaglia" style="background:none; border:none; color:#e3e3e3; font-size:16px; font-weight:bold; cursor:pointer; padding:10px;">Ritaglia</button>
+            <button id="lime-btn-invia" style="background:var(--accent); color:#000; border:none; padding:12px 28px; border-radius:24px; font-size:16px; font-weight:bold; cursor:pointer; transform:translateZ(0);">Invia</button>
+        </div>
+    </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', overlayHTML);
+
+    const overlay = document.getElementById('lime-photo-overlay');
+    const preview = document.getElementById('lime-photo-preview');
+    const cropBox = document.getElementById('lime-crop-box');
+    const container = document.getElementById('lime-photo-container');
+
+    let tempFile = null;
+    let isCroppingMode = false;
+    let imgRect = { width: 0, height: 0, left: 0, top: 0, natW: 0, natH: 0 };
+    let cropState = { x: 10, y: 10, w: 80, h: 80 }; // percentuali
+    let activeHandle = null;
+
+    // 2. Intercettiamo silenziosamente la funzione originale di LIME
+    const originalHandleFileSelect = window.handleFileSelect;
+
+    window.handleFileSelect = function(e) {
+        const file = e.target.files[0];
+        if (!file) { clearAttachment(); return; }
+
+        if (file.type.startsWith('image/')) {
+            tempFile = file;
+            const url = URL.createObjectURL(file);
+            preview.onload = () => {
+                isCroppingMode = false;
+                cropBox.style.display = 'none';
+                document.getElementById('lime-btn-ritaglia').style.color = '#e3e3e3';
+                overlay.style.display = 'flex';
+                setTimeout(updateImgRect, 50); // Calcola le dimensioni reali una volta renderizzata
+            };
+            preview.src = url;
+            e.target.value = ''; // Resetta l'input per permettere scatti successivi
+        } else {
+            // Se è PDF o TXT, lascia fare al codice originale
+            originalHandleFileSelect({ target: { files: [file] } });
+        }
+    };
+
+    function updateImgRect() {
+        const cRect = container.getBoundingClientRect();
+        const ratio = Math.min(cRect.width / preview.naturalWidth, cRect.height / preview.naturalHeight);
+        imgRect.width = preview.naturalWidth * ratio;
+        imgRect.height = preview.naturalHeight * ratio;
+        imgRect.left = (cRect.width - imgRect.width) / 2;
+        imgRect.top = (cRect.height - imgRect.height) / 2;
+        imgRect.natW = preview.naturalWidth;
+        imgRect.natH = preview.naturalHeight;
+        updateCropBoxDOM();
+    }
+
+    function updateCropBoxDOM() {
+        if(!isCroppingMode) return;
+        cropBox.style.left = (imgRect.left + (cropState.x / 100) * imgRect.width) + 'px';
+        cropBox.style.top = (imgRect.top + (cropState.y / 100) * imgRect.height) + 'px';
+        cropBox.style.width = ((cropState.w / 100) * imgRect.width) + 'px';
+        cropBox.style.height = ((cropState.h / 100) * imgRect.height) + 'px';
+    }
+
+    // 3. Azioni dei bottoni
+    document.getElementById('lime-btn-riprova').onclick = () => {
+        overlay.style.display = 'none';
+        DOM.fileInput.click(); 
+    };
+
+    document.getElementById('lime-btn-ritaglia').onclick = () => {
+        isCroppingMode = !isCroppingMode;
+        if (isCroppingMode) {
+            cropState = { x: 5, y: 5, w: 90, h: 90 }; 
+            updateImgRect();
+            cropBox.style.display = 'block';
+            document.getElementById('lime-btn-ritaglia').style.color = 'var(--accent)';
+        } else {
+            cropBox.style.display = 'none';
+            document.getElementById('lime-btn-ritaglia').style.color = '#e3e3e3';
+        }
+    };
+
+    document.getElementById('lime-btn-invia').onclick = async () => {
+        document.getElementById('lime-btn-invia').innerText = "...";
+        let finalFile = tempFile;
+
+        if (isCroppingMode) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const sx = (cropState.x / 100) * imgRect.natW, sy = (cropState.y / 100) * imgRect.natH;
+            const sw = (cropState.w / 100) * imgRect.natW, sh = (cropState.h / 100) * imgRect.natH;
+            
+            canvas.width = sw; canvas.height = sh;
+            ctx.drawImage(preview, sx, sy, sw, sh, 0, 0, sw, sh);
+            
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.9));
+            finalFile = new File([blob], tempFile.name || 'ritaglio.jpg', { type: 'image/jpeg' });
+        }
+
+        overlay.style.display = 'none';
+        document.getElementById('lime-btn-invia').innerText = "Invia";
+        
+        // Collega il file (intero o ritagliato) all'interfaccia standard e spara il messaggio
+        originalHandleFileSelect({ target: { files: [finalFile] } });
+        sendMessage();
+    };
+
+    // 4. Logica Touch & Mouse (Ultra-snappy)
+    let startTouch = null, startCrop = null;
+
+    const dragStart = (x, y, target) => {
+        startTouch = { x, y }; startCrop = { ...cropState };
+        activeHandle = target.classList.contains('crop-handle') ? target.classList[1] : 'move';
+    };
+
+    const dragMove = (x, y) => {
+        if (!startTouch) return;
+        const dx = ((x - startTouch.x) / imgRect.width) * 100, dy = ((y - startTouch.y) / imgRect.height) * 100;
+        let nx = startCrop.x, ny = startCrop.y, nw = startCrop.w, nh = startCrop.h;
+
+        if (activeHandle === 'move') { nx += dx; ny += dy; } else {
+            if (activeHandle.includes('left')) { nx += dx; nw -= dx; }
+            if (activeHandle.includes('right')) { nw += dx; }
+            if (activeHandle.includes('top')) { ny += dy; nh -= dy; }
+            if (activeHandle.includes('bottom')) { nh += dy; }
+        }
+
+        if (nw < 15) nw = 15; if (nh < 15) nh = 15;
+        if (nx < 0) nx = 0; if (ny < 0) ny = 0;
+        if (nx + nw > 100) { if(activeHandle==='move') nx = 100 - nw; else nw = 100 - nx; }
+        if (ny + nh > 100) { if(activeHandle==='move') ny = 100 - nh; else nh = 100 - ny; }
+
+        cropState = { x: nx, y: ny, w: nw, h: nh };
+        updateCropBoxDOM();
+    };
+
+    cropBox.addEventListener('touchstart', (e) => { e.preventDefault(); dragStart(e.touches[0].clientX, e.touches[0].clientY, e.target); }, { passive: false });
+    cropBox.addEventListener('touchmove', (e) => { e.preventDefault(); dragMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+    cropBox.addEventListener('touchend', () => { startTouch = null; activeHandle = null; });
+    
+    cropBox.addEventListener('mousedown', (e) => {
+        e.preventDefault(); dragStart(e.clientX, e.clientY, e.target);
+        const onMouseMove = (ev) => dragMove(ev.clientX, ev.clientY);
+        const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); startTouch = null; };
+        document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
+    });
+})();
+    
+
+    
+</script>
+    
+
+    
+    
+
+
+
+
+
+
+
 
 
     
