@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        :root { --bg-color: #0e0e0e; --sidebar-bg: #151515; --accent: #c0f22c; --text-main: #e3e3e3; --text-muted: #666; --text-light: #aaa; --input-bg: #1e1e1e; --user-bubble: #2b2b2b; --border-color: #222; --sidebar-width: 280px; --chat-max-width: 800px; --bg-main-rgb: 14, 14, 14; --lime-accent: #c0f22c; --lime-bg-chip: #2b2b2b; --lime-chip-color: #e3e3e3; --lime-chip-border: #444; }
+        :root { --bg-color: #0e0e0e; --sidebar-bg: #151515; --accent: #a5c938; --text-main: #e3e3e3; --text-muted: #666; --text-light: #aaa; --input-bg: #1e1e1e; --user-bubble: #2b2b2b; --border-color: #222; --sidebar-width: 280px; --chat-max-width: 800px; --bg-main-rgb: 14, 14, 14; --lime-accent: #a5c938; --lime-bg-chip: #2b2b2b; --lime-chip-color: #e3e3e3; --lime-chip-border: #444; }
         body, html { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; margin: 0; padding: 0; height: 100dvh; background: var(--bg-color); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden !important; -webkit-tap-highlight-color: transparent; }
         #main-container { display: flex; height: 100%; width: 100vw; position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
         ::-webkit-scrollbar { display: none; } * { scrollbar-width: none; -ms-overflow-style: none; box-sizing: border-box; }
@@ -253,7 +253,7 @@
                 <div class="setting-item">
                     <label>Colore principale</label>
                     <div class="color-picker-container" id="color-picker">
-                        <div class="color-circle" data-color="#c0f22c" style="background: #c0f22c;" onclick="handleColorChange('#c0f22c')"></div>
+                        <div class="color-circle" data-color="#a5c938" style="background: #a5c938;" onclick="handleColorChange('#a5c938')"></div>
                         <div class="color-circle" data-color="#ff9f43" style="background: #ff9f43;" onclick="handleColorChange('#ff9f43')"></div>
                         <div class="color-circle" data-color="#ff5e5e" style="background: #ff5e5e;" onclick="handleColorChange('#ff5e5e')"></div>
                         <div class="color-circle" data-color="#a85eff" style="background: #a85eff;" onclick="handleColorChange('#a85eff')"></div>
@@ -1092,7 +1092,7 @@
 
     function updateDefaultBackground() {
         if (currentCustomBg || !DOM.chatBox) return;
-        const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
+        const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#a5c938';
         const lightColor = lightenColor(userColor, 0.40); 
         const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 -100 1520 1520" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="margin: 0; display: block;">
   <defs><g id="lime"><circle cx="0" cy="0" r="100" fill="${userColor}" /><circle cx="0" cy="0" r="92" fill="#FFFFFF" /><circle cx="0" cy="0" r="86" fill="${lightColor}" /><line x1="0" y1="-86" x2="0" y2="86" stroke="#FFFFFF" stroke-width="4" /><line x1="-86" y1="0" x2="86" y2="0" stroke="#FFFFFF" stroke-width="4" /><line x1="-60.8" y1="-60.8" x2="60.8" y2="60.8" stroke="#FFFFFF" stroke-width="4" /><line x1="-60.8" y1="60.8" x2="60.8" y2="-60.8" stroke="#FFFFFF" stroke-width="4" /><circle cx="0" cy="0" r="8" fill="#FFFFFF" /></g></defs>
@@ -1159,7 +1159,7 @@
             
             const md = user.user_metadata || {};
             const finalTheme = md.theme || localStorage.getItem('lime_theme') || 'dark';
-            const finalColor = md.color || localStorage.getItem('lime_color') || '#c0f22c';
+            const finalColor = md.color || localStorage.getItem('lime_color') || '#a5c938';
             
             // Nuova logica infallibile per lo sfondo: accetta anche le rimozioni ("")
             let finalBg = localStorage.getItem('lime_bg');
@@ -1195,7 +1195,7 @@
         } else { 
             nameSpans.forEach(span => span.innerText = ""); 
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
-            applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#c0f22c'); document.documentElement.style.setProperty('--lime-accent', '#c0f22c'); updateColorCirclesUI('#c0f22c'); 
+            applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#a5c938'); document.documentElement.style.setProperty('--lime-accent', '#a5c938'); updateColorCirclesUI('#a5c938'); 
             applyChatBackground(null); 
         } 
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 50);
@@ -2654,7 +2654,7 @@
             if (!authSection) return;
 
             // Legge il colore corrente e calcola la variante chiara
-            const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
+            const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#a5c938';
             const lightColor = lightenColor(userColor, 0.40);
 
             // Genera lo stesso SVG della chat
