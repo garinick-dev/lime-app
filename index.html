@@ -340,7 +340,7 @@
         </div>
     </div>
 
-    <div id="tutorial-red-square" style="display: none; position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; background-color: #ff4444; z-index: 99999; cursor: pointer; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s, opacity 0.2s;"></div>
+    
 
 <script>
     let DOM = {};
@@ -495,7 +495,7 @@
         const email = `${u}@lime.local`; 
         if (authMode === 'signup') { 
             const { error } = await supabaseClient.auth.signUp({ email, password: p }); 
-            if (error) return alert("Errore: " + error.message); alert("Account creato!"); toggleAuthMode(); 
+            if (error) return alert("Errore: " + error.message); toggleAuthMode(); 
         } else { 
             const { error } = await supabaseClient.auth.signInWithPassword({ email, password: p }); if (error) return alert("Credenziali errate"); 
         } 
