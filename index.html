@@ -1880,19 +1880,34 @@
 <button id="tutorial-next-btn" onclick="nextTutorialStep()"></button>
 
 <script>
-   (function initTutorialEngine() {
+        (function initTutorialEngine() {
         let currentIndex = -1;
         
-        // Abbiamo aggiunto il 5° step con il flag isGreeting per il saluto finale
+        // Struttura aggiornata con le nuove sequenze e i testi impilabili
         const tutorialSteps = [
-            { selector: '.menu-toggle', text: "Qui in alto a sinistra trovi il menu. Usalo per creare nuove chat, ritrovare i tuoi appunti passati e cambiare le impostazioni.", clearPrevious: false },
-            { selector: '#lime-greeting-box', text: "Questi sono i suggerimenti rapidi. Ti basta un clic per iniziare subito a studiare o a farti interrogare.", clearPrevious: true },
-            { selector: '.input-wrapper', text: "E questa è la mia casa! Puoi scrivermi, allegare i tuoi PDF o parlarmi con il microfono.", clearPrevious: true },
-            { selector: 'center', text: "Per iniziare, conosciamoci meglio. Che classe frequenti, e in quale istituto?", clearPrevious: true, isForm: true },
-            { selector: 'center', text: "Perfetto! Piacere di conoscerti {nome}, e buono studio!", clearPrevious: true, isGreeting: true }
+            // Sequenza introduttiva
+            { selector: 'center', text: "Ciao, sono LIME: il tuo compagno per lo studio e per i compiti!", clearPrevious: true },
+            { selector: 'center', text: "Non darò mai risposte dirette alle tue domande, ma sarò felice di discuterne con te per arrivarci assieme", clearPrevious: false },
+            { selector: 'center', text: "Ti spiego velocemente come funziona questa interfaccia, accessibile da qualsiasi dispositivo", clearPrevious: false },
+            
+            // Sequenza sidebar
+            { selector: '.menu-toggle', text: "Qui in alto a sinistra trovi il menu. Puoi usarlo per creare e gestire le nostre chat", clearPrevious: true },
+            { selector: '.menu-toggle', text: "Per un’esperienza migliore, potresti dedicare ciascuna chat a un argomento per materia, ma la scelta è tua", clearPrevious: false },
+            { selector: '.menu-toggle', text: "Da qui puoi anche gestire le impostazioni, personalizzando il tuo profilo, l’interfaccia e lo sfondo", clearPrevious: false },
+            
+            // Sequenza greeting
+            { selector: '#lime-greeting-box', text: "Questi sono i comandi rapidi. Se non sai come rompere il ghiaccio, ti basta un clic su un’opzione e iniziamo una chat preimpostata.", clearPrevious: true },
+            
+            // Sequenza promptbar
+            { selector: '.input-wrapper', text: "Ma per un'esperienza più personalizzata, puoi sempre iniziare a scrivere nella barra di testo qui sotto, oppure parlarmi direttamente usando il microfono", clearPrevious: true },
+            { selector: '.input-wrapper', text: "Con la graffetta puoi allegare file, oppure scattare foto direttamente ai tuoi libri e ai tuoi quaderni: così possiamo seguirne i contenuti assieme", clearPrevious: false },
+            
+            // Sequenza form
+            { selector: 'center', text: "Prima di iniziare, conosciamoci meglio. Che classe frequenti e in quale istituto?", clearPrevious: true, isForm: true },
+            
+            // Sequenza saluto finale
+            { selector: 'center', text: "Perfetto, piacere di conoscerti, [nome_utente]. Buono studio!", clearPrevious: true, isGreeting: true }
         ];
-
-        const initialText = "Ciao! Sono LIME. Ti rubo solo pochi secondi per mostrarti come funziona il tuo nuovo spazio di studio.";
 
         function updateHighlights() {
             tutorialSteps.forEach(step => {
@@ -1920,7 +1935,7 @@
                 container.classList.add('center-mode');
                 container.style.top = (window.innerHeight / 2 - bHeight / 2) + 'px';
                 container.style.left = (window.innerWidth / 2 - bWidth / 2) + 'px';
-            } else if (index === 1) { 
+            } else if (index >= 0 && tutorialSteps[index].selector === '#lime-greeting-box') { 
                 container.classList.add('center-mode');
                 const greeting = document.querySelector('#lime-greeting-box');
                 if (greeting) {
@@ -1946,14 +1961,19 @@
             
             const msgNode = document.createElement('div');
             msgNode.className = 'tut-bubble-msg';
+            msgNode.style.pointerEvents = 'auto'; // Assicura che i dropwdown siano cliccabili
             
-            // Logica per inserire dinamicamente il nome utente
             let displayText = text;
             if (index >= 0 && tutorialSteps[index].isGreeting) {
                 let userName = document.getElementById('settings-user-name')?.innerText || "";
                 if (userName === "Nome Utente" || userName === "?") userName = "";
-                // Se c'è un nome lo inseriamo con lo spazio, altrimenti togliamo la variabile in modo pulito
-                displayText = text.replace(' {nome},', userName ? ` ${userName},` : ',');
+                
+                // Sostituzione dinamica e pulita del tag [nome_utente]
+                if (userName) {
+                    displayText = text.replace('[nome_utente]', userName);
+                } else {
+                    displayText = text.replace(', [nome_utente]', '');
+                }
             }
             
             if (index >= 0 && tutorialSteps[index].isForm) {
@@ -2024,7 +2044,12 @@
                     
                     const container = document.getElementById('tutorial-speech-container');
                     container.style.transition = 'none';
-                    updateSpeechBubble(initialText, -1);
+                    
+                    // Inizializza l'indice a 0 (primo step dell'array) per mostrare la prima frase
+                    currentIndex = 0;
+                    updateHighlights();
+                    updateSpeechBubble(tutorialSteps[currentIndex].text, currentIndex);
+                    
                     setTimeout(() => container.style.transition = '', 50);
                     
                     btn.innerText = "Avanti";
@@ -2046,14 +2071,11 @@
             updateHighlights();
             updateSpeechBubble(tutorialSteps[currentIndex].text, currentIndex);
 
-            // Gestione dei testi del pulsante e animazioni facciali
             if (tutorialSteps[currentIndex].isForm) {
                 btn.innerText = "Avanti"; 
                 window.checkTutorialForm(); 
             } else if (tutorialSteps[currentIndex].isGreeting) {
-                // Il tocco magico: riattiviamo il sorriso per il saluto finale!
                 document.body.classList.add('tutorial-smiling');
-                
                 btn.innerText = "Inizia!";
                 btn.style.opacity = '1';
                 btn.style.pointerEvents = 'auto';
@@ -2067,6 +2089,7 @@
                 if (typeof window.syncAnchoring === 'function') window.syncAnchoring();
             }
         };
+
         function closeTutorial() {
             document.body.classList.remove('tutorial-active', 'tutorial-sleeping', 'tutorial-waking-up', 'tutorial-smiling');
             document.getElementById('tutorial-next-btn').style.display = 'none';
@@ -2124,12 +2147,10 @@
             colorPicker.parentNode.appendChild(btn);
         }
 
-        // Override della funzione di profilo per intercettare i nuovi iscritti
         const originalUpdateProfileUI = window.updateProfileUI;
         window.updateProfileUI = function(user) {
             if (originalUpdateProfileUI) originalUpdateProfileUI(user);
             
-            // Se l'utente è loggato e non ha MAI completato il tutorial (undefined o false)
             if (user) {
                 const md = user.user_metadata || {};
                 if (md.tutorial_done !== true) {
@@ -2138,6 +2159,7 @@
             }
         };
     })();
+
 </script>
 
 
