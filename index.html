@@ -1581,139 +1581,153 @@
 
 
 <style>
-    /* Colora i titoli delle chat di esempio con l'accento scelto dall'utente */
-    div[id^="chat-starter-"] .chat-title {
-        color: var(--accent) !important;
-        font-weight: 800 !important;
-    }
+  /* Colora i titoli delle chat di esempio con l'accento scelto dall'utente */
+  div[id^="chat-starter-"] .chat-title {
+      color: var(--accent) !important;
+      font-weight: 800 !important;
+  }
 
-    /* Blocca i click sull'input wrapper senza alterarne minimamente l'aspetto visivo */
-    body.starter-chat-active .input-wrapper {
-        pointer-events: none;
-        user-select: none;
-    }
+  /* Blocca i click sull'input wrapper senza alterarne minimamente l'aspetto visivo */
+  body.starter-chat-active .input-wrapper {
+      pointer-events: none;
+      user-select: none;
+  }
 </style>
 
 <script>
-    (function initPatchEsempiReadOnlyMinimal() {
-        const fakeFileHtml = `
-            <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 12px; width: fit-content; margin: 12px 0;">
-                <span style="font-size: 1.8rem;">📄</span>
-                <div style="display: flex; flex-direction: column; text-align: left;">
-                    <span style="font-weight: bold; color: var(--accent); font-size: 0.9rem;">appunti_storia_roma.pdf</span>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">Documento PDF • 1.2 MB</span>
-                </div>
-            </div>
-        `;
+  (function initPatchEsempiReadOnlyMinimal() {
+      // Mockup per i file e le immagini nelle chat d'esempio
+      const fakeFileHtml = `
+          <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 12px; width: fit-content; margin: 12px 0;">
+              <span style="font-size: 1.8rem;">📄</span>
+              <div style="display: flex; flex-direction: column; text-align: left;">
+                  <span style="font-weight: bold; color: var(--accent); font-size: 0.9rem;">appunti_rivoluzione.pdf</span>
+                  <span style="font-size: 0.75rem; color: var(--text-muted);">Documento PDF • 1.2 MB</span>
+              </div>
+          </div>
+      `;
 
-        const LIME_STARTER_PACK = {
-            "starter-1": { 
-                title: "💡 Benvenuto in LIME", 
-                msgs: [
-                    { query: "Ciao LIME, cosa posso fare qui?", answer: "Ciao! Benvenuto nel tuo nuovo spazio di studio. 🚀 Qui puoi caricarmi i tuoi appunti, chiedermi riassunti o farti interrogare per la prossima verifica." },
-                    { query: "Davvero? E come funziona per le interrogazioni?", answer: "Basta scrivermi: 'Fammi 5 domande a risposta multipla su questo argomento' e io ti testerò uno alla volta, correggendoti se sbagli. Sono programmato per essere veloce e dritto al punto!" }
-                ] 
-            },
-            "starter-2": { 
-                title: "📚 Come usare i File", 
-                msgs: [
-                    { query: "Posso farti leggere i miei documenti?", answer: "Certamente. Clicca sulla graffetta 📎 in basso a sinistra, carica un PDF, un'immagine o un file di testo e io lo leggerò per te." },
-                    { query: `Ecco un esempio pratico:<br>${fakeFileHtml}Puoi riassumere i punti chiave di questo documento?`, answer: "Analizzando il tuo documento, ecco i punti fondamentali:\n\n1. Fondazione di Roma (753 a.C.)\n2. Età Repubblicana e guerre puniche\n3. Nascita dell'Impero con Augusto\n\nVuoi che approfondisca uno di questi periodi storici?" }
-                ] 
-            },
-            "starter-3": { 
-                title: "🧪 Test di Chimica (Esempio)", 
-                msgs: [
-                    { query: "Voglio mettermi alla prova su un argomento a caso.", answer: "Ottimo spirito! Iniziamo con qualcosa di semplice: sapresti dirmi qual è il simbolo chimico dell'oro? ✨" },
-                    { query: "Penso sia Au.", answer: "Esatto! Deriva dal latino 'Aurum'. E quello dell'Argento lo ricordi?" },
-                    { query: "Ag!", answer: "Perfetto, 'Argentum'. Sei andato benissimo. Quando vuoi fare sul serio, crea una Nuova Chat e iniziamo a studiare i tuoi veri programmi scolastici!" }
-                ] 
-            }
-        };
+      const fakeImageHtml = `
+          <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 12px; width: fit-content; margin: 12px 0;">
+              <span style="font-size: 1.8rem;">📸</span>
+              <div style="display: flex; flex-direction: column; text-align: left;">
+                  <span style="font-weight: bold; color: var(--accent); font-size: 0.9rem;">esercizio_mate.jpg</span>
+                  <span style="font-size: 0.75rem; color: var(--text-muted);">Immagine JPEG • 850 KB</span>
+              </div>
+          </div>
+      `;
 
-        const originalUpdateProfile = window.updateProfileUI;
-        window.updateProfileUI = async function(user) {
-            if (originalUpdateProfile) originalUpdateProfile(user);
-            
-            if (user && user.user_metadata && !user.user_metadata.starter_chats_injected) {
-                const starterRows = Object.keys(LIME_STARTER_PACK).map(fakeId => ({
-                    user_id: user.id,
-                    title: LIME_STARTER_PACK[fakeId].title,
-                    dify_id: fakeId 
-                }));
-                
-                await supabaseClient.from('conversations').insert(starterRows);
-                
-                if (typeof queueProfileUpdate === 'function') {
-                    queueProfileUpdate({ starter_chats_injected: true });
-                }
-                if (typeof loadHistory === 'function') loadHistory();
-            }
-        };
+      const LIME_STARTER_PACK = {
+          "starter-1": { 
+              title: "🧮 Matematica (Esempio)", 
+              msgs: [
+                  { query: "Devo risolvere un'equazione differenziale ma è troppo difficile da scrivere con la tastiera...", answer: "Nessun problema! Clicca sull'icona della fotocamera in basso, scatta una foto all'esercizio e inviamela. Ci penso io a leggerla." },
+                  { query: `Fatto, ecco qui:<br>${fakeImageHtml}`, answer: "Perfetto, la vedo. È un'equazione a variabili separabili. Il primo passo è isolare le variabili $x$ e $y$. Otterremo un'espressione del tipo $$$$ \\int \\frac{dy}{y} = \\int 2x \\, dx $$$$" },
+                  { query: "Non capisco, c'è scritto qualcosa di strano. Puoi riscrivere la formula senza altro testo?", answer: "$$ \\int \\frac{dy}{y} = \\int 2x \\, dx $$" },
+                  { query: "Ah ok, grazie! Quindi integrando viene $\\ln|y| = x^2 + C$. L'esercizio chiede anche di disegnare il grafico della funzione per $C=0$. Posso mandarti la foto del mio disegno per vedere se è giusto?", answer: "Al momento non posso verificare visivamente i tuoi disegni a mano libera, ma posso indicarti la strada giusta. Per $C=0$, la funzione diventa $y = e^{x^2}$. Ricorda che è una funzione pari, sempre positiva e che passa per il punto $(0, 1)$. Il tuo grafico ha queste caratteristiche?" },
+                  { query: "Cavolo, no... l'ho fatta passare per l'origine $(0,0)$. Che distrazione! Grazie per avermelo fatto notare.", answer: "Figurati, le distrazioni capitano a tutti! Vuoi che proseguiamo in questa chat con lo studio di questa funzione, oppure preferisci creare una Nuova Chat per trattare un argomento diverso?" }
+              ] 
+          },
+          "starter-2": { 
+              title: "🏛️ Storia (Esempio)", 
+              msgs: [
+                  { query: "Domani ho l'interrogazione sulla Rivoluzione Francese, mi aiuti a ripassare?", answer: "Certamente. Vuoi che ti faccia qualche domanda o preferisci che ti riassuma i concetti chiave partendo dai tuoi appunti?" },
+                  { query: `Dai miei appunti, per favore. Eccoli:<br>${fakeFileHtml}`, answer: "Perfetto. Analizzando il documento, possiamo dividere le cause in tre grandi blocchi: la crisi finanziaria, le disuguaglianze sociali (il peso delle tasse era tutto sul Terzo Stato) e l'inefficacia di Luigi XVI. Su quale di questi tre punti ti senti più debole?" },
+                  { query: "Sicuramente sulla crisi finanziaria. Non ricordo i nomi dei ministri.", answer: "Nessun problema. I principali da ricordare sono Turgot e Necker. Entrambi capirono che l'unico modo per salvare la Francia dalla bancarotta era far pagare le tasse anche a nobiltà e clero, ma le loro proposte vennero bloccate. Vuoi provare a spiegarmi perché il re alla fine fu costretto a convocare gli Stati Generali?" }
+              ] 
+          },
+          "starter-3": { 
+              title: "🇬🇧 English Practice (Esempio)", 
+              msgs: [
+                  { query: "Hello! I would like to practice my English. Can we talk about travels?", answer: "Hello! Absolutely, I'd love to help you practice. Traveling is a wonderful topic. What is the most memorable place you have ever visited, and why?" },
+                  { query: "I went to London last year. It was beautiful but the weather was rainying all the time.", answer: "London is a fantastic city, but yes, the rainy weather is quite famous! Just a quick tip: instead of 'was rainying', it is better to say 'it was raining' or 'it rained'. What did you enjoy doing there despite the rain?" },
+                  { query: "Oh, right! Thank you. I visited a lot of museums, like the British Museum.", answer: "You're welcome! The British Museum is incredible. Did you have a favorite exhibit there? (By the way, your sentence structure is perfect!)" }
+              ] 
+          }
+      };
 
-        const originalLoadChat = window.loadChat;
-        window.loadChat = async function(id) {
-            const chatInput = document.getElementById('chat-input') || document.querySelector('.input-area textarea');
-            
-            if (id && LIME_STARTER_PACK[id]) {
-                currentConversationId = id;
-                if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar();
-                
-                chatCache[id] = LIME_STARTER_PACK[id].msgs;
-                if (typeof renderMessages === 'function') renderMessages(chatCache[id]);
-                
-                document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active-chat'));
-                const activeItem = document.getElementById(`chat-${id}`);
-                if (activeItem) activeItem.classList.add('active-chat');
+      const originalUpdateProfile = window.updateProfileUI;
+      window.updateProfileUI = async function(user) {
+          if (originalUpdateProfile) originalUpdateProfile(user);
+          
+          if (user && user.user_metadata && !user.user_metadata.starter_chats_injected) {
+              const starterRows = Object.keys(LIME_STARTER_PACK).map(fakeId => ({
+                  user_id: user.id,
+                  title: LIME_STARTER_PACK[fakeId].title,
+                  dify_id: fakeId 
+              }));
+              
+              await supabaseClient.from('conversations').insert(starterRows);
+              
+              if (typeof queueProfileUpdate === 'function') {
+                  queueProfileUpdate({ starter_chats_injected: true });
+              }
+              if (typeof loadHistory === 'function') loadHistory();
+          }
+      };
 
-                // ATTIVAZIONE SOLA LETTURA SULLA PROMPT BAR
-                document.body.classList.add('starter-chat-active');
-                if (chatInput) {
-                    if (!chatInput.hasAttribute('data-orig-placeholder')) {
-                        chatInput.setAttribute('data-orig-placeholder', chatInput.getAttribute('placeholder') || 'Scrivi a LIME...');
-                    }
-                    // Testo minimale richiesto
-                    chatInput.setAttribute('placeholder', "chat d'esempio");
-                    chatInput.disabled = true;
-                }
-                return;
-            }
-            
-            // DISATTIVAZIONE SOLA LETTURA (Chat normale)
-            document.body.classList.remove('starter-chat-active');
-            if (chatInput) {
-                chatInput.disabled = false;
-                if (chatInput.hasAttribute('data-orig-placeholder')) {
-                    chatInput.setAttribute('placeholder', chatInput.getAttribute('data-orig-placeholder'));
-                }
-            }
-            if (originalLoadChat) return originalLoadChat(id);
-        };
+      const originalLoadChat = window.loadChat;
+      window.loadChat = async function(id) {
+          const chatInput = document.getElementById('chat-input') || document.querySelector('.input-area textarea');
+          
+          if (id && LIME_STARTER_PACK[id]) {
+              currentConversationId = id;
+              if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar();
+              
+              chatCache[id] = LIME_STARTER_PACK[id].msgs;
+              if (typeof renderMessages === 'function') renderMessages(chatCache[id]);
+              
+              document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active-chat'));
+              const activeItem = document.getElementById(`chat-${id}`);
+              if (activeItem) activeItem.classList.add('active-chat');
 
-        // Ripristino quando si clicca "Nuova Chat"
-        document.addEventListener('click', function(e) {
-            const isNewChatBtn = e.target.closest('#new-chat-btn') || e.target.closest('.new-chat');
-            if (isNewChatBtn) {
-                document.body.classList.remove('starter-chat-active');
-                const chatInput = document.getElementById('chat-input') || document.querySelector('.input-area textarea');
-                if (chatInput) {
-                    chatInput.disabled = false;
-                    if (chatInput.hasAttribute('data-orig-placeholder')) {
-                        chatInput.setAttribute('placeholder', chatInput.getAttribute('data-orig-placeholder'));
-                    }
-                }
-            }
-        });
+              // ATTIVAZIONE SOLA LETTURA SULLA PROMPT BAR
+              document.body.classList.add('starter-chat-active');
+              if (chatInput) {
+                  if (!chatInput.hasAttribute('data-orig-placeholder')) {
+                      chatInput.setAttribute('data-orig-placeholder', chatInput.getAttribute('placeholder') || 'Scrivi a LIME...');
+                  }
+                  chatInput.setAttribute('placeholder', "chat d'esempio");
+                  chatInput.disabled = true;
+              }
+              return;
+          }
+          
+          // DISATTIVAZIONE SOLA LETTURA (Chat normale)
+          document.body.classList.remove('starter-chat-active');
+          if (chatInput) {
+              chatInput.disabled = false;
+              if (chatInput.hasAttribute('data-orig-placeholder')) {
+                  chatInput.setAttribute('placeholder', chatInput.getAttribute('data-orig-placeholder'));
+              }
+          }
+          if (originalLoadChat) return originalLoadChat(id);
+      };
 
-        // Pulsante di debug per resettare tutto
-        const originalStartTutorial = window.startInteractiveTutorial;
-        if (originalStartTutorial) {
-            window.startInteractiveTutorial = function() {
-                if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ starter_chats_injected: false });
-                originalStartTutorial();
-            };
-        }
-    })();
+      // Ripristino quando si clicca "Nuova Chat"
+      document.addEventListener('click', function(e) {
+          const isNewChatBtn = e.target.closest('#new-chat-btn') || e.target.closest('.new-chat');
+          if (isNewChatBtn) {
+              document.body.classList.remove('starter-chat-active');
+              const chatInput = document.getElementById('chat-input') || document.querySelector('.input-area textarea');
+              if (chatInput) {
+                  chatInput.disabled = false;
+                  if (chatInput.hasAttribute('data-orig-placeholder')) {
+                      chatInput.setAttribute('placeholder', chatInput.getAttribute('data-orig-placeholder'));
+                  }
+              }
+          }
+      });
+
+      // Pulsante di debug per resettare tutto
+      const originalStartTutorial = window.startInteractiveTutorial;
+      if (originalStartTutorial) {
+          window.startInteractiveTutorial = function() {
+              if (typeof queueProfileUpdate === 'function') queueProfileUpdate({ starter_chats_injected: false });
+              originalStartTutorial();
+          };
+      }
+  })();
 </script>
     
 
@@ -2725,3 +2739,4 @@
     
 </body>
 </html>
+
