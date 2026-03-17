@@ -2618,6 +2618,81 @@
 
 
 
+
+<style>
+    /* 1. Il box prende il colore principale dell'utente */
+    .auth-card {
+        background-color: var(--accent) !important;
+        border-color: var(--accent) !important;
+    }
+    
+    /* 2. La scritta LIME prende il colore di sfondo delle caselle di testo */
+    .auth-card h1 {
+        color: var(--input-bg) !important;
+    }
+    
+    /* 3. Correzioni di contrasto necessarie per mantenere coerenza e leggibilità */
+    .auth-card p {
+        color: rgba(0, 0, 0, 0.8) !important; 
+    }
+    #auth-btn {
+        background-color: var(--input-bg) !important;
+        color: var(--text-main) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    }
+    #auth-toggle-text {
+        color: rgba(0, 0, 0, 0.9) !important;
+        font-weight: 500;
+    }
+</style>
+
+<script>
+    (function initAuthBackgroundPatch() {
+        // Funzione per generare e applicare lo sfondo SVG dinamico
+        function updateAuthScreenBackground() {
+            const authSection = document.getElementById('auth-section');
+            if (!authSection) return;
+
+            // Legge il colore corrente e calcola la variante chiara
+            const userColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c0f22c';
+            const lightColor = lightenColor(userColor, 0.40);
+
+            // Genera lo stesso SVG della chat
+            const svgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="200 -100 1520 1520" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" style="margin: 0; display: block;">
+              <defs><g id="lime"><circle cx="0" cy="0" r="100" fill="${userColor}" /><circle cx="0" cy="0" r="92" fill="#FFFFFF" /><circle cx="0" cy="0" r="86" fill="${lightColor}" /><line x1="0" y1="-86" x2="0" y2="86" stroke="#FFFFFF" stroke-width="4" /><line x1="-86" y1="0" x2="86" y2="0" stroke="#FFFFFF" stroke-width="4" /><line x1="-60.8" y1="-60.8" x2="60.8" y2="60.8" stroke="#FFFFFF" stroke-width="4" /><line x1="-60.8" y1="60.8" x2="60.8" y2="-60.8" stroke="#FFFFFF" stroke-width="4" /><circle cx="0" cy="0" r="8" fill="#FFFFFF" /></g></defs>
+              <use href="#lime" transform="translate(300, 300) scale(3) rotate(45)" /><use href="#lime" transform="translate(800, 300) scale(2) rotate(112)" /><use href="#lime" transform="translate(800, 750) scale(2.5) rotate(17)" /><use href="#lime" transform="translate(300, 750) scale(1.5) rotate(260)" /><use href="#lime" transform="translate(860, -120) scale(4) rotate(88)" /><use href="#lime" transform="translate(1350, 300) scale(3.5) rotate(315)" /><use href="#lime" transform="translate(1650, 700) scale(1.5) rotate(53)" /><use href="#lime" transform="translate(1650, 1150) scale(3) rotate(194)" /><use href="#lime" transform="translate(-100, 750) scale(2.5) rotate(135)" /><use href="#lime" transform="translate(0, -100) scale(2) rotate(72)" /><use href="#lime" transform="translate(1830, -340) scale(4.5) rotate(220)" /><use href="#lime" transform="translate(1100, -50) scale(2.2) rotate(9)" /><use href="#lime" transform="translate(1250, 800) scale(1.8) rotate(166)" /><use href="#lime" transform="translate(550, 480) scale(1.1) rotate(290)" /><use href="#lime" transform="translate(500, 1050) scale(2.6) rotate(34)" /><use href="#lime" transform="translate(1000, 1150) scale(3.1) rotate(105)" /><use href="#lime" transform="translate(2000, 450) scale(2.8) rotate(275)" /><use href="#lime" transform="translate(80, 1100) scale(2) rotate(145)" /><use href="#lime" transform="translate(-150, 350) scale(1.7) rotate(310)" /><use href="#lime" transform="translate(1950, 950) scale(1.9) rotate(60)" /></svg>`;
+            
+            const encodedSvg = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgMarkup);
+
+            authSection.style.backgroundImage = `url("${encodedSvg}")`;
+            authSection.style.backgroundSize = 'cover';
+            authSection.style.backgroundPosition = 'center';
+            authSection.style.backgroundRepeat = 'no-repeat';
+            authSection.style.backgroundAttachment = 'fixed';
+        }
+
+        // 1. Applica subito lo sfondo all'avvio
+        updateAuthScreenBackground();
+
+        // 2. Resta in ascolto silente: se l'utente cambia tema/colore e fa logout, lo sfondo si aggiorna da solo
+        const colorObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    updateAuthScreenBackground();
+                }
+            });
+        });
+
+        colorObserver.observe(document.documentElement, { attributes: true });
+    })();
+</script>
+
+
+    
+
+
+
+
     
     
 
