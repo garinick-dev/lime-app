@@ -1880,15 +1880,15 @@
 <button id="tutorial-next-btn" onclick="nextTutorialStep()"></button>
 
 <script>
-        (function initTutorialEngine() {
+           (function initTutorialEngine() {
         let currentIndex = -1;
         
-        // Struttura aggiornata con le nuove sequenze e i testi impilabili
+        // Struttura con la prima sequenza ora ancorata alla mascotte
         const tutorialSteps = [
-            // Sequenza introduttiva
-            { selector: 'center', text: "Ciao, sono LIME: il tuo compagno per lo studio e per i compiti!", clearPrevious: true },
-            { selector: 'center', text: "Non darò mai risposte dirette alle tue domande, ma sarò felice di discuterne con te per arrivarci assieme", clearPrevious: false },
-            { selector: 'center', text: "Ti spiego velocemente come funziona questa interfaccia, accessibile da qualsiasi dispositivo", clearPrevious: false },
+            // Sequenza introduttiva (ora come la sidebar)
+            { selector: '#lime-app-mascot', text: "Ciao, sono LIME: il tuo compagno per lo studio e per i compiti!", clearPrevious: true },
+            { selector: '#lime-app-mascot', text: "Non darò mai risposte dirette alle tue domande, ma sarò felice di discuterne con te per arrivarci assieme", clearPrevious: false },
+            { selector: '#lime-app-mascot', text: "Ti spiego velocemente come funziona questa interfaccia, accessibile da qualsiasi dispositivo", clearPrevious: false },
             
             // Sequenza sidebar
             { selector: '.menu-toggle', text: "Qui in alto a sinistra trovi il menu. Puoi usarlo per creare e gestire le nostre chat", clearPrevious: true },
@@ -1928,6 +1928,16 @@
 
         function repositionContainer(index) {
             const container = document.getElementById('tutorial-speech-container');
+            
+            // 1. Reset larghezza di base per tutti gli step normali
+            container.style.width = '';
+            
+            // 2. Modifica chirurgica: se è lo step del greeting, lo allarghiamo del 50%
+            if (index >= 0 && tutorialSteps[index].selector === '#lime-greeting-box') {
+                container.style.width = (window.innerWidth <= 768 ? 220 * 1.5 : 260 * 1.5) + 'px';
+            }
+
+            // 3. Ricalcoliamo altezza e larghezza REALI dopo l'eventuale modifica
             const bWidth = container.offsetWidth;
             const bHeight = container.offsetHeight;
 
@@ -1961,14 +1971,13 @@
             
             const msgNode = document.createElement('div');
             msgNode.className = 'tut-bubble-msg';
-            msgNode.style.pointerEvents = 'auto'; // Assicura che i dropwdown siano cliccabili
+            msgNode.style.pointerEvents = 'auto'; 
             
             let displayText = text;
             if (index >= 0 && tutorialSteps[index].isGreeting) {
                 let userName = document.getElementById('settings-user-name')?.innerText || "";
                 if (userName === "Nome Utente" || userName === "?") userName = "";
                 
-                // Sostituzione dinamica e pulita del tag [nome_utente]
                 if (userName) {
                     displayText = text.replace('[nome_utente]', userName);
                 } else {
@@ -2045,7 +2054,6 @@
                     const container = document.getElementById('tutorial-speech-container');
                     container.style.transition = 'none';
                     
-                    // Inizializza l'indice a 0 (primo step dell'array) per mostrare la prima frase
                     currentIndex = 0;
                     updateHighlights();
                     updateSpeechBubble(tutorialSteps[currentIndex].text, currentIndex);
