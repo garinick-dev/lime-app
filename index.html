@@ -546,7 +546,8 @@
             const div = document.createElement('div'); div.className = `history-item ${chat.dify_id === currentConversationId ? 'active-chat' : ''}`; 
             div.id = `chat-${chat.dify_id}`; div.onclick = () => handleChatClick(chat.dify_id); 
             const safeTitle = (window.DOMPurify) ? DOMPurify.sanitize(chat.title || "Nuova conversazione", { ALLOWED_TAGS: [] }) : (chat.title || "Nuova conversazione").replace(/</g, "&lt;"); 
-            div.innerHTML = `<div class="chat-title">${safeTitle}</div><div class="chat-actions"><button class="action-btn" onclick="event.stopPropagation(); renameChat('${chat.dify_id}', '${chat.title}')">${SVG_ICONS.edit}</button><button class="action-btn" style="color:#ff4444" onclick="event.stopPropagation(); deleteChat('${chat.dify_id}')">${SVG_ICONS.delete}</button></div>`; 
+            div.innerHTML = `<div class="chat-title">${safeTitle}</div><div class="chat-actions"><button class="action-btn" style="color: #007aff;" onclick="event.stopPropagation(); renameChat('${chat.dify_id}', '${chat.title}')">${SVG_ICONS.edit}</button><button class="action-btn" style="color:#ff4444" onclick="event.stopPropagation(); deleteChat('${chat.dify_id}')">${SVG_ICONS.delete}</button></div>`; 
+ 
             fragment.appendChild(div); 
         }); 
         if (allChats.length > chatPage * CHATS_PER_PAGE) { 
