@@ -769,7 +769,7 @@
     function resetInputUI(clearText = true) { 
         if (window.setMascotThinking) window.setMascotThinking(false); DOM.inputField.disabled = false; DOM.inputField.style.color = 'inherit'; 
         if (clearText) DOM.inputField.value = ''; DOM.inputField.placeholder = "Scrivi a LIME..."; 
-        DOM.sendBtn.innerHTML = SVG_ICONS.sendPlane; DOM.sendBtn.style.background = 'var(--accent)'; DOM.sendBtn.disabled = false; 
+        DOM.sendBtn.innerHTML = SVG_ICONS.sendPlane; DOM.sendBtn.style.background = 'var(--accent)'; DOM.sendBtn.disabled = false; DOM.sendBtn.onclick = sendMessage;
         if (DOM.micBtn) DOM.micBtn.classList.remove('hidden'); if (DOM.attachBtn) DOM.attachBtn.classList.remove('hidden'); if (DOM.timerDisplay) DOM.timerDisplay.classList.add('hidden'); clearInterval(recordingTimer); 
     }
 
