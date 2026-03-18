@@ -1209,7 +1209,7 @@
     }
 
     async function uploadToSupabaseStorage(file, pathPrefix) { 
-        const fileExt = (file.name || 'foto.jpg').split('.').pop(); 
+        const fileExt = (file.name || 'image.jpg').split('.').pop(); 
         const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; 
         const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); 
         if (error) { alert("Errore caricamento immagine."); return null; } 
@@ -1600,21 +1600,23 @@
               title: "🧮 Matematica (Esempio)", 
               msgs: [
                   { query: "Devo risolvere un esercizio ma è scomodo da scrivere con la tastiera. Posso mandarti la foto del testo?", answer: "Ciao! Certo, inviamela pure e leggo da lì." },
-                  { query: "📎 foto.jpg\nEcco l’esercizio", answer: "Ricevuto. L'esercizio ti chiede di trovare le intersezioni con gli assi e disegnare il grafico della funzione $y = -x^2 + 9$. Iniziamo trovando le intersezioni con l'asse $x$ ponendo $y = 0$, applicando la formula:\n$$$$x_{1,2} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$$$" },
+                  { query: "📎 image.jpg\nEcco l’esercizio", answer: "Ricevuto. L'esercizio ti chiede di trovare le intersezioni con gli assi e disegnare il grafico della funzione $y = -x^2 + 9$. Iniziamo trovando le intersezioni con l'asse $x$ ponendo $y = 0$, applicando la formula:\n$$$$x_{1,2} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$$$" },
                   { query: "Non capisco, c'è scritto qualcosa di strano. Puoi riscrivere la formula senza altro testo?", answer: "$$x_{1,2} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$" },
-                  { query: "📎 foto.jpg\nAh ok, ora la leggo bene. Ti mando la foto dei miei calcoli. Sono corretti?", answer: "Tutto corretto: hai impostato $-x^2 + 9 = 0$ e hai calcolato correttamente le radici in $x = 3$ e $x = -3$. Ottimo lavoro! Ora il prossimo passo dell'esercizio è disegnare la parabola associata." },
-                  { query: "📎 foto.jpg\nPerfetto. Ti mando la foto della parabola che ho disegnato", answer: "Analizzando il tuo grafico, il vertice nel punto $(0, 9)$ è corretto. Tuttavia, hai disegnato la curva con la concavità rivolta verso l'alto, e infatti mancano le intersezioni con l’asse $x$ che avevi calcolato correttamente. Fai attenzione: nell'equazione $y = -x^2 + 9$, il coefficiente di $x^2$ è negativo $(-1)$, quindi la parabola deve essere rivolta verso il basso." },
+                  { query: "📎 image.jpg\nAh ok, ora la leggo bene. Ti mando la foto dei miei calcoli. Sono corretti?", answer: "Tutto corretto: hai impostato $-x^2 + 9 = 0$ e hai calcolato correttamente le radici in $x = 3$ e $x = -3$. Ottimo lavoro! Ora il prossimo passo dell'esercizio è disegnare la parabola associata." },
+                  { query: "📎 image.jpg\nPerfetto. Ti mando la foto della parabola che ho disegnato", answer: "Analizzando il tuo grafico, il vertice nel punto $(0, 9)$ è corretto. Tuttavia, hai disegnato la curva con la concavità rivolta verso l'alto, e infatti mancano le intersezioni con l’asse $x$ che avevi calcolato correttamente. Fai attenzione: nell'equazione $y = -x^2 + 9$, il coefficiente di $x^2$ è negativo $(-1)$, quindi la parabola deve essere rivolta verso il basso." },
                   { query: "È vero, l'ho disegnata al contrario", answer: "Perfetto! Vuoi che proseguiamo in questa chat per studiare un'altra funzione, oppure preferisci creare una Nuova Chat per trattare un argomento diverso?" }
               ] 
           },
-          "starter-2": { 
+                    "starter-2": { 
               title: "🏛️ Storia (Esempio)", 
               msgs: [
-                  { query: "Domani ho l'interrogazione sulla Rivoluzione Francese, mi aiuti a ripassare?", answer: "Certamente. Vuoi che ti faccia qualche domanda o preferisci che ti riassuma i concetti chiave partendo dai tuoi appunti?" },
-                  { query: "Dai miei appunti, per favore. Eccoli:\n📄 appunti_rivoluzione.pdf", answer: "Perfetto. Analizzando il documento, possiamo dividere le cause in tre grandi blocchi: la crisi finanziaria, le disuguaglianze sociali (il peso delle tasse era tutto sul Terzo Stato) e l'inefficacia di Luigi XVI. Su quale di questi tre punti ti senti più debole?" },
-                  { query: "Sicuramente sulla crisi finanziaria. Non ricordo i nomi dei ministri.", answer: "Nessun problema. I principali da ricordare sono Turgot e Necker. Entrambi capirono che l'unico modo per salvare la Francia dalla bancarotta era far pagare le tasse anche a nobiltà e clero, ma le loro proposte vennero bloccate. Vuoi provare a spiegarmi perché il re alla fine fu costretto a convocare gli Stati Generali?" }
+                  { query: "Domani ho l'interrogazione sulla Rivoluzione Francese, mi aiuti a ripassare? Interrogami come farebbe un professore severo ed esigente.", answer: "Buongiorno. Accetto la sfida. Nessun riassunto facilitato, valuterò la tua preparazione reale. Carica i tuoi appunti, li leggerò e inizieremo subito l'interrogazione." },
+                  { query: "📎 appunti_storia.pdf\nEcco i miei appunti. Iniziamo.", answer: "Ho esaminato il documento. Il primo paragrafo è dedicato alle cause. Ti pongo subito un quesito fondamentale: illustrami la divisione in classi della società francese pre-rivoluzionaria e, soprattutto, spiegami con precisione le dinamiche del carico fiscale." },
+                  { query: "Allora, c'erano nobiltà, clero e Terzo Stato. Le tasse le pagava solo il Terzo Stato, che era la maggior parte della popolazione.", answer: "\"La maggior parte\" è un termine vago per un'interrogazione. Rappresentava ben il 98% della popolazione. Ma proseguiamo. Nel tuo documento citi la crisi finanziaria. Quale ministro delle finanze cercò di risolvere la situazione, e quale fu la sua proposta esatta che tanto indignò i ceti privilegiati?" },
+                  { query: "Era Necker. Propose di far pagare le tasse anche ai nobili e al clero, ma le sue riforme furono bloccate.", answer: "Esatto. Le sue proposte furono osteggiate al punto da costringere Luigi XVI a un passo fatale: la convocazione degli Stati Generali. Nel complesso, la tua preparazione di base è accettabile, ma devi curare di più la terminologia. Vogliamo proseguire analizzando la presa della Bastiglia, oppure preferisci ritirarti, chiudere questa sessione e creare una Nuova Chat?" }
               ] 
           },
+
           "starter-3": { 
               title: "🇬🇧 English Practice (Esempio)", 
               msgs: [
@@ -2717,6 +2719,7 @@
     
 </body>
 </html>
+
 
 
 
