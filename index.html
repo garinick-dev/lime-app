@@ -1747,6 +1747,10 @@
         });
     }
 
+    // Variabili per mantenere in memoria l'elemento attivo indipendentemente da dove si trova il dito
+    let activeBotMsg = null;
+    let activeBtn = null;
+
     const chatBox = document.getElementById('chat-box');
     if (chatBox) {
         
@@ -1760,53 +1764,64 @@
                 btn.setPointerCapture(e.pointerId);
             }
 
-            const botMsg = btn.closest('.bot-msg');
-            if (botMsg) {
-                botMsg.classList.add('is-translating');
-                botMsg.classList.add('is-inflated');
+            activeBotMsg = btn.closest('.bot-msg');
+            activeBtn = btn;
+
+            if (activeBotMsg) {
+                activeBotMsg.classList.add('is-translating');
+                activeBotMsg.classList.add('is-inflated');
                 btn.classList.add('active');
                 
                 setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
             }
         });
 
+        // Funzione di rilascio slegata dall'e.target: agisce sempre sulla bolla in memoria
         const releasePointer = (e) => {
-            const btn = e.target.closest('.translate-btn');
-            if (!btn) return;
+            if (!activeBotMsg || !activeBtn) return;
             
-            const botMsg = btn.closest('.bot-msg');
-            if (botMsg && botMsg.classList.contains('is-inflated')) {
-                botMsg.classList.remove('is-inflated');
-                btn.classList.remove('active');
+            if (activeBotMsg.classList.contains('is-inflated')) {
+                activeBotMsg.classList.remove('is-inflated');
+                activeBtn.classList.remove('active');
                 
-                const backdrop = botMsg.querySelector('.translation-backdrop');
+                const backdrop = activeBotMsg.querySelector('.translation-backdrop');
                 if (backdrop) {
-                    if (botMsg.onDeflateEnd) {
-                        backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
+                    if (activeBotMsg.onDeflateEnd) {
+                        backdrop.removeEventListener('transitionend', activeBotMsg.onDeflateEnd);
                     }
                     
-                    botMsg.onDeflateEnd = (evt) => {
-                        if (evt.propertyName === 'transform' && !botMsg.classList.contains('is-inflated')) {
-                            botMsg.classList.remove('is-translating');
+                    // Salviamo un riferimento locale alla bolla per la callback
+                    const currentBotMsg = activeBotMsg;
+                    currentBotMsg.onDeflateEnd = (evt) => {
+                        if (evt.propertyName === 'transform' && !currentBotMsg.classList.contains('is-inflated')) {
+                            currentBotMsg.classList.remove('is-translating');
                             setTimeout(() => { if (window.syncAnchoring) window.syncAnchoring(); }, 10);
-                            backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
+                            backdrop.removeEventListener('transitionend', currentBotMsg.onDeflateEnd);
                         }
                     };
-                    backdrop.addEventListener('transitionend', botMsg.onDeflateEnd);
+                    backdrop.addEventListener('transitionend', currentBotMsg.onDeflateEnd);
 
                     if (backdrop.getBoundingClientRect().width <= 1) {
-                        botMsg.classList.remove('is-translating');
+                        activeBotMsg.classList.remove('is-translating');
                     }
                 }
             }
             
-            if (e.pointerId && btn.hasPointerCapture && btn.hasPointerCapture(e.pointerId)) {
-                btn.releasePointerCapture(e.pointerId);
+            if (e && e.pointerId && activeBtn.hasPointerCapture && activeBtn.hasPointerCapture(e.pointerId)) {
+                try { activeBtn.releasePointerCapture(e.pointerId); } catch(err) {}
             }
+
+            // Svuota la memoria: l'evento è concluso
+            activeBotMsg = null;
+            activeBtn = null;
         };
 
-        chatBox.addEventListener('pointerup', releasePointer);
-        chatBox.addEventListener('pointercancel', releasePointer);
+        // GANCIO GLOBALE: Ascoltiamo il rilascio sull'intero documento, non solo sulla chat
+        document.addEventListener('pointerup', releasePointer);
+        document.addEventListener('pointercancel', releasePointer);
+        
+        // Fallback di sicurezza estrema per i dispositivi mobili che perdono i pointer events
+        document.addEventListener('touchend', releasePointer);
 
         let debounceTimer;
         
