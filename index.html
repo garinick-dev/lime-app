@@ -1596,7 +1596,9 @@
 
 <script>
   (function initPatchEsempiReadOnlyMinimal() {
-      // Mockup per i file e le immagini nelle chat d'esempio
+      // Mockup minimale per file e immagini
+      const attachStyle = "display: inline-block; background: var(--bg-color, #eee); border: 1px solid var(--border-color, #ccc); padding: 4px 10px; border-radius: 8px; font-size: 0.85em; font-weight: 600; color: var(--accent, #333); margin-bottom: 6px;";
+      
       const fakeFileHtml = `
           <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 12px; width: fit-content; margin: 12px 0;">
               <span style="font-size: 1.8rem;">📄</span>
@@ -1607,25 +1609,16 @@
           </div>
       `;
 
-      const fakeImageHtml = `
-          <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-color); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 12px; width: fit-content; margin: 12px 0;">
-              <span style="font-size: 1.8rem;">📸</span>
-              <div style="display: flex; flex-direction: column; text-align: left;">
-                  <span style="font-weight: bold; color: var(--accent); font-size: 0.9rem;">esercizio_mate.jpg</span>
-                  <span style="font-size: 0.75rem; color: var(--text-muted);">Immagine JPEG • 850 KB</span>
-              </div>
-          </div>
-      `;
-
       const LIME_STARTER_PACK = {
           "starter-1": { 
               title: "🧮 Matematica (Esempio)", 
               msgs: [
-                  { query: "Devo risolvere un'equazione differenziale ma è troppo difficile da scrivere con la tastiera...", answer: "Nessun problema! Clicca sull'icona della fotocamera in basso, scatta una foto all'esercizio e inviamela. Ci penso io a leggerla." },
-                  { query: `Fatto, ecco qui:<br>${fakeImageHtml}`, answer: "Perfetto, la vedo. È un'equazione a variabili separabili. Il primo passo è isolare le variabili $x$ e $y$. Otterremo un'espressione del tipo $$$$ \\int \\frac{dy}{y} = \\int 2x \\, dx $$$$" },
-                  { query: "Non capisco, c'è scritto qualcosa di strano. Puoi riscrivere la formula senza altro testo?", answer: "$$ \\int \\frac{dy}{y} = \\int 2x \\, dx $$" },
-                  { query: "Ah ok, grazie! Quindi integrando viene $\\ln|y| = x^2 + C$. L'esercizio chiede anche di disegnare il grafico della funzione per $C=0$. Posso mandarti la foto del mio disegno per vedere se è giusto?", answer: "Al momento non posso verificare visivamente i tuoi disegni a mano libera, ma posso indicarti la strada giusta. Per $C=0$, la funzione diventa $y = e^{x^2}$. Ricorda che è una funzione pari, sempre positiva e che passa per il punto $(0, 1)$. Il tuo grafico ha queste caratteristiche?" },
-                  { query: "Cavolo, no... l'ho fatta passare per l'origine $(0,0)$. Che distrazione! Grazie per avermelo fatto notare.", answer: "Figurati, le distrazioni capitano a tutti! Vuoi che proseguiamo in questa chat con lo studio di questa funzione, oppure preferisci creare una Nuova Chat per trattare un argomento diverso?" }
+                  { query: "Devo risolvere un esercizio ma è scomodo da scrivere con la tastiera. Posso mandarti la foto del testo?", answer: "Ciao! Certo, inviamela pure e leggo da lì." },
+                  { query: `<span style="${attachStyle}">📎 foto.jpg</span><br>Ecco l’esercizio`, answer: "Ricevuto. L'esercizio ti chiede di trovare le intersezioni con gli assi e disegnare il grafico della funzione $y = -x^2 + 9$. Iniziamo trovando le intersezioni con l'asse $x$ ponendo $y = 0$, applicando la formula:\n$$$$x_{1,2} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$$$" },
+                  { query: "Non capisco, c'è scritto qualcosa di strano. Puoi riscrivere la formula senza altro testo?", answer: "$$x_{1,2} = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$" },
+                  { query: `<span style="${attachStyle}">📎 foto.jpg</span><br>Ah ok, ora la leggo bene. Ti mando la foto dei miei calcoli. Sono corretti?`, answer: "Tutto corretto: hai impostato $-x^2 + 9 = 0$ e hai calcolato correttamente le radici in $x = 3$ e $x = -3$. Ottimo lavoro! Ora il prossimo passo dell'esercizio è disegnare la parabola associata." },
+                  { query: `<span style="${attachStyle}">📎 foto.jpg</span><br>Perfetto. Ti mando la foto della parabola che ho disegnato`, answer: "Analizzando il tuo grafico, il vertice nel punto $(0, 9)$ è corretto. Tuttavia, hai disegnato la curva con la concavità rivolta verso l'alto, e infatti mancano le intersezioni con l’asse $x$ che avevi calcolato correttamente. Fai attenzione: nell'equazione $y = -x^2 + 9$, il coefficiente di $x^2$ è negativo $(-1)$, quindi la parabola deve essere rivolta verso il basso." },
+                  { query: "È vero, l'ho disegnata al contrario", answer: "Perfetto! Vuoi che proseguiamo in questa chat per studiare un'altra funzione, oppure preferisci creare una Nuova Chat per trattare un argomento diverso?" }
               ] 
           },
           "starter-2": { 
@@ -1719,7 +1712,6 @@
           }
       });
 
-      // Pulsante di debug per resettare tutto
       const originalStartTutorial = window.startInteractiveTutorial;
       if (originalStartTutorial) {
           window.startInteractiveTutorial = function() {
@@ -2739,4 +2731,5 @@
     
 </body>
 </html>
+
 
