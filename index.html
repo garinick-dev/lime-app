@@ -1582,6 +1582,13 @@
         overflow: hidden !important; 
     }
 
+    /* BLOCCO SELEZIONE: Impedisce al browser di evidenziare il testo durante la pressione */
+    .bot-msg.is-translating {
+        user-select: none !important;
+        -webkit-user-select: none !important;
+        -webkit-touch-callout: none !important;
+    }
+
     .translate-btn {
         position: absolute;
         bottom: 6px;
@@ -1747,7 +1754,6 @@
         });
     }
 
-    // Variabili per mantenere in memoria l'elemento attivo indipendentemente da dove si trova il dito
     let activeBotMsg = null;
     let activeBtn = null;
 
@@ -1776,7 +1782,6 @@
             }
         });
 
-        // Funzione di rilascio slegata dall'e.target: agisce sempre sulla bolla in memoria
         const releasePointer = (e) => {
             if (!activeBotMsg || !activeBtn) return;
             
@@ -1790,7 +1795,6 @@
                         backdrop.removeEventListener('transitionend', activeBotMsg.onDeflateEnd);
                     }
                     
-                    // Salviamo un riferimento locale alla bolla per la callback
                     const currentBotMsg = activeBotMsg;
                     currentBotMsg.onDeflateEnd = (evt) => {
                         if (evt.propertyName === 'transform' && !currentBotMsg.classList.contains('is-inflated')) {
@@ -1811,16 +1815,12 @@
                 try { activeBtn.releasePointerCapture(e.pointerId); } catch(err) {}
             }
 
-            // Svuota la memoria: l'evento è concluso
             activeBotMsg = null;
             activeBtn = null;
         };
 
-        // GANCIO GLOBALE: Ascoltiamo il rilascio sull'intero documento, non solo sulla chat
         document.addEventListener('pointerup', releasePointer);
         document.addEventListener('pointercancel', releasePointer);
-        
-        // Fallback di sicurezza estrema per i dispositivi mobili che perdono i pointer events
         document.addEventListener('touchend', releasePointer);
 
         let debounceTimer;
