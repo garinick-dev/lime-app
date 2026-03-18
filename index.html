@@ -262,7 +262,7 @@
                     <div class="color-picker-container" id="color-picker">
                         <div class="color-circle" data-color="#a5c938" style="background: #a5c938;" onclick="handleColorChange('#a5c938')"></div>
                         <div class="color-circle" data-color="#ff9f43" style="background: #ff9f43;" onclick="handleColorChange('#ff9f43')"></div>
-                        <div class="color-circle" data-color="#ff5e5e" style="background: #ff5e5e;" onclick="handleColorChange('#ff5e5e')"></div>
+                        <div class="color-circle" data-color="#d15656" style="background: #d15656;" onclick="handleColorChange('#d15656')"></div>
                         <div class="color-circle" data-color="#a85eff" style="background: #a85eff;" onclick="handleColorChange('#a85eff')"></div>
                         <div class="color-circle" data-color="#5ea8ff" style="background: #5ea8ff;" onclick="handleColorChange('#5ea8ff')"></div>
                         <div class="color-circle" data-color="#3EB489" style="background: #3EB489;" onclick="handleColorChange('#3EB489')"></div>
@@ -1209,7 +1209,7 @@
     }
 
     async function uploadToSupabaseStorage(file, pathPrefix) { 
-        const fileExt = (file.name || 'image.jpg').split('.').pop(); 
+        const fileExt = (file.name || 'foto.jpg').split('.').pop(); 
         const fileName = `${pathPrefix}_${Date.now()}.${fileExt}`; 
         const { data, error } = await supabaseClient.storage.from('lime-assets').upload(fileName, file, { upsert: true }); 
         if (error) { alert("Errore caricamento immagine."); return null; } 
@@ -2717,6 +2717,7 @@
     
 </body>
 </html>
+
 
 
 
