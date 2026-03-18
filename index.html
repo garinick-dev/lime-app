@@ -870,7 +870,8 @@
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
         DOM.chatBox.appendChild(userWrapper); scrollToBottom(true); 
-        DOM.inputField.value = ""; clearAttachment(); DOM.inputField.focus(); 
+                DOM.inputField.value = ""; clearAttachment(); DOM.inputField.focus(); if (DOM.micBtn && !isRecording) DOM.micBtn.classList.remove('hidden');
+ 
         if (window.updateGreetingVisibility) window.updateGreetingVisibility();
 
         const botWrapper = createMessageNode('bot', "...", null); const botDiv = botWrapper.querySelector('.bot-msg'); DOM.chatBox.appendChild(botWrapper); 
