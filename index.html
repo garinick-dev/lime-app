@@ -1661,25 +1661,56 @@
 
 <script>
 (function() {
-    const SVG_EYE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const SVG_ICON = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 15px; height: 15px;"><path d="M6.581,14.414H3.292l-0.574,1.859H0.155l3.65-9.953h2.256l3.678,9.953H7.162L6.581,14.414z M3.867,12.561h2.14L4.933,9.109 L3.867,12.561z M16.685,18.528c-1.925,1.507-4.547,2.05-7.031,1.21l0,0l0.801-2.368l-2.758,1.364h0L5.75,19.696l0.043,0.075 c0,0,0,0,0,0L8.212,24l0.801-2.368c3.005,1.017,6.167,0.43,8.57-1.287l-0.256-0.517L16.685,18.528z M7.771,5.472 c1.925-1.507,4.547-2.05,7.031-1.21l0,0L14,6.631l2.758-1.364l0,0l1.948-0.963l-0.043-0.075c0,0,0,0,0,0L16.244,0l-0.801,2.368 c-3.005-1.017-6.167-0.43-8.57,1.287l0.256,0.517L7.771,5.472z M24,10V8h-3.988V6h-2v2H14v2h7.016 c-0.289,1.337-1.128,2.577-2.136,3.543c-1.218-1.2-1.275-2.305-1.275-2.489h-2c0,0.45,0.121,2.07,1.678,3.717 c-0.799,0.482-1.573,0.764-2.152,0.764v2c1.106,0,2.477-0.539,3.771-1.44c0.775,0.502,1.722,0.977,2.903,1.385l0.653-1.89 c-0.769-0.266-1.405-0.559-1.95-0.863c1.271-1.3,2.268-2.947,2.542-4.728H24z"/></svg>`;
     const MARKER = '%tr%';
+
+    // INIEZIONE DIRETTA: Nasconde il testo istantaneamente senza impattare sul DOM
+    function hookDOMPurify() {
+        if (window.DOMPurify && window.DOMPurify.sanitize) {
+            if (!window.DOMPurify.sanitize.patchedForLime) {
+                const originalSanitize = window.DOMPurify.sanitize;
+                window.DOMPurify.sanitize = function(content, config) {
+                    let html = originalSanitize.call(window.DOMPurify, content, config);
+                    if (typeof html === 'string' && html.includes(MARKER)) {
+                        const idx = html.indexOf(MARKER);
+                        const foreign = html.substring(0, idx);
+                        const italian = html.substring(idx);
+                        html = foreign + '<span class="streaming-hidden" style="display:none;">' + italian + '</span>';
+                    }
+                    return html;
+                };
+                window.DOMPurify.sanitize.patchedForLime = true;
+            }
+        } else {
+            setTimeout(hookDOMPurify, 500); // Riprova se la libreria non è ancora caricata
+        }
+    }
+    hookDOMPurify();
 
     function processTranslations() {
         const chatBox = document.getElementById('chat-box');
         if (!chatBox) return;
 
-        const wrappers = chatBox.querySelectorAll('.bot-wrapper.msg-complete:not([data-lang-checked])');
+        const wrappers = chatBox.querySelectorAll('.bot-wrapper.msg-complete');
         if (wrappers.length === 0) return;
         
         wrappers.forEach(wrapper => {
             const botMsg = wrapper.querySelector('.bot-msg');
             if (!botMsg) return;
             
+            // CONTROLLO DI SICUREZZA (Race condition fix): Se è già stato processato, assicuriamoci 
+            // che la chat non lo abbia brutalmente sovrascritto
+            if (wrapper.getAttribute('data-lang-checked') === 'true') {
+                if (botMsg.querySelector('.text-foreign')) return; // Tutto ok, la patch è intatta
+                if (!botMsg.innerHTML.includes(MARKER)) return; // Sovrascritto, ma non c'è traccia del marker. Salta.
+            }
+
             wrapper.setAttribute('data-lang-checked', 'true'); 
 
             const bottomBar = botMsg.querySelector('.msg-bottom-bar');
             if (bottomBar) bottomBar.remove();
 
+            // Estrae il tag nascosto inserito dall'intercettatore DOMPurify
             const hiddenSpan = botMsg.querySelector('.streaming-hidden');
             if (hiddenSpan) {
                 hiddenSpan.outerHTML = hiddenSpan.innerHTML;
@@ -1709,7 +1740,7 @@
                     botMsg.appendChild(bottomBar);
                 }
                 
-                botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Tieni premuto per tradurre">${SVG_EYE}</button>`);
+                botMsg.insertAdjacentHTML('beforeend', `<button class="translate-btn action-btn" title="Tieni premuto per tradurre">${SVG_ICON}</button>`);
 
             } else {
                 if (bottomBar) botMsg.appendChild(bottomBar);
@@ -1751,12 +1782,10 @@
                 
                 const backdrop = botMsg.querySelector('.translation-backdrop');
                 if (backdrop) {
-                    // Puliamo eventuali listener precedenti per evitare accumuli
                     if (botMsg.onDeflateEnd) {
                         backdrop.removeEventListener('transitionend', botMsg.onDeflateEnd);
                     }
                     
-                    // Il JS si iscrive all'evento di fine animazione del CSS
                     botMsg.onDeflateEnd = (evt) => {
                         if (evt.propertyName === 'transform' && !botMsg.classList.contains('is-inflated')) {
                             botMsg.classList.remove('is-translating');
@@ -1766,7 +1795,6 @@
                     };
                     backdrop.addEventListener('transitionend', botMsg.onDeflateEnd);
 
-                    // Misura di sicurezza: se la barra è troppo piccola (es. micro-tocco dove l'animazione non parte), spegniamo subito
                     if (backdrop.getBoundingClientRect().width <= 1) {
                         botMsg.classList.remove('is-translating');
                     }
@@ -1782,38 +1810,29 @@
         chatBox.addEventListener('pointercancel', releasePointer);
 
         let debounceTimer;
+        
+        // OSSERVATORE LEGGERISSIMO: Non cerca più dentro al testo!
         const observer = new MutationObserver((mutations) => {
-            let shouldProcessComplete = false;
+            let shouldProcess = false;
 
             mutations.forEach(m => {
                 if (m.type === 'attributes' && m.attributeName === 'class' && m.target.classList.contains('msg-complete')) {
-                    shouldProcessComplete = true;
+                    shouldProcess = true;
+                }
+                // Se un messaggio già completo viene sovrascritto, lo rielaboriamo
+                if (m.type === 'childList') {
+                    const wrapper = m.target.closest('.bot-wrapper.msg-complete');
+                    if (wrapper) shouldProcess = true;
                 }
             });
 
-            const streamingBots = chatBox.querySelectorAll('.bot-wrapper:not(.msg-complete) .bot-msg');
-            streamingBots.forEach(botMsg => {
-                if (botMsg.innerHTML.includes(MARKER) && !botMsg.querySelector('.streaming-hidden')) {
-                    const bottomBar = botMsg.querySelector('.msg-bottom-bar');
-                    if (bottomBar) bottomBar.remove();
-
-                    const parts = botMsg.innerHTML.split(MARKER);
-                    
-                    if (parts.length > 1) {
-                        botMsg.innerHTML = parts[0] + '<span class="streaming-hidden" style="display: none;">' + MARKER + parts.slice(1).join(MARKER) + '</span>';
-                    }
-                    
-                    if (bottomBar) botMsg.appendChild(bottomBar);
-                }
-            });
-
-            if (shouldProcessComplete) {
+            if (shouldProcess) {
                 clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(processTranslations, 50); 
+                debounceTimer = setTimeout(processTranslations, 100); 
             }
         });
         
-        observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true, characterData: true });
+        observer.observe(chatBox, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true });
     }
 
     setTimeout(processTranslations, 500);
