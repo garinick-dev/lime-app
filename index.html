@@ -2304,12 +2304,7 @@
     }
     #tutorial-next-btn:active { transform: scale(0.92); }
 
-    .debug-tutorial-btn {
-        width: 100%; margin-top: 15px; padding: 8px;
-        background: var(--input-bg); border: 1px dashed var(--border-color);
-        color: var(--text-muted); border-radius: 8px; font-size: 0.75rem;
-        font-weight: bold; text-transform: uppercase; cursor: pointer;
-    }
+    
 
 
 /* ---- STILI PER IL FORM DEL TUTORIAL ---- */
@@ -2614,15 +2609,7 @@
             }, 3000);
         };
 
-        const colorPicker = document.getElementById('color-picker');
-        if (colorPicker && !document.getElementById('debug-tut-btn')) {
-            const btn = document.createElement('button');
-            btn.id = 'debug-tut-btn';
-            btn.className = 'debug-tutorial-btn';
-            btn.innerText = 'DEBUG: Start Tutorial';
-            btn.onclick = window.startTutorial;
-            colorPicker.parentNode.appendChild(btn);
-        }
+        
 
         const originalUpdateProfileUI = window.updateProfileUI;
         window.updateProfileUI = function(user) {
