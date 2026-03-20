@@ -827,7 +827,20 @@
 
     async function sendMessage() {
         if (isRecording) { toggleRecording(); return; } if (isGenerating) return;
-        let query = DOM.inputField.value.trim(); if ((!query && !currentFile) || query.startsWith('🔴')) return;
+        let query = DOM.inputField.value.trim(); 
+                // Intercettazione comandi speciali
+        if (query.toLowerCase() === '!tutorial') {
+            chatInput.value = ''; // Svuota la barra di testo
+            chatInput.style.height = 'auto'; // Ripristina l'altezza della barra
+            
+            localStorage.setItem('isNewUser', 'true');
+            startTutorial();
+            
+            return; // Blocca istantaneamente l'esecuzione, non invia nulla a Dify
+        }
+
+        
+        if ((!query && !currentFile) || query.startsWith('🔴')) return;
         
         let newChatTitle = capturedChipTitle ? capturedChipTitle : (query.substring(0, 35) || "Nuova Chat");
         capturedChipTitle = null; 
