@@ -851,7 +851,7 @@
                     
                     // Scudo protettivo: blocca i PDF o TXT enormi (25000 caratteri = circa 10-15 pagine)
                     if (extractedText && extractedText.length > 25000) {
-                        alert("Il file che hai inviato ha troppe pagine: potresti inviarne solo una parte?");
+                        alert("Il file che hai inviato ha troppe pagine: potresti inviarne solo una parte? (max 5 pagine per messaggio)");
                         isGenerating = false; 
                         DOM.sendBtn.disabled = false; 
                         if (window.setMascotThinking) window.setMascotThinking(false); 
