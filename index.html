@@ -830,8 +830,7 @@
         let query = DOM.inputField.value.trim(); 
                 // Intercettazione comandi speciali
         if (query.toLowerCase() === '!tutorial') {
-            chatInput.value = ''; // Svuota la barra di testo
-            chatInput.style.height = 'auto'; // Ripristina l'altezza della barra
+            
             
             localStorage.setItem('isNewUser', 'true');
             startTutorial();
