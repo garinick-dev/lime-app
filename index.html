@@ -879,7 +879,7 @@
         let displayHtml = query.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag] || tag));
 
         if (currentFile) { 
-            DOM.attachmentLabel.innerText = "Analisi immagine in corso..."; 
+            DOM.attachmentLabel.innerText = "Analisi allegato in corso..."; 
             try { 
                 if (currentFile.type.startsWith('image/')) { 
                     // Ora l'immagine passa dalla tua Edge Function, non da Dify
@@ -900,7 +900,7 @@
                 }
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
-                alert("Errore durante l'analisi del file."); isGenerating = false; DOM.sendBtn.disabled = false; 
+                alert("Errore durante l'analisi dell'allegato."); isGenerating = false; DOM.sendBtn.disabled = false; 
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
             } 
         }
