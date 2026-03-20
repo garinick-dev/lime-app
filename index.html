@@ -831,11 +831,13 @@
                 // Intercettazione comandi speciali
         if (query.toLowerCase() === '!tutorial') {
              // Svuota la barra di testo
-            chatInput.style.height = 'auto'; // Ripristina l'altezza della barra
             
             // Inserisci qui la logica del tuo tutorial
             localStorage.setItem('isNewUser', 'true');
             startTutorial();
+
+            chatInput.style.height = 'auto'; // Ripristina l'altezza della barra
+            
             
             return; // Blocca istantaneamente l'esecuzione, non invia nulla a Dify
         }
