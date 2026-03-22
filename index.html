@@ -723,12 +723,47 @@
 
     async function extractTextFromFile(file) { 
         if (file.type === 'text/plain') return await file.text(); 
+        
         if (file.type === 'application/pdf') { 
             await loadPdfJs();
-            const arrayBuffer = await file.arrayBuffer(), pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; let text = ""; 
-            for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i), content = await page.getTextContent(); text += content.items.map(item => item.str).join(' ') + "\\n"; } 
-            return text; 
-        } return ""; 
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; 
+            
+            // Blocco di sicurezza rigoroso e preciso sul numero di pagine
+            if (pdf.numPages > 5) {
+                alert(`Il file ha ${pdf.numPages} pagine. Ti prego di inviare un massimo di 5 pagine per volta.`);
+                throw new Error("BLOCCO_PAGINE_SUPERATE");
+            }
+
+            let fullExtractedText = "";
+            
+            // Cicla attraverso tutte le pagine consentite
+            for (let i = 1; i <= pdf.numPages; i++) { 
+                // Aggiorna l'etichetta per dare feedback all'utente durante l'attesa
+                if (DOM.attachmentLabel) DOM.attachmentLabel.innerText = `Analisi pagina ${i} di ${pdf.numPages}...`;
+                
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 2.0 }); // Scala 2.0 per garantire un OCR perfetto
+                
+                const canvas = document.createElement('canvas');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                // Fotografa la pagina sul canvas invisibile
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+                
+                // Converte in JPG (0.8 di qualità è un ottimo compromesso tra peso e leggibilità)
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                const imageFile = new File([blob], `page_${i}.jpg`, { type: 'image/jpeg' });
+                
+                // Sfrutta la tua funzione esistente per l'OCR
+                const pageText = await extractTextFromImage(imageFile);
+                fullExtractedText += `\n[--- Pagina ${i} ---]\n${pageText}\n`;
+            } 
+            
+            return fullExtractedText; 
+        } 
+        return ""; 
     }
 
     async function extractTextFromImage(file) {
@@ -901,9 +936,10 @@
                 }
                 displayHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${currentFile.name}</div>${displayHtml}`; 
             } catch (e) { 
-                alert("Errore durante l'analisi dell'allegato."); isGenerating = false; DOM.sendBtn.disabled = false; 
+                if (e.message !== "BLOCCO_PAGINE_SUPERATE") alert("Errore durante l'analisi dell'allegato."); 
+                isGenerating = false; DOM.sendBtn.disabled = false; 
                 if (window.setMascotThinking) window.setMascotThinking(false); clearAttachment(); return; 
-            } 
+            }
         }
 
         let finalQuery = query || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
