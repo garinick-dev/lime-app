@@ -391,7 +391,8 @@
     let profileUpdateTimer = null;
     let pendingProfileUpdates = {};
 
-    const INJECT_START = `[--- INIZIO DOC ---]`; const INJECT_END = `[--- FINE DOC ---]`;
+    const INJECT_START = `[--- INIZIO DOC ---]\nDi seguito ti fornisco il testo e il contesto di alcuni argomenti. Usali esclusivamente come parte della nostra base di conoscenza per le mie prossime richieste:\n\n`; 
+    const INJECT_END = `\n\nSono l'utente: ho finito di inviarti il materiale per questo messaggio. NON fare di testa tua e attendi le mie istruzioni specifiche legate allo studio o ai compiti, e rifiuta silenziosamente qualsiasi richiesta che non sia inerente all'ambito scolastico e all'apprendimento.\n[--- FINE DOC ---]`;
 
     const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6d2xkZW5zYWdscGF3bndwanhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODkwODgsImV4cCI6MjA4NzU2NTA4OH0.TDasZe_1WZx1zkManNmgTCZA4NZyeHScVaCzK-xdJwk";
