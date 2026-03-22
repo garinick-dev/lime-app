@@ -1660,27 +1660,6 @@
     });
 
 
-// --- INIZIO PATCH CONTATORE TOKEN UI ---
-window.updateLimeTokenCounter = function(tokens) {
-    let counter = document.getElementById('lime-token-counter');
-    const limit = 400000; // Impostato alto per testare il vero limite
-    
-    if (!counter) {
-        const inputArea = document.querySelector('textarea') || document.querySelector('input[type="text"]');
-        if (!inputArea || !inputArea.parentNode) return;
-        
-        counter = document.createElement('div');
-        counter.id = 'lime-token-counter';
-        counter.style.cssText = 'text-align: right; font-size: 11px; color: #888; margin-bottom: 4px; padding-right: 8px; font-family: monospace; transition: color 0.3s ease;';
-        
-        inputArea.parentNode.insertBefore(counter, inputArea);
-    }
-    
-    counter.innerText = `Memoria: ${tokens} / ${limit}`;
-    counter.style.color = tokens > (limit * 0.85) ? '#F44336' : '#888'; 
-};
-// --- FINE PATCH CONTATORE TOKEN UI ---
-    
     
 </script>  
 
@@ -3431,7 +3410,28 @@ window.updateLimeTokenCounter = function(tokens) {
     
 
 
-
+<script>
+// --- INIZIO PATCH CONTATORE TOKEN UI ---
+window.updateLimeTokenCounter = function(tokens) {
+    let counter = document.getElementById('lime-token-counter');
+    const limit = 400000; // Impostato alto per testare il vero limite
+    
+    if (!counter) {
+        const inputArea = document.querySelector('textarea') || document.querySelector('input[type="text"]');
+        if (!inputArea || !inputArea.parentNode) return;
+        
+        counter = document.createElement('div');
+        counter.id = 'lime-token-counter';
+        counter.style.cssText = 'text-align: right; font-size: 11px; color: #888; margin-bottom: 4px; padding-right: 8px; font-family: monospace; transition: color 0.3s ease;';
+        
+        inputArea.parentNode.insertBefore(counter, inputArea);
+    }
+    
+    counter.innerText = `Memoria: ${tokens} / ${limit}`;
+    counter.style.color = tokens > (limit * 0.85) ? '#F44336' : '#888'; 
+};
+// --- FINE PATCH CONTATORE TOKEN UI ---
+</script>
     
 
     
