@@ -992,11 +992,6 @@
                 if (reqMode === "blocking") { 
                     clearTimeout(streamTimeout);
                     const data = await res.json(); 
-                    // --- INIZIO AGGANCIO TOKEN (Blocking) ---
-                    if (data.metadata && data.metadata.usage && window.updateLimeTokenCounter) {
-                        window.updateLimeTokenCounter(data.metadata.usage.total_tokens);
-                    }
-                    // --- FINE AGGANCIO TOKEN ---
                     if (data.answer && data.answer.trim().length > 0) {
                         if (window.setMascotThinking) window.setMascotThinking(false);
                         fullAnswer = data.answer; 
@@ -1063,11 +1058,6 @@
                                             }
                                         } 
                                     } else if (data.event === 'message_end') { 
-                                        // --- INIZIO AGGANCIO TOKEN (Streaming) ---
-                                        if (data.metadata && data.metadata.usage && window.updateLimeTokenCounter) {
-                                            window.updateLimeTokenCounter(data.metadata.usage.total_tokens);
-                                        }
-                                        // --- FINE AGGANCIO TOKEN ---
                                         if (fullAnswer.trim().length > 0) {
                                             success = true;
                                             
@@ -3407,67 +3397,11 @@
 </script>
 
 
-    
 
-
-<script>
-// --- PATCH CONTATORE INCREMENTALE DINAMICO ---
-window.limeTotalSessionTokens = 0; // Il nostro "contachilometri" globale
-
-window.updateLimeTokenCounter = function(newTokenCount) {
-    let counter = document.getElementById('lime-token-counter');
-    const limit = 400000; // Il muro della memoria di LIME
-
-    // Se il contatore non esiste, lo creiamo
-    if (!counter) {
-        const inputArea = document.querySelector('textarea') || document.querySelector('input[type="text"]');
-        if (!inputArea || !inputArea.parentNode) return;
-        counter = document.createElement('div');
-        counter.id = 'lime-token-counter';
-        counter.style.cssText = 'text-align: right; font-size: 10px; color: #888; margin-bottom: 2px; padding-right: 5px; font-family: monospace; font-weight: bold;';
-        inputArea.parentNode.insertBefore(counter, inputArea);
-    }
-
-    // LOGICA DI INCREMENTO:
-    // Poiché Dify invia il totale della sessione attuale, lo usiamo come nuovo traguardo.
-    let startValue = window.limeTotalSessionTokens;
-    let endValue = newTokenCount;
-    window.limeTotalSessionTokens = newTokenCount;
-
-    // ANIMAZIONE "CONTA-SU" (per vedere il numero che sale fisicamente)
-    let duration = 1000; // L'animazione dura 1 secondo
-    let startTime = null;
-
-    function animate(currentTime) {
-        if (!startTime) startTime = currentTime;
-        let progress = Math.min((currentTime - startTime) / duration, 1);
-        let currentDisplay = Math.floor(progress * (endValue - startValue) + startValue);
-        
-        let percentuale = Math.min(Math.round((currentDisplay / limit) * 100), 100);
-        
-        counter.innerText = `MEMORIA USATA: ${percentuale}% (${currentDisplay} / ${limit})`;
-        
-        // Colore dinamico basato sul riempimento
-        if (percentuale > 90) counter.style.color = '#ff4d4d';
-        else if (percentuale > 70) counter.style.color = '#ffa500';
-        else counter.style.color = '#888';
-
-        if (progress < 1) {
-            requestAnimationFrame(animate);
-        }
-    }
-
-    requestAnimationFrame(animate);
-};
-</script>
     
 
     
 
-
-
-    
-    
 
     
 </body>
