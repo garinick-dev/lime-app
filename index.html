@@ -992,6 +992,11 @@
                 if (reqMode === "blocking") { 
                     clearTimeout(streamTimeout);
                     const data = await res.json(); 
+                    // --- INIZIO AGGANCIO TOKEN (Blocking) ---
+                    if (data.metadata && data.metadata.usage && window.updateLimeTokenCounter) {
+                        window.updateLimeTokenCounter(data.metadata.usage.total_tokens);
+                    }
+                    // --- FINE AGGANCIO TOKEN ---
                     if (data.answer && data.answer.trim().length > 0) {
                         if (window.setMascotThinking) window.setMascotThinking(false);
                         fullAnswer = data.answer; 
@@ -1058,6 +1063,11 @@
                                             }
                                         } 
                                     } else if (data.event === 'message_end') { 
+                                        // --- INIZIO AGGANCIO TOKEN (Streaming) ---
+                                        if (data.metadata && data.metadata.usage && window.updateLimeTokenCounter) {
+                                            window.updateLimeTokenCounter(data.metadata.usage.total_tokens);
+                                        }
+                                        // --- FINE AGGANCIO TOKEN ---
                                         if (fullAnswer.trim().length > 0) {
                                             success = true;
                                             
@@ -1648,6 +1658,30 @@
         
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 150);
     });
+
+
+// --- INIZIO PATCH CONTATORE TOKEN UI ---
+window.updateLimeTokenCounter = function(tokens) {
+    let counter = document.getElementById('lime-token-counter');
+    const limit = 400000; // Impostato alto per testare il vero limite
+    
+    if (!counter) {
+        const inputArea = document.querySelector('textarea') || document.querySelector('input[type="text"]');
+        if (!inputArea || !inputArea.parentNode) return;
+        
+        counter = document.createElement('div');
+        counter.id = 'lime-token-counter';
+        counter.style.cssText = 'text-align: right; font-size: 11px; color: #888; margin-bottom: 4px; padding-right: 8px; font-family: monospace; transition: color 0.3s ease;';
+        
+        inputArea.parentNode.insertBefore(counter, inputArea);
+    }
+    
+    counter.innerText = `Memoria: ${tokens} / ${limit}`;
+    counter.style.color = tokens > (limit * 0.85) ? '#F44336' : '#888'; 
+};
+// --- FINE PATCH CONTATORE TOKEN UI ---
+    
+    
 </script>  
 
 
