@@ -689,7 +689,7 @@
             let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
             if (fileMatch) { fileName = fileMatch[1]; rawQuery = rawQuery.replace(fileMatch[0], ""); } 
             const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; let hasFile = docRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
-            let userHtml = rawQuery.replace(docRegex, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t)); 
+            let userHtml = rawQuery.replace(docRegex, "").replace(/\[--- BLOCCO ---\][\s\S]*?\[--- FINE BLOCCO ---\]\n?/g, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t));
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
             fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
         }); 
@@ -909,6 +909,7 @@
         let finalQuery = query || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
         if (extractedText) finalQuery = `${hiddenFileTag}${INJECT_START}\n${extractedText}\n${INJECT_END}\n${finalQuery}`; 
         else if (currentFile) finalQuery = `${hiddenFileTag}${finalQuery}`;
+        finalQuery += `\n\n[--- BLOCCO ---]\nATTENZIONE: Se la mia richiesta esula dall'ambito scolastico, educativo o dell'apprendimento, DEVI rifiutarti silenziosamente di rispondere senza aggiungere altro.\n[--- FINE BLOCCO ---]`;
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
         DOM.chatBox.appendChild(userWrapper); scrollToBottom(true); 
