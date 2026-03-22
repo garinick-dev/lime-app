@@ -3411,26 +3411,47 @@
 
 
 <script>
-// --- INIZIO PATCH CONTATORE TOKEN UI ---
+// --- PATCH CONTATORE SATURAZIONE MEMORIA ---
+window.currentLimeTokens = 0; // Variabile persistente per la sessione
+
 window.updateLimeTokenCounter = function(tokens) {
     let counter = document.getElementById('lime-token-counter');
-    const limit = 400000; // Impostato alto per testare il vero limite
     
+    // Il limite reale di Dify per il modello che stai usando (es. GPT-4o) 
+    // Spesso è impostato a 4096 o 8192 nel pannello Dify. Regoliamolo a 4000 per sicurezza.
+    const limit = 4000; 
+    
+    // Aggiorniamo la variabile globale con l'ultimo dato ricevuto (che è il totale attuale sulla scrivania)
+    window.currentLimeTokens = tokens;
+
     if (!counter) {
         const inputArea = document.querySelector('textarea') || document.querySelector('input[type="text"]');
         if (!inputArea || !inputArea.parentNode) return;
         
         counter = document.createElement('div');
         counter.id = 'lime-token-counter';
-        counter.style.cssText = 'text-align: right; font-size: 11px; color: #888; margin-bottom: 4px; padding-right: 8px; font-family: monospace; transition: color 0.3s ease;';
+        // Stile minimale e fluido come richiesto
+        counter.style.cssText = 'text-align: right; font-size: 10px; color: #888; margin-bottom: 2px; padding-right: 5px; font-family: monospace; opacity: 0.8;';
         
         inputArea.parentNode.insertBefore(counter, inputArea);
     }
     
-    counter.innerText = `Memoria: ${tokens} / ${limit}`;
-    counter.style.color = tokens > (limit * 0.85) ? '#F44336' : '#888'; 
+    // Calcoliamo la percentuale di riempimento
+    const percentuale = Math.min(Math.round((window.currentLimeTokens / limit) * 100), 100);
+    
+    // Mostriamo l'aumento all'utente
+    counter.innerText = `Saturazione Memoria: ${percentuale}% (${window.currentLimeTokens} / ${limit})`;
+    
+    // Cambio colore dinamico: diventa arancione al 70% e rosso al 90%
+    if (percentuale >= 90) {
+        counter.style.color = '#ff4d4d'; // Rosso allerta
+        counter.style.fontWeight = 'bold';
+    } else if (percentuale >= 70) {
+        counter.style.color = '#ffa500'; // Arancione avviso
+    } else {
+        counter.style.color = '#888';
+    }
 };
-// --- FINE PATCH CONTATORE TOKEN UI ---
 </script>
     
 
