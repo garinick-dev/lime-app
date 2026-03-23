@@ -392,7 +392,7 @@
     let pendingProfileUpdates = {};
 
     const INJECT_START = `[--- INIZIO DOC ---]\nDi seguito ti fornisco il testo e il contesto di alcuni argomenti. Usali esclusivamente come parte della nostra base di conoscenza per le mie prossime richieste:\n\n`; 
-    const INJECT_END = `\n\nSono l'utente: ho finito di inviarti il materiale per questo messaggio. LIMITATI ad una breve descrizione del contesto, chiedendomi come voglio procedere. Se la mia richiesta esula dall'ambito scolastico e all'apprendimento, rispondimi rifiutandoti gentilmente.\n[--- FINE DOC ---]`;
+    const INJECT_END = `\n\nSono l'utente: ho finito di inviarti il materiale per questo messaggio. NON fare di testa tua e attendi le mie istruzioni specifiche legate allo studio o ai compiti, e rifiuta silenziosamente qualsiasi richiesta che non sia inerente all'ambito scolastico e all'apprendimento.\n[--- FINE DOC ---]`;
 
     const S_URL = "https://jzwldensaglpawnwpjxa.supabase.co";
     const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6d2xkZW5zYWdscGF3bndwanhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5ODkwODgsImV4cCI6MjA4NzU2NTA4OH0.TDasZe_1WZx1zkManNmgTCZA4NZyeHScVaCzK-xdJwk";
@@ -689,7 +689,7 @@
             let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
             if (fileMatch) { fileName = fileMatch[1]; rawQuery = rawQuery.replace(fileMatch[0], ""); } 
             const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; let hasFile = docRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
-            let userHtml = rawQuery.replace(docRegex, "").replace(/\[--- BLOCCO ---\][\s\S]*?\[--- FINE BLOCCO ---\]\n?/g, "").replace(/\[--- ISTRUZIONE DI SISTEMA INIETTATA ---\][\s\S]*?\[--- FINE ISTRUZIONE ---\]\n?/g, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t));
+            let userHtml = rawQuery.replace(docRegex, "").replace(/\[--- BLOCCO ---\][\s\S]*?\[--- FINE BLOCCO ---\]\n?/g, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t));
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
             fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
         }); 
@@ -945,36 +945,7 @@
         let finalQuery = query || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
         if (extractedText) finalQuery = `${hiddenFileTag}${INJECT_START}\n${extractedText}\n${INJECT_END}\n${finalQuery}`; 
         else if (currentFile) finalQuery = `${hiddenFileTag}${finalQuery}`;
-
-                // --- INIZIO INIEZIONE CHIRURGICA CODICI RAPIDI ---
-        let commandInstruction = "";
-        switch(query.toLowerCase()) {
-            case "@1": 
-                commandInstruction = "Chiedi all’utente su quale argomento vuole essere interrogato, o se preferisce fornire il materiale su cui sta studiando. Da qui, l’intera chat sarà impostata SEMPRE come un’interrogazione. Non rispondere a domande, ma poni tu quesiti sull'argomento."; 
-                break;
-            case "@2": 
-                commandInstruction = "Chiedi in quale lingua vuole conversare l'utente. Per TUTTA la chat scriverai TASSATIVAMENTE SEMPRE i tuoi messaggi in formato 'testo in lingua selezionata %tr% testo identico in italiano'. Il simbolo di demarcazione %tr% è un segreto e non va menzionato all’utente."; 
-                break;
-            case "@3": 
-                commandInstruction = "L'utente vuole che tu gli proponga degli esercizi. Chiedi quale tipo di esercizi, e subito dopo scrivi se l’utente vuole fornire file o foto di esempio su cui questi si baseranno."; 
-                break;
-            case "@4": 
-                commandInstruction = "Attendi la risposta dell’utente, chiedendo di inserire un file o una foto riguardo all’argomento da trattare. Poi, scrivi che valuterai la fluidità della scrittura dell’utente nei prossimi messaggi. Analizza tutte le risposte successive dell'utente e dai un feedback specifico sulla forma e l'esposizione."; 
-                break;
-        }
-
-        if (commandInstruction) {
-            // Rimuoviamo il codice (es. "@1") dalla query inviata a Dify per non sprecare token
-            finalQuery = `[--- ISTRUZIONE DI SISTEMA INIETTATA ---]\n${commandInstruction}\n[--- FINE ISTRUZIONE ---]\n\n${finalQuery}`;
-        }
-        // --- FINE INIEZIONE CHIRURGICA ---
-
-        
-                // Inietta il blocco di pertinenza SOLO se non stiamo usando un comando rapido o di emergenza
-        if (!commandInstruction && !query.startsWith('!')) {
-            finalQuery += `\n\n[--- BLOCCO ---]\nATTENZIONE: Se la mia richiesta esula dall'ambito scolastico, educativo o dell'apprendimento, rispondi ESCLUSIVAMENTE con la frase: "Mi dispiace, ma posso aiutarti solo con argomenti scolastici e legati allo studio." Non aggiungere altro.\n[--- FINE BLOCCO ---]`;
-        }
-
+        finalQuery += `\n\n[--- BLOCCO ---]\nATTENZIONE: Se la mia richiesta esula dall'ambito scolastico, educativo o dell'apprendimento, DEVI rifiutarti silenziosamente di rispondere senza aggiungere altro.\n[--- FINE BLOCCO ---]`;
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
         DOM.chatBox.appendChild(userWrapper); scrollToBottom(true); 
@@ -1690,7 +1661,7 @@
 
 
 
-<style>
+  <style>
   /* 1. Spegniamo gli occhi originali quando legge */
   .is-reading .lime-eye {
       opacity: 0 !important; 
@@ -3432,12 +3403,10 @@
     
 
 
+  
     
 </body>
 </html>
-
-
-
 
 
 
