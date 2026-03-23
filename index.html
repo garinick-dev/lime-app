@@ -970,7 +970,11 @@
         // --- FINE INIEZIONE CHIRURGICA ---
 
         
-        finalQuery += `\n\n[--- BLOCCO ---]\nATTENZIONE: Se la mia richiesta esula dall'ambito scolastico, educativo o dell'apprendimento, DEVI rispondermi rifiutandoti gentilmente, senza aggiungere altro.\n[--- FINE BLOCCO ---]`;
+                // Inietta il blocco di pertinenza SOLO se non stiamo usando un comando rapido o di emergenza
+        if (!commandInstruction && !query.startsWith('!')) {
+            finalQuery += `\n\n[--- BLOCCO ---]\nATTENZIONE: Se la mia richiesta esula dall'ambito scolastico, educativo o dell'apprendimento, rispondi ESCLUSIVAMENTE con la frase: "Mi dispiace, ma posso aiutarti solo con argomenti scolastici e legati allo studio." Non aggiungere altro.\n[--- FINE BLOCCO ---]`;
+        }
+
 
         const userWrapper = createMessageNode('user', displayHtml, null, true);
         DOM.chatBox.appendChild(userWrapper); scrollToBottom(true); 
@@ -3431,6 +3435,7 @@
     
 </body>
 </html>
+
 
 
 
