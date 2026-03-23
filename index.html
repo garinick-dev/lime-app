@@ -689,7 +689,7 @@
             let rawQuery = m.query || "", fileName = "Allegato", fileMatch = rawQuery.match(/\[--- FILE: (.*?) ---\]\n?/); 
             if (fileMatch) { fileName = fileMatch[1]; rawQuery = rawQuery.replace(fileMatch[0], ""); } 
             const docRegex = /\[--- INIZIO DOC ---\][\s\S]*?\[--- FINE DOC ---\]\n?/g; let hasFile = docRegex.test(rawQuery) || fileMatch || (m.message_files && m.message_files.length > 0); 
-            let userHtml = rawQuery.replace(docRegex, "").replace(/\[--- BLOCCO ---\][\s\S]*?\[--- FINE BLOCCO ---\]\n?/g, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t));
+            let userHtml = rawQuery.replace(docRegex, "").replace(/\[--- BLOCCO ---\][\s\S]*?\[--- FINE BLOCCO ---\]\n?/g, "").replace(/\[--- ISTRUZIONE DI SISTEMA INIETTATA ---\][\s\S]*?\[--- FINE ISTRUZIONE ---\]\n?/g, "").trim().replace(/[&<>'"]/g, t => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[t] || t));
             if (hasFile) userHtml = `<div style="font-size:0.85em; opacity:0.8; margin-bottom:5px;">📎 ${fileName}</div>` + userHtml; 
             fragment.appendChild(createMessageNode('user', userHtml, m.created_at, true)); fragment.appendChild(createMessageNode('bot', m.answer, m.created_at)); 
         }); 
@@ -965,7 +965,6 @@
 
         if (commandInstruction) {
             // Rimuoviamo il codice (es. "@1") dalla query inviata a Dify per non sprecare token
-            finalQuery = finalQuery.replace(query, "").trim();
             finalQuery = `[--- ISTRUZIONE DI SISTEMA INIETTATA ---]\n${commandInstruction}\n[--- FINE ISTRUZIONE ---]\n\n${finalQuery}`;
         }
         // --- FINE INIEZIONE CHIRURGICA ---
