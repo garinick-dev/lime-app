@@ -3444,53 +3444,6 @@
 
 
 
-<div id="dev-token-box" style="position: fixed; bottom: calc(var(--breath-padding, 140px) + 8px); right: 20px; font-family: monospace; font-size: 11px; color: var(--text-muted); z-index: 10000; pointer-events: none; text-align: right;">
-    <div id="dev-token-current">0 tkn</div>
-    <div id="dev-token-percent" style="color: var(--text-main); font-weight: bold; margin-top: 2px;">0.00%</div>
-</div>
-
-<script>
-(function initDifyTokenCounterV4() {
-    const currentDiv = document.getElementById('dev-token-current');
-    const percentDiv = document.getElementById('dev-token-percent');
-    if (!currentDiv || !percentDiv) return;
-
-    const MAX_TOKENS = 128000;
-
-    function aggiornaContatori(tokens) {
-        currentDiv.innerText = tokens + ' tkn';
-        const percentuale = ((tokens * 100) / MAX_TOKENS).toFixed(2);
-        percentDiv.innerText = percentuale + '%';
-    }
-
-    // 1. Intercettiamo lo STREAMING tramite JSON.parse
-    const originalParse = JSON.parse;
-    JSON.parse = function(text, reviver) {
-        const result = originalParse(text, reviver);
-        try {
-            if (result && result.event === 'message_end' && result.metadata && result.metadata.usage) {
-                if (result.metadata.usage.total_tokens !== undefined) {
-                    aggiornaContatori(result.metadata.usage.total_tokens);
-                }
-            }
-        } catch(e) {}
-        return result;
-    };
-
-    // 2. Intercettiamo le risposte BLOCKING
-    const originalJson = Response.prototype.json;
-    Response.prototype.json = function() {
-        return originalJson.call(this).then(data => {
-            try {
-                if (data && data.metadata && data.metadata.usage && data.metadata.usage.total_tokens !== undefined) {
-                    aggiornaContatori(data.metadata.usage.total_tokens);
-                }
-            } catch(e) {}
-            return data;
-        });
-    };
-})();
-</script>
 
 
     
