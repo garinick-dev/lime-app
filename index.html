@@ -3445,45 +3445,92 @@
 
 
 
-    
-<div id="dev-token-counter" style="position: fixed; bottom: calc(var(--breath-padding, 140px) + 8px); right: 20px; font-family: monospace; font-size: 11px; color: var(--text-muted); z-index: 10000; pointer-events: none;">0 tkn</div>
+<div id="dev-token-panel" style="position: fixed; bottom: calc(var(--breath-padding, 140px) + 8px); right: 20px; text-align: right; font-family: monospace; font-size: 11px; color: var(--text-muted); z-index: 10000; pointer-events: none; line-height: 1.4;">
+    <div id="dev-token-single">0 tkn</div>
+    <div id="dev-token-cumulative">0/400000</div>
+</div>
 
 <script>
-(function initDifyTokenCounterV2() {
-    const counterDiv = document.getElementById('dev-token-counter');
-    if (!counterDiv) return;
+(function initDifyTokenCounterV3() {
+    const singleDiv = document.getElementById('dev-token-single');
+    const cumulativeDiv = document.getElementById('dev-token-cumulative');
+    if (!singleDiv || !cumulativeDiv) return;
+
+    let currentDisplayedChat = null;
+
+    // Funzione per leggere/scrivere nel database locale del browser
+    function getStorage() {
+        return JSON.parse(localStorage.getItem('lime_dev_tokens') || '{}');
+    }
+
+    function aggiornaUI(chatId) {
+        const storage = getStorage();
+        const totale = storage[chatId] || 0;
+        cumulativeDiv.innerText = totale + '/400000';
+        
+        // Se abbiamo cambiato chat, azzeriamo visivamente il contatore singolo temporaneo
+        if (chatId !== currentDisplayedChat) {
+            singleDiv.innerText = '0 tkn';
+            currentDisplayedChat = chatId;
+        }
+    }
+
+    function sommaToken(chatId, nuoviToken) {
+        if (!chatId || !nuoviToken) return;
+        const storage = getStorage();
+        const totaleAttuale = storage[chatId] || 0;
+        storage[chatId] = totaleAttuale + nuoviToken;
+        localStorage.setItem('lime_dev_tokens', JSON.stringify(storage));
+        aggiornaUI(chatId);
+    }
 
     // 1. Intercettiamo lo STREAMING tramite JSON.parse
-    // Il codice di LIME ricuce i frammenti spezzati e chiama JSON.parse solo quando l'oggetto è intero
     const originalParse = JSON.parse;
     JSON.parse = function(text, reviver) {
         const result = originalParse(text, reviver);
         try {
-            // Se stiamo decodificando l'evento di fine messaggio di Dify, estraiamo i token
             if (result && result.event === 'message_end' && result.metadata && result.metadata.usage) {
-                if (result.metadata.usage.total_tokens !== undefined) {
-                    counterDiv.innerText = result.metadata.usage.total_tokens + ' tkn';
+                const tokenSpesi = result.metadata.usage.total_tokens;
+                if (tokenSpesi !== undefined) {
+                    singleDiv.innerText = tokenSpesi + ' tkn';
+                    // Usiamo l'ID restituito da Dify (o quello globale in fallback)
+                    const activeId = result.conversation_id || window.currentConversationId;
+                    sommaToken(activeId, tokenSpesi);
                 }
             }
         } catch(e) {}
         return result;
     };
 
-    // 2. Intercettiamo le risposte BLOCKING (es. quando invii file/immagini)
+    // 2. Intercettiamo le risposte BLOCKING (es. file/immagini)
     const originalJson = Response.prototype.json;
     Response.prototype.json = function() {
         return originalJson.call(this).then(data => {
             try {
-                if (data && data.metadata && data.metadata.usage && data.metadata.usage.total_tokens !== undefined) {
-                    counterDiv.innerText = data.metadata.usage.total_tokens + ' tkn';
+                if (data && data.metadata && data.metadata.usage) {
+                    const tokenSpesi = data.metadata.usage.total_tokens;
+                    if (tokenSpesi !== undefined) {
+                        singleDiv.innerText = tokenSpesi + ' tkn';
+                        const activeId = data.conversation_id || window.currentConversationId;
+                        sommaToken(activeId, tokenSpesi);
+                    }
                 }
             } catch(e) {}
             return data;
         });
     };
+
+    // 3. Watcher leggero per i cambi di chat
+    // Controlla ogni 300ms se l'utente ha cliccato su una chat diversa nella cronologia
+    setInterval(() => {
+        const activeChat = window.currentConversationId || 'nuova_chat_vuota';
+        if (activeChat !== currentDisplayedChat) {
+            aggiornaUI(activeChat);
+        }
+    }, 300);
+
 })();
 </script>
-
 
 
     
