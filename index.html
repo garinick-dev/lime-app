@@ -3446,30 +3446,30 @@
 
 
     
-
-    <div id="dev-token-counter" style="position: fixed; bottom: calc(var(--breath-padding, 140px) + 8px); right: 20px; font-family: monospace; font-size: 11px; color: var(--text-muted); z-index: 10000; pointer-events: none;">0 tkn</div>
+<div id="dev-token-counter" style="position: fixed; bottom: calc(var(--breath-padding, 140px) + 8px); right: 20px; font-family: monospace; font-size: 11px; color: var(--text-muted); z-index: 10000; pointer-events: none;">0 tkn</div>
 
 <script>
-(function initDifyTokenCounter() {
+(function initDifyTokenCounterV2() {
     const counterDiv = document.getElementById('dev-token-counter');
     if (!counterDiv) return;
 
-    // 1. Intercettiamo le risposte in STREAMING
-    // Dify invia i token nell'evento "message_end" alla fine della generazione
-    const originalDecode = TextDecoder.prototype.decode;
-    TextDecoder.prototype.decode = function(view, options) {
-        const text = originalDecode.call(this, view, options);
-        if (text && text.includes('"message_end"')) {
-            // Estraiamo in modo chirurgico il valore dal JSON testuale
-            const match = text.match(/"total_tokens"\s*:\s*(\d+)/);
-            if (match && match[1]) {
-                counterDiv.innerText = match[1] + ' tkn';
+    // 1. Intercettiamo lo STREAMING tramite JSON.parse
+    // Il codice di LIME ricuce i frammenti spezzati e chiama JSON.parse solo quando l'oggetto è intero
+    const originalParse = JSON.parse;
+    JSON.parse = function(text, reviver) {
+        const result = originalParse(text, reviver);
+        try {
+            // Se stiamo decodificando l'evento di fine messaggio di Dify, estraiamo i token
+            if (result && result.event === 'message_end' && result.metadata && result.metadata.usage) {
+                if (result.metadata.usage.total_tokens !== undefined) {
+                    counterDiv.innerText = result.metadata.usage.total_tokens + ' tkn';
+                }
             }
-        }
-        return text;
+        } catch(e) {}
+        return result;
     };
 
-    // 2. Intercettiamo le risposte in BLOCKING (es. quando invii immagini)
+    // 2. Intercettiamo le risposte BLOCKING (es. quando invii file/immagini)
     const originalJson = Response.prototype.json;
     Response.prototype.json = function() {
         return originalJson.call(this).then(data => {
@@ -3483,6 +3483,7 @@
     };
 })();
 </script>
+
 
 
     
