@@ -3439,6 +3439,63 @@
 
 
 
+
+
+
+
+
+
+    
+
+    
+<div id="dev-token-counter" style="position: fixed; bottom: calc(var(--breath-padding, 140px) + 8px); right: 20px; font-family: monospace; font-size: 11px; color: var(--text-muted); z-index: 10000; pointer-events: none; text-shadow: 0 0 2px var(--bg-color);">Caricamento Tiktoken...</div>
+
+<script type="module">
+// Importiamo il porting ultra-veloce di tiktoken per browser
+import { getEncoding } from "https://esm.sh/js-tiktoken@1.0.14";
+
+(async function initTiktokenCounter() {
+    const inputField = document.getElementById('user-input');
+    const counterDiv = document.getElementById('dev-token-counter');
+    
+    if (!inputField || !counterDiv) return;
+
+    try {
+        // gpt-5-mini (e gpt-4o) utilizzano il vocabolario o200k_base
+        const enc = getEncoding("o200k_base");
+        
+        // Appena il dizionario è pronto, il contatore si azzera e si sblocca
+        counterDiv.innerText = "0 tkn"; 
+
+        let debounceTimer;
+        inputField.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            
+            debounceTimer = setTimeout(() => {
+                const testo = inputField.value;
+                if (!testo || testo.trim().length === 0) {
+                    counterDiv.innerText = '0 tkn';
+                    return;
+                }
+                
+                // Calcolo esatto dei token secondo OpenAI
+                const tokens = enc.encode(testo);
+                counterDiv.innerText = tokens.length + ' tkn';
+                
+            }, 100); // 100ms di respiro per mantenere la tastiera fluida
+        });
+    } catch (error) {
+        console.error("Errore caricamento tiktoken:", error);
+        counterDiv.innerText = "Errore tkn";
+    }
+})();
+</script>
+
+    
+
+
+
+
     
 
     
