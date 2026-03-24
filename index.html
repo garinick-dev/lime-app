@@ -3445,22 +3445,22 @@
 
 
 <div id="dev-token-box" style="position: fixed; bottom: calc(var(--breath-padding, 140px) + 8px); right: 20px; font-family: monospace; font-size: 11px; color: var(--text-muted); z-index: 10000; pointer-events: none; text-align: right;">
-    <div id="dev-token-current">0 tkn (msg)</div>
-    <div id="dev-token-total" style="color: var(--text-main); font-weight: bold; margin-top: 2px;">0 tkn (tot)</div>
+    <div id="dev-token-current">0 tkn</div>
+    <div id="dev-token-percent" style="color: var(--text-main); font-weight: bold; margin-top: 2px;">0.00%</div>
 </div>
 
 <script>
-(function initDifyTokenCounterV3() {
+(function initDifyTokenCounterV4() {
     const currentDiv = document.getElementById('dev-token-current');
-    const totalDiv = document.getElementById('dev-token-total');
-    if (!currentDiv || !totalDiv) return;
+    const percentDiv = document.getElementById('dev-token-percent');
+    if (!currentDiv || !percentDiv) return;
 
-    let sessionTotal = 0; // Memoria del totale
+    const MAX_TOKENS = 128000;
 
     function aggiornaContatori(tokens) {
-        currentDiv.innerText = tokens + ' tkn (msg)';
-        sessionTotal += tokens; // Somma algebrica
-        totalDiv.innerText = sessionTotal + ' tkn (tot)';
+        currentDiv.innerText = tokens + ' tkn';
+        const percentuale = ((tokens * 100) / MAX_TOKENS).toFixed(2);
+        percentDiv.innerText = percentuale + '%';
     }
 
     // 1. Intercettiamo lo STREAMING tramite JSON.parse
