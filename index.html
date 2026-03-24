@@ -942,7 +942,20 @@
             }
         }
 
-        let finalQuery = query || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
+        // --- INIZIO MODIFICA 1: GESTIONE VARIABILE GREETING ---
+        let greetingValue = "standard";
+        let queryForDify = query;
+        const modeMapping = { "@1": "interrogazione", "@2": "lingua", "@3": "esercizi", "@4": "esposizione" };
+        
+        if (modeMapping[query.trim()]) {
+            greetingValue = modeMapping[query.trim()];
+            // Aggiungiamo un innesco per far partire l'IA, ma conserviamo il codice (es. @1)
+            // in modo che il tuo CSS lo nasconda SEMPRE, sia ora che se ricarichi la chat!
+            queryForDify = query.trim() + " Iniziamo!"; 
+        }
+
+        let finalQuery = queryForDify || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
+        // --- FINE MODIFICA 1 ---
         if (extractedText) finalQuery = `${hiddenFileTag}${INJECT_START}\n${extractedText}\n${INJECT_END}\n${finalQuery}`; 
         else if (currentFile) finalQuery = `${hiddenFileTag}${finalQuery}`;
         finalQuery += `\n\n[--- BLOCCO ---]\nATTENZIONE: Se la mia richiesta esula dall'ambito scolastico, educativo o dell'apprendimento, DEVI rifiutarti gentilmente di rispondere senza aggiungere altro.\n[--- FINE BLOCCO ---]`;
@@ -976,7 +989,16 @@
             try {
                 const reqMode = isImage ? "blocking" : "streaming"; 
                 const reqBody = { inputs: {}, query: finalQuery, user: userId, response_mode: reqMode }; 
-                if (currentConversationId) reqBody.conversation_id = currentConversationId; 
+                
+                // --- INIZIO MODIFICA 2: INVIO VARIABILE GREETING A DIFY ---
+                if (!currentConversationId) {
+                    reqBody.inputs["scelta_greeting"] = greetingValue;
+                }
+                if (currentConversationId) {
+                    reqBody.conversation_id = currentConversationId; 
+                }
+                // --- FINE MODIFICA 2 ---
+                
                 if (filePayload.length > 0) Object.assign(reqBody, { files: filePayload });
                 
                 const authHeaders = await getAuthHeaders(); 
