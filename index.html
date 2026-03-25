@@ -594,13 +594,23 @@
     async function renameChat(id, old) { const n = prompt("Titolo chat:", old); if (n && n.trim() !== "" && n !== old) { await supabaseClient.from('conversations').update({ title: n.trim() }).eq('dify_id', id); loadHistory(); } }
     async function deleteChat(id) { if (confirm("Vuoi eliminare questa chat?")) { await supabaseClient.from('conversations').delete().eq('dify_id', id); delete chatCache[id]; if (currentConversationId === id) startNewChat(); else loadHistory(); } }
     
-    function startNewChat() { 
+        function startNewChat() { 
         trimCurrentChatCache();
         isGenerating = false; if (window.setMascotThinking) window.setMascotThinking(false); DOM.sendBtn.disabled = false; currentConversationId = null; DOM.chatBox.innerHTML = ""; 
         if (window.updateGreetingVisibility) window.updateGreetingVisibility(); 
         document.querySelectorAll('.history-item').forEach(el => el.classList.remove('active-chat')); 
         if (window.innerWidth < 768 && !DOM.sidebar.classList.contains('hidden')) toggleSidebar(); 
+        
+        // Sblocco chirurgico della promptbar in caso di uscita da una chat d'esempio
+        document.body.classList.remove('starter-chat-active');
+        if (DOM.inputField) {
+            DOM.inputField.disabled = false;
+            if (DOM.inputField.hasAttribute('data-orig-placeholder')) {
+                DOM.inputField.setAttribute('placeholder', DOM.inputField.getAttribute('data-orig-placeholder'));
+            }
+        }
     }
+
 
     async function loadMoreMessages() {
         if (!currentConversationId || !currentChatHasMore || isGenerating) return;
@@ -2267,20 +2277,7 @@
           if (originalLoadChat) return originalLoadChat(id);
       };
 
-      // Ripristino quando si clicca "Nuova Chat"
-      document.addEventListener('click', function(e) {
-          const isNewChatBtn = e.target.closest('#new-chat-btn') || e.target.closest('.new-chat-btn');
-          if (isNewChatBtn) {
-              document.body.classList.remove('starter-chat-active');
-              const chatInput = document.getElementById('chat-input') || document.querySelector('.input-area textarea');
-              if (chatInput) {
-                  chatInput.disabled = false;
-                  if (chatInput.hasAttribute('data-orig-placeholder')) {
-                      chatInput.setAttribute('placeholder', chatInput.getAttribute('data-orig-placeholder'));
-                  }
-              }
-          }
-      });
+      
 
       const originalStartTutorial = window.startInteractiveTutorial;
       if (originalStartTutorial) {
@@ -3472,6 +3469,7 @@
     
 </body>
 </html>
+
 
 
 
