@@ -2269,7 +2269,7 @@
 
       // Ripristino quando si clicca "Nuova Chat"
       document.addEventListener('click', function(e) {
-          const isNewChatBtn = e.target.closest('#new-chat-btn') || e.target.closest('.new-chat');
+          const isNewChatBtn = e.target.closest('#new-chat-btn') || e.target.closest('.new-chat-btn');
           if (isNewChatBtn) {
               document.body.classList.remove('starter-chat-active');
               const chatInput = document.getElementById('chat-input') || document.querySelector('.input-area textarea');
@@ -3472,6 +3472,7 @@
     
 </body>
 </html>
+
 
 
 
