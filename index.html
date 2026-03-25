@@ -3457,23 +3457,37 @@
 
 
 <script>
-(function scambiaProfiloInterfaccia() {
+(function applicaMiglioramentiSidebar() {
+    // 1. Riorganizzazione dei blocchi: Interfaccia e Colori sopra Profilo
     const sidebarBottom = document.getElementById('sidebar-bottom');
-    if (!sidebarBottom) return;
-    
-    // Raccoglie tutti i blocchi delle impostazioni
-    const items = Array.from(sidebarBottom.querySelectorAll('.setting-item'));
-    
-    // Trova i blocchi esatti leggendo le loro etichette (labels)
-    const blockProfilo = items.find(item => item.querySelector('label')?.innerText === 'Profilo');
-    const blockInterfaccia = items.find(item => item.querySelector('label')?.innerText === 'Interfaccia');
-    
-    // Se li trova entrambi, sposta Interfaccia esattamente prima di Profilo
-    if (blockProfilo && blockInterfaccia) {
-        sidebarBottom.insertBefore(blockInterfaccia, blockProfilo);
+    if (sidebarBottom) {
+        const items = Array.from(sidebarBottom.querySelectorAll('.setting-item'));
+        
+        const blockProfilo = items.find(item => item.querySelector('label')?.innerText === 'Profilo');
+        const blockInterfaccia = items.find(item => item.querySelector('label')?.innerText === 'Interfaccia');
+        const blockColore = items.find(item => item.querySelector('label')?.innerText === 'Colore principale');
+        
+        if (blockProfilo) {
+            // Sposta prima Interfaccia, poi Colore, mettendoli entrambi sopra Profilo
+            if (blockInterfaccia) sidebarBottom.insertBefore(blockInterfaccia, blockProfilo);
+            if (blockColore) sidebarBottom.insertBefore(blockColore, blockProfilo);
+        }
+    }
+
+    // 2. Aggiunta della conferma di sicurezza per l'eliminazione dello sfondo
+    const originalRemoveBg = window.removeCustomBg;
+    if (originalRemoveBg) {
+        window.removeCustomBg = async function() {
+            // Blocca l'esecuzione e mostra il messaggio nativo
+            if (confirm("Vuoi eliminare lo sfondo attuale?")) {
+                // Se l'utente clicca "OK", esegue la tua funzione di eliminazione originale
+                await originalRemoveBg.apply(this, arguments);
+            }
+        };
     }
 })();
 </script>
+
    
     
 
@@ -3489,6 +3503,7 @@
     
 </body>
 </html>
+
 
 
 
