@@ -463,12 +463,17 @@
     }
 
     function formatLaTeX(text) {
-        if (!text) return "";
-        let formatted = text;
-        formatted = formatted.replace(/(?:\\\\|\\)\[/g, '$$$$'); formatted = formatted.replace(/(?:\\\\|\\)\]/g, '$$$$');
-        formatted = formatted.replace(/(?:\\\\|\\)\(/g, '$$'); formatted = formatted.replace(/(?:\\\\|\\)\)/g, '$$');
-        return formatted;
-    }
+    if (!text) return "";
+    
+    // Cattura le formule in blocco \[ ... \] o \\[ ... \\] e le converte in $$ ... $$
+    let formatted = text.replace(/(?:\\\\|\\)\[([\s\S]*?)(?:\\\\|\\)\]/g, '$$$$$1$$$$');
+    
+    // Cattura le formule in linea \( ... \) o \\( ... \\) e le converte in $ ... $
+    formatted = formatted.replace(/(?:\\\\|\\)\(([\s\S]*?)(?:\\\\|\\)\)/g, '$$$1$$');
+    
+    return formatted;
+}
+
 
     const originalFetch = window.fetch;
     window.fetch = async function() {
