@@ -3457,68 +3457,7 @@
 
 
 
-
-
-
-<style>
-    /* Forza lo scorrimento orizzontale sempre visibile per la chat attiva */
-    .active-chat .chat-title {
-        overflow-x: scroll !important;
-        text-overflow: clip !important; 
-        pointer-events: auto !important; 
-        padding-bottom: 6px !important; 
-        
-        /* Firefox: stile minimale grigio */
-        scrollbar-width: thin !important;
-        scrollbar-color: #888888 rgba(128, 128, 128, 0.15) !important;
-    }
-
-    /* WebKit (Chrome, Safari, Mobile): Struttura base della barra */
-    .active-chat .chat-title::-webkit-scrollbar {
-        height: 14px !important;
-        display: block !important;
-    }
-
-    /* Traccia: grigio chiaro con bordi trasparenti per snellirla visivamente */
-    .active-chat .chat-title::-webkit-scrollbar-track {
-        background: rgba(128, 128, 128, 0.15) !important;
-        border-radius: 10px !important;
-        background-clip: padding-box;
-        border-top: 4px solid transparent;
-        border-bottom: 4px solid transparent;
-    }
-
-    /* Cursore: grigio scuro neutro */
-    .active-chat .chat-title::-webkit-scrollbar-thumb {
-        background: #888888 !important;
-        border-radius: 10px !important;
-        background-clip: padding-box;
-        border-top: 4px solid transparent;
-        border-bottom: 4px solid transparent;
-    }
-
-    /* Finecorsa Sinistro (Freccia) */
-    .active-chat .chat-title::-webkit-scrollbar-button:single-button:horizontal:decrement {
-        display: block !important;
-        width: 18px !important;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888888' stroke='%23888888' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='16,5 8,12 16,19'/%3E%3C/svg%3E");
-        background-size: 10px !important;
-        background-repeat: no-repeat;
-        background-position: center;
-    }
-
-    /* Finecorsa Destro (Freccia) */
-    .active-chat .chat-title::-webkit-scrollbar-button:single-button:horizontal:increment {
-        display: block !important;
-        width: 18px !important;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888888' stroke='%23888888' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='8,5 16,12 8,19'/%3E%3C/svg%3E");
-        background-size: 10px !important;
-        background-repeat: no-repeat;
-        background-position: center;
-    }
-</style>
-
-    
+   
     
 
 
@@ -3533,6 +3472,7 @@
     
 </body>
 </html>
+
 
 
 
