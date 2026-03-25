@@ -194,7 +194,7 @@
             const savedTheme = localStorage.getItem('lime_theme');
             const savedColor = localStorage.getItem('lime_color');
             
-            if (savedTheme === 'light') document.body.classList.add('light-theme');
+            if (savedTheme !== 'dark') document.body.classList.add('light-theme');
             if (savedColor) {
                 document.documentElement.style.setProperty('--accent', savedColor);
                 document.documentElement.style.setProperty('--lime-accent', savedColor);
@@ -1299,7 +1299,7 @@
             nameSpans.forEach(span => span.innerText = fullName); 
             
             const md = user.user_metadata || {};
-            const finalTheme = md.theme || localStorage.getItem('lime_theme') || 'dark';
+            const finalTheme = md.theme || localStorage.getItem('lime_theme') || 'light';
             const finalColor = md.color || localStorage.getItem('lime_color') || '#a5c938';
             
             // Nuova logica infallibile per lo sfondo: accetta anche le rimozioni ("")
@@ -1336,7 +1336,7 @@
         } else { 
             nameSpans.forEach(span => span.innerText = ""); 
             avatarDivs.forEach(div => { div.style.backgroundImage = 'none'; div.innerText = "?"; }); 
-            applyTheme('dark'); document.documentElement.style.setProperty('--accent', '#a5c938'); document.documentElement.style.setProperty('--lime-accent', '#a5c938'); updateColorCirclesUI('#a5c938'); 
+            applyTheme('light'); document.documentElement.style.setProperty('--accent', '#a5c938'); document.documentElement.style.setProperty('--lime-accent', '#a5c938'); updateColorCirclesUI('#a5c938'); 
             applyChatBackground(null); 
         } 
         setTimeout(() => { if (!currentCustomBg) updateDefaultBackground(); }, 50);
@@ -3470,6 +3470,7 @@
     
 </body>
 </html>
+
 
 
 
