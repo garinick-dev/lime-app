@@ -591,7 +591,7 @@
         DOM.historyList.appendChild(fragment); 
     }
     
-    async function renameChat(id, old) { const n = prompt("Nuovo titolo:", old); if (n && n.trim() !== "" && n !== old) { await supabaseClient.from('conversations').update({ title: n.trim() }).eq('dify_id', id); loadHistory(); } }
+    async function renameChat(id, old) { const n = prompt("Titolo chat:", old); if (n && n.trim() !== "" && n !== old) { await supabaseClient.from('conversations').update({ title: n.trim() }).eq('dify_id', id); loadHistory(); } }
     async function deleteChat(id) { if (confirm("Vuoi eliminare questa chat?")) { await supabaseClient.from('conversations').delete().eq('dify_id', id); delete chatCache[id]; if (currentConversationId === id) startNewChat(); else loadHistory(); } }
     
     function startNewChat() { 
@@ -3472,6 +3472,7 @@
     
 </body>
 </html>
+
 
 
 
