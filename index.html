@@ -3456,6 +3456,42 @@
 
 
 
+
+
+
+
+<style>
+    /* Sblocca lo scorrimento orizzontale solo per il titolo della chat attiva */
+    .active-chat .chat-title {
+        overflow-x: auto !important;
+        text-overflow: clip !important; /* Rimuove i tre puntini (...) */
+        pointer-events: auto !important; /* Riabilita il tocco per permettere lo swipe */
+        padding-bottom: 5px !important; /* Crea un po' di respiro per la barra */
+        
+        /* Regole per Firefox */
+        scrollbar-width: thin !important;
+        scrollbar-color: var(--accent) transparent !important;
+    }
+
+    /* Stile della scrollbar orizzontale per Chrome, Safari e dispositivi mobili */
+    .active-chat .chat-title::-webkit-scrollbar {
+        display: block !important;
+        height: 4px !important; /* Sottile ed elegante */
+    }
+    
+    .active-chat .chat-title::-webkit-scrollbar-track {
+        background: rgba(128, 128, 128, 0.2) !important;
+        border-radius: 4px !important;
+    }
+    
+    .active-chat .chat-title::-webkit-scrollbar-thumb {
+        background: var(--accent) !important; /* Richiama il colore principale di LIME */
+        border-radius: 4px !important;
+    }
+</style>
+
+
+    
     
 
 
@@ -3470,6 +3506,7 @@
     
 </body>
 </html>
+
 
 
 
