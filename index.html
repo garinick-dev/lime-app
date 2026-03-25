@@ -3456,6 +3456,24 @@
 
 
 
+<script>
+(function scambiaProfiloInterfaccia() {
+    const sidebarBottom = document.getElementById('sidebar-bottom');
+    if (!sidebarBottom) return;
+    
+    // Raccoglie tutti i blocchi delle impostazioni
+    const items = Array.from(sidebarBottom.querySelectorAll('.setting-item'));
+    
+    // Trova i blocchi esatti leggendo le loro etichette (labels)
+    const blockProfilo = items.find(item => item.querySelector('label')?.innerText === 'Profilo');
+    const blockInterfaccia = items.find(item => item.querySelector('label')?.innerText === 'Interfaccia');
+    
+    // Se li trova entrambi, sposta Interfaccia esattamente prima di Profilo
+    if (blockProfilo && blockInterfaccia) {
+        sidebarBottom.insertBefore(blockInterfaccia, blockProfilo);
+    }
+})();
+</script>
    
     
 
@@ -3471,6 +3489,7 @@
     
 </body>
 </html>
+
 
 
 
