@@ -464,15 +464,20 @@
 
     function formatLaTeX(text) {
     if (!text) return "";
-    
-    // Cattura le formule in blocco \[ ... \] o \\[ ... \\] e le converte in $$ ... $$
-    let formatted = text.replace(/(?:\\\\|\\)\[([\s\S]*?)(?:\\\\|\\)\]/g, '$$$$$1$$$$');
-    
-    // Cattura le formule in linea \( ... \) o \\( ... \\) e le converte in $ ... $
+
+    // Gestione formule in blocco: cattura, pulisce gli a capo interni e formatta in linea
+    let formatted = text.replace(/(?:\\\\|\\)\[([\s\S]*?)(?:\\\\|\\)\]/g, (match, p1) => {
+        // Rimuove tutti i newline (\n) e i ritorni a capo (\r) dal contenuto matematico
+        let cleanMath = p1.replace(/[\r\n]+/g, ' ');
+        return `$$ ${cleanMath} $$`;
+    });
+
+    // Gestione formule in linea (invariata)
     formatted = formatted.replace(/(?:\\\\|\\)\(([\s\S]*?)(?:\\\\|\\)\)/g, '$$$1$$');
-    
+
     return formatted;
 }
+
 
 
     const originalFetch = window.fetch;
