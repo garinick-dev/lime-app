@@ -3461,35 +3461,67 @@
 
 
 <style>
-    /* Sblocca lo scorrimento orizzontale solo per il titolo della chat attiva */
+    /* Sblocca lo scorrimento orizzontale per il titolo della chat attiva */
     .active-chat .chat-title {
         overflow-x: auto !important;
-        text-overflow: clip !important; /* Rimuove i tre puntini (...) */
-        pointer-events: auto !important; /* Riabilita il tocco per permettere lo swipe */
-        padding-bottom: 5px !important; /* Crea un po' di respiro per la barra */
+        text-overflow: clip !important;
+        white-space: nowrap !important;
+        pointer-events: auto !important;
+        padding-bottom: 4px !important;
         
-        /* Regole per Firefox */
-        scrollbar-width: thin !important;
-        scrollbar-color: var(--accent) transparent !important;
+        /* Fallback nativo per Firefox (garantisce il cross-platform senza rompere nulla) */
+        scrollbar-width: auto !important;
+        scrollbar-color: var(--accent) rgba(0,0,0,0.1) !important;
     }
 
-    /* Stile della scrollbar orizzontale per Chrome, Safari e dispositivi mobili */
+    /* Stile barra per Chrome, Edge, Safari, iOS, Android */
     .active-chat .chat-title::-webkit-scrollbar {
         display: block !important;
-        height: 4px !important; /* Sottile ed elegante */
+        height: 14px !important; /* Spazio per contenere comodamente le frecce */
+        background-color: transparent !important;
     }
     
+    /* Il binario della barra */
     .active-chat .chat-title::-webkit-scrollbar-track {
-        background: rgba(128, 128, 128, 0.2) !important;
-        border-radius: 4px !important;
+        background: rgba(0, 0, 0, 0.15) !important;
+        border-radius: 6px !important;
+        margin: 0 2px !important;
     }
     
+    /* Il cursore mobile */
     .active-chat .chat-title::-webkit-scrollbar-thumb {
-        background: var(--accent) !important; /* Richiama il colore principale di LIME */
-        border-radius: 4px !important;
+        background-color: var(--accent) !important;
+        border-radius: 6px !important;
+    }
+
+    /* Freccia Sinistra (Finecorsa) */
+    .active-chat .chat-title::-webkit-scrollbar-button:single-button:horizontal:decrement {
+        display: block !important;
+        width: 16px !important;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='16,5 8,12 16,19'/%3E%3C/svg%3E") !important;
+        background-size: 12px 12px !important;
+        background-repeat: no-repeat !important;
+        background-position: center left !important;
+        opacity: 0.6 !important;
+    }
+
+    /* Freccia Destra (Finecorsa) */
+    .active-chat .chat-title::-webkit-scrollbar-button:single-button:horizontal:increment {
+        display: block !important;
+        width: 16px !important;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000' stroke='%23000' stroke-width='3' stroke-linejoin='round'%3E%3Cpolygon points='8,5 16,12 8,19'/%3E%3C/svg%3E") !important;
+        background-size: 12px 12px !important;
+        background-repeat: no-repeat !important;
+        background-position: center right !important;
+        opacity: 0.6 !important;
+    }
+
+    /* Inverte il colore delle frecce (da nere a bianche) se si usa il tema scuro per garantire il contrasto */
+    body:not(.light-theme) .active-chat .chat-title::-webkit-scrollbar-button {
+        filter: invert(1);
+        opacity: 0.8 !important;
     }
 </style>
-
 
     
     
@@ -3506,6 +3538,7 @@
     
 </body>
 </html>
+
 
 
 
