@@ -3494,6 +3494,48 @@
 
 
 
+
+
+
+    
+
+    
+
+    <script>
+(function patchWelcome() {
+    const originalUpdateProfile = window.updateProfileUI;
+    
+    if (originalUpdateProfile) {
+        window.updateProfileUI = function(user) {
+            // 1. Lascia che LIME faccia tutto il suo normale lavoro di caricamento
+            originalUpdateProfile.apply(this, arguments);
+
+            // 2. Trova il fumetto di benvenuto
+            const greetingBubble = document.querySelector('#lime-greeting-box .lime-bubble');
+            
+            if (greetingBubble) {
+                if (user && user.email) {
+                    // Prende il nome (o la prima parte della mail, esattamente come fa nella sidebar)
+                    const fullName = user.user_metadata?.full_name || user.email.split('@')[0];
+                    greetingBubble.innerText = `Ciao ${fullName}! Cosa facciamo oggi?`;
+                } else {
+                    // Fallback se per qualche motivo l'utente si scollega
+                    greetingBubble.innerText = "Ciao! Cosa facciamo oggi?";
+                }
+            }
+        };
+    }
+})();
+</script>
+
+
+
+
+    
+
+
+
+
     
 
     
@@ -3503,6 +3545,7 @@
     
 </body>
 </html>
+
 
 
 
