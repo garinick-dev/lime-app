@@ -3501,13 +3501,13 @@
 
     
 
-    <script>
-(function patchWelcome() {
+<script>
+(function patchWelcomeRandom() {
     const originalUpdateProfile = window.updateProfileUI;
     
     if (originalUpdateProfile) {
         window.updateProfileUI = function(user) {
-            // 1. Lascia che LIME faccia tutto il suo normale lavoro di caricamento
+            // 1. Esegue la logica originale di LIME
             originalUpdateProfile.apply(this, arguments);
 
             // 2. Trova il fumetto di benvenuto
@@ -3515,19 +3515,35 @@
             
             if (greetingBubble) {
                 if (user && user.email) {
-                    // Prende il nome (o la prima parte della mail, esattamente come fa nella sidebar)
+                    // Prende il nome
                     const fullName = user.user_metadata?.full_name || user.email.split('@')[0];
-                    greetingBubble.innerText = `Ciao ${fullName}! Cosa facciamo oggi?`;
+                    
+                    // Formatta il nome in grassetto e corsivo
+                    const styledName = `<strong><em>${fullName}</em></strong>`;
+                    
+                    // Array dei messaggi approvati, incluso l'originale
+                    const messaggi = [
+                        `Ciao ${styledName}! Cosa facciamo oggi?`,
+                        `Ciao ${styledName}! Su cosa lavoriamo oggi?`,
+                        `Bentornato ${styledName}! Da dove iniziamo?`,
+                        `Ehi ${styledName}, eccomi qua. Come posso aiutarti?`,
+                        `Ciao ${styledName}! Qual è il piano per oggi?`
+                    ];
+                    
+                    // Pesca un messaggio a caso dall'array
+                    const randomMsg = messaggi[Math.floor(Math.random() * messaggi.length)];
+                    
+                    // Usa innerHTML per far interpretare correttamente il grassetto e il corsivo
+                    greetingBubble.innerHTML = randomMsg;
                 } else {
-                    // Fallback se per qualche motivo l'utente si scollega
-                    greetingBubble.innerText = "Ciao! Cosa facciamo oggi?";
+                    // Fallback se l'utente è scollegato
+                    greetingBubble.innerHTML = "Ciao! Cosa facciamo oggi?";
                 }
             }
         };
     }
 })();
 </script>
-
 
 
 
@@ -3545,6 +3561,7 @@
     
 </body>
 </html>
+
 
 
 
