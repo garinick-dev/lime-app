@@ -3518,14 +3518,13 @@
                     // Prende il nome
                     const fullName = user.user_metadata?.full_name || user.email.split('@')[0];
                     
-                    // Formatta il nome in grassetto e corsivo
-                    const styledName = `<strong><em>${fullName}</em></strong>`;
+                    // Formatta il nome solo in grassetto, pulito e senza fronzoli
+                    const styledName = `<strong>${fullName}</strong>`;
                     
-                    // Array dei messaggi approvati, incluso l'originale
+                    // Array dei messaggi approvati, 100% neutri
                     const messaggi = [
                         `Ciao ${styledName}! Cosa facciamo oggi?`,
                         `Ciao ${styledName}! Su cosa lavoriamo oggi?`,
-                        `Bentornato ${styledName}! Da dove iniziamo?`,
                         `Ehi ${styledName}, eccomi qua. Come posso aiutarti?`,
                         `Ciao ${styledName}! Qual è il piano per oggi?`
                     ];
@@ -3533,10 +3532,10 @@
                     // Pesca un messaggio a caso dall'array
                     const randomMsg = messaggi[Math.floor(Math.random() * messaggi.length)];
                     
-                    // Usa innerHTML per far interpretare correttamente il grassetto e il corsivo
+                    // Usa innerHTML per far interpretare correttamente il grassetto
                     greetingBubble.innerHTML = randomMsg;
                 } else {
-                    // Fallback se l'utente è scollegato
+                    // Fallback neutro se l'utente è scollegato
                     greetingBubble.innerHTML = "Ciao! Cosa facciamo oggi?";
                 }
             }
@@ -3561,6 +3560,7 @@
     
 </body>
 </html>
+
 
 
 
