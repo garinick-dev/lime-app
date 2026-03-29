@@ -996,8 +996,7 @@
             greetingValue = modeMapping[detectedMode];
         }
 
-        // --- LANCIO MOP ---
-        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale');
+
 
         
         let finalQuery = queryForDify || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
@@ -1075,6 +1074,11 @@
                             if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
                             chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                         } 
+
+                        // --- MOP ---
+                        const tokens = data.metadata?.usage?.total_tokens || 0;
+                        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale', tokens);
+                        
                     } else {
                         hasError = true;
                     }
@@ -1136,6 +1140,12 @@
                                                 if(!chatCache[currentConversationId]) chatCache[currentConversationId] = []; 
                                                 chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                                             }
+
+                                            // --- MOP ---
+                        const tokens = data.metadata?.usage?.total_tokens || 0;
+                        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale', tokens);
+
+                                            
                                         } else {
                                             hasError = true; 
                                         }
@@ -3582,7 +3592,7 @@ window.inviaScontrinoMOP = async function(modalita) {
             body: JSON.stringify({
                 user_email: user.email,
                 modalita: modalita,
-                tokens_usati: 0
+                tokens_usati: tokens_usati || 0
             })
         })
         .then(async res => {
