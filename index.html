@@ -3589,7 +3589,7 @@ window.inviaScontrinoMOP = async function(modalita) {
             body: JSON.stringify({
                 user_email: user.email,
                 modalita: modalita,
-                tokens_usati: tokens_usati || 0
+                tokens_usati: 0
             })
         })
         .then(async res => {
