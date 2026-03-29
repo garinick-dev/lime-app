@@ -996,6 +996,8 @@
             greetingValue = modeMapping[detectedMode];
         }
 
+        // --- MOP ---
+        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale');
 
 
         
@@ -1075,9 +1077,7 @@
                             chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                         } 
 
-                        // --- MOP ---
-                        const tokens = data.metadata?.usage?.total_tokens || 0;
-                        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale', tokens);
+                        
                         
                     } else {
                         hasError = true;
@@ -1141,10 +1141,7 @@
                                                 chatCache[currentConversationId].push({id: data.message_id || data.id || null, query: finalQuery, answer: fullAnswer, created_at: Math.floor(Date.now()/1000)}); 
                                             }
 
-                                            // --- MOP ---
-                        const tokens = data.metadata?.usage?.total_tokens || 0;
-                        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale', tokens);
-
+                                            
                                             
                                         } else {
                                             hasError = true; 
