@@ -3563,26 +3563,41 @@
 // ==========================================
 window.inviaScontrinoMOP = async function(modalita) {
     try {
-        
         const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user || !user.email) return;
+        if (!user || !user.email) {
+            console.log("MOP: Nessun utente trovato, scontrino annullato.");
+            return;
+        }
 
-        
+        console.log("MOP: Tento l'invio dello scontrino per", user.email, modalita);
+
         fetch(`${S_URL}/rest/v1/lime_usage_logs`, {
             method: 'POST',
             headers: {
                 'apikey': S_KEY,
                 'Authorization': `Bearer ${S_KEY}`,
                 'Content-Type': 'application/json',
-                'Prefer': 'return=minimal' 
+                'Prefer': 'return=minimal'
             },
             body: JSON.stringify({
                 user_email: user.email,
                 modalita: modalita,
-                tokens_usati: 0 // Segnaposto, conteremo le "chiamate"
+                tokens_usati: 0
             })
-        }).catch(() => {}); // Se fallisce (es. assenza di rete), muore nel silenzio.
-    } catch(e) {}
+        })
+        .then(async res => {
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error("MOP Errore Supabase:", res.status, errText);
+            } else {
+                console.log("MOP: Scontrino consegnato con successo!");
+            }
+        })
+        .catch(err => console.error("MOP Errore di Rete:", err));
+
+    } catch(e) {
+        console.error("MOP Errore Generale:", e);
+    }
 };
 </script>
     
