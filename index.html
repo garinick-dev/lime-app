@@ -997,6 +997,7 @@
         }
 
         // --- MOP ---
+        const convId = currentConversationId || data.conversation_id;
         if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale');
 
 
@@ -3589,7 +3590,8 @@ window.inviaScontrinoMOP = async function(modalita) {
             body: JSON.stringify({
                 user_email: user.email,
                 modalita: modalita,
-                tokens_usati: 0
+                tokens_usati: 0,
+                conversation_id: conversation_id || 'Nuova'
             })
         })
         .then(async res => {
