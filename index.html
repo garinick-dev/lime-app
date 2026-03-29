@@ -996,6 +996,10 @@
             greetingValue = modeMapping[detectedMode];
         }
 
+        // --- LANCIO MOP ---
+        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale');
+
+        
         let finalQuery = queryForDify || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
         // --- FINE MODIFICA 1 ---
         if (extractedText) finalQuery = `${hiddenFileTag}${INJECT_START}\n${extractedText}\n${INJECT_END}\n${finalQuery}`; 
@@ -3549,6 +3553,39 @@
     
 
 
+
+
+
+
+<script>
+// ==========================================
+// MOP
+// ==========================================
+window.inviaScontrinoMOP = async function(modalita) {
+    try {
+        
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !user.email) return;
+
+        
+        fetch(`${S_URL}/rest/v1/lime_usage_logs`, {
+            method: 'POST',
+            headers: {
+                'apikey': S_KEY,
+                'Authorization': `Bearer ${S_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal' 
+            },
+            body: JSON.stringify({
+                user_email: user.email,
+                modalita: modalita,
+                tokens_usati: 0 // Segnaposto, conteremo le "chiamate"
+            })
+        }).catch(() => {}); // Se fallisce (es. assenza di rete), muore nel silenzio.
+    } catch(e) {}
+};
+</script>
+    
 
 
     
