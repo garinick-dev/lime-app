@@ -996,9 +996,9 @@
             greetingValue = modeMapping[detectedMode];
         }
 
-        // --- MOP ---
-        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(detectedMode || 'Normale');
 
+// MOP1
+const mopMode = detectedMode || 'Normale';
 
         
         let finalQuery = queryForDify || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
@@ -1064,6 +1064,11 @@
                         if (window.setMascotThinking) window.setMascotThinking(false);
                         fullAnswer = data.answer; 
                         success = true;
+
+                        // --- MOP2
+        const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
+        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati);
+        // ------------------------------------------------
                         
                         const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
                         let safeMathText = formatLaTeX(fullAnswer);
@@ -1131,6 +1136,13 @@
                                     } else if (data.event === 'message_end') { 
                                         if (fullAnswer.trim().length > 0) {
                                             success = true;
+
+
+                                            // --- MOP3
+        const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
+        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati);
+        // -------------------------------------------------
+                                            
                                             
                                             const finalizeUI = () => { botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); };
                                             if (document.hidden) finalizeUI(); else requestAnimationFrame(finalizeUI);
@@ -3568,44 +3580,51 @@
 // ==========================================
 // MOP
 // ==========================================
-window.inviaScontrinoMOP = async function(modalita) {
-    try {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user || !user.email) {
-            console.log("MOP: Nessun utente trovato, scontrino annullato.");
-            return;
-        }
+window.inviaScontrinoMOP = function(modalita, tokens = 0) {
+    // Usiamo setTimeout per delegare questa operazione a fine coda. 
+    // Zero impatto sulla reattività dell'interfaccia.
+    setTimeout(async () => {
+        try {
+            // Leggiamo la sessione dalla memoria locale, niente chiamate di rete lente!
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session || !session.user) return;
 
-        console.log("MOP: Tento l'invio dello scontrino per", user.email, modalita);
-
-        fetch(`${S_URL}/rest/v1/lime_usage_logs`, {
-            method: 'POST',
-            headers: {
-                'apikey': S_KEY,
-                'Authorization': `Bearer ${S_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-                user_email: user.email,
+            // Raccogliamo i metadati chirurgicamente
+            const isMobile = window.innerWidth < 768;
+            const fileType = window.currentFile ? window.currentFile.type : 'Nessuno';
+            const hasMic = window.sentViaMic === true;
+            const isStarter = document.body.classList.contains('starter-chat-active');
+            
+            const payload = {
+                user_email: session.user.email,
                 modalita: modalita,
-                tokens_usati: 0
-                
-            })
-        })
-        .then(async res => {
-            if (!res.ok) {
-                const errText = await res.text();
-                console.error("MOP Errore Supabase:", res.status, errText);
-            } else {
-                console.log("MOP: Scontrino consegnato con successo!");
-            }
-        })
-        .catch(err => console.error("MOP Errore di Rete:", err));
+                classe: localStorage.getItem('lime_edu_level') || 'Non definita',
+                istituto: localStorage.getItem('lime_inst_type') || 'Non definito',
+                tema_interfaccia: localStorage.getItem('lime_theme') || 'light',
+                dispositivo: isMobile ? 'Mobile' : 'Desktop',
+                ha_allegato: !!window.currentFile,
+                tipo_allegato: fileType,
+                uso_microfono: hasMic,
+                id_conversazione: window.currentConversationId || 'Nuova',
+                is_starter_chat: isStarter,
+                tokens_usati: tokens // ECCO I TOKEN REALI!
+            };
 
-    } catch(e) {
-        console.error("MOP Errore Generale:", e);
-    }
+            fetch(`${S_URL}/rest/v1/lime_usage_logs`, {
+                method: 'POST',
+                headers: {
+                    'apikey': S_KEY,
+                    'Authorization': `Bearer ${session.access_token}`, 
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(payload)
+            }).catch(err => console.error("MOP Errore Rete:", err));
+
+        } catch(e) {
+            console.error("MOP Errore Generale:", e);
+        }
+    }, 50); // Ritardo impercettibile per non disturbare lo scrolling o il rendering della chat
 };
 </script>
     
