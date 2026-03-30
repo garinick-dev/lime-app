@@ -3581,15 +3581,11 @@ const mopMode = detectedMode || 'Normale';
 // MOP
 // ==========================================
 window.inviaScontrinoMOP = function(modalita, tokens = 0) {
-    // Usiamo setTimeout per delegare questa operazione a fine coda. 
-    // Zero impatto sulla reattività dell'interfaccia.
     setTimeout(async () => {
         try {
-            // Leggiamo la sessione dalla memoria locale, niente chiamate di rete lente!
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session || !session.user) return;
 
-            // Raccogliamo i metadati chirurgicamente
             const isMobile = window.innerWidth < 768;
             const fileType = window.currentFile ? window.currentFile.type : 'Nessuno';
             const hasMic = window.sentViaMic === true;
@@ -3605,9 +3601,9 @@ window.inviaScontrinoMOP = function(modalita, tokens = 0) {
                 ha_allegato: !!window.currentFile,
                 tipo_allegato: fileType,
                 uso_microfono: hasMic,
-                id_conversazione: window.currentConversationId || 'Nuova',
+                conversation_id: window.currentConversationId || 'Nuova', // <-- Allineato al tuo DB!
                 is_starter_chat: isStarter,
-                tokens_usati: tokens // ECCO I TOKEN REALI!
+                tokens_usati: tokens
             };
 
             fetch(`${S_URL}/rest/v1/lime_usage_logs`, {
@@ -3624,7 +3620,7 @@ window.inviaScontrinoMOP = function(modalita, tokens = 0) {
         } catch(e) {
             console.error("MOP Errore Generale:", e);
         }
-    }, 50); // Ritardo impercettibile per non disturbare lo scrolling o il rendering della chat
+    }, 50);
 };
 </script>
     
