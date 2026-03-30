@@ -1065,10 +1065,10 @@ const mopMode = detectedMode || 'Normale';
                         fullAnswer = data.answer; 
                         success = true;
 
-                        // --- MOP2
-        const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
-        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati);
-        // ------------------------------------------------
+                        // --- MOP: ESTRAZIONE TOKEN E INVIO ---
+                        const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
+                        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati);
+                        // -------------------------------------
                         
                         const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
                         let safeMathText = formatLaTeX(fullAnswer);
@@ -1138,10 +1138,10 @@ const mopMode = detectedMode || 'Normale';
                                             success = true;
 
 
-                                            // --- MOP3
-        const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
-        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati);
-        // -------------------------------------------------
+                                            // --- MOP: ESTRAZIONE TOKEN E INVIO ---
+                                            const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
+                                            if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati);
+                                            // -------------------------------------
                                             
                                             
                                             const finalizeUI = () => { botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); };
@@ -3581,11 +3581,14 @@ const mopMode = detectedMode || 'Normale';
 // MOP
 // ==========================================
 window.inviaScontrinoMOP = function(modalita, tokens = 0) {
+    // Usiamo setTimeout per delegare l'operazione. LIME non subirà alcun rallentamento.
     setTimeout(async () => {
         try {
+            // Leggiamo la sessione dalla cache locale
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session || !session.user) return;
 
+            // Raccogliamo i metadati
             const isMobile = window.innerWidth < 768;
             const fileType = window.currentFile ? window.currentFile.type : 'Nessuno';
             const hasMic = window.sentViaMic === true;
@@ -3601,11 +3604,12 @@ window.inviaScontrinoMOP = function(modalita, tokens = 0) {
                 ha_allegato: !!window.currentFile,
                 tipo_allegato: fileType,
                 uso_microfono: hasMic,
-                conversation_id: window.currentConversationId || 'Nuova', // <-- Allineato al tuo DB!
+                conversation_id: window.currentConversationId || 'Nuova',
                 is_starter_chat: isStarter,
                 tokens_usati: tokens
             };
 
+            // Invio silenzioso a Supabase
             fetch(`${S_URL}/rest/v1/lime_usage_logs`, {
                 method: 'POST',
                 headers: {
@@ -3623,7 +3627,6 @@ window.inviaScontrinoMOP = function(modalita, tokens = 0) {
     }, 50);
 };
 </script>
-    
 
 
     
