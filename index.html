@@ -532,17 +532,19 @@
     }
 
     async function handleAuth() { 
-        const u = document.getElementById('username').value.trim().toLowerCase(), p = document.getElementById('password').value; 
-        if (!u || !p) return alert("Inserisci username e password"); 
-        if (authMode === 'signup' && p !== document.getElementById('confirm-password').value) return alert("Le password non coincidono"); 
-        const email = `${u}@lime.local`; 
-        if (authMode === 'signup') { 
-            const { error } = await supabaseClient.auth.signUp({ email, password: p }); 
-            if (error) return alert("Errore: " + error.message); toggleAuthMode(); 
-        } else { 
-            const { error } = await supabaseClient.auth.signInWithPassword({ email, password: p }); if (error) return alert("Credenziali errate"); 
-        } 
-    }
+    const u = document.getElementById('username').value.trim().toLowerCase(), p = document.getElementById('password').value; 
+    if (!u || !p) return alert("Inserisci username e password"); 
+    if (authMode === 'signup' && p !== document.getElementById('confirm-password').value) return alert("Le password non coincidono"); 
+    const email = `${u}@lime.local`; 
+    if (authMode === 'signup') { 
+        const { error } = await supabaseClient.auth.signUp({ email, password: p }); 
+        if (error) return alert(error.message.includes("already") ? "Errore: nome utente già in uso" : "Errore: " + error.message); 
+        toggleAuthMode(); 
+    } else { 
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password: p }); if (error) return alert("Credenziali errate"); 
+    } 
+}
+
 
     async function handleLogout() { 
         if (confirm("Vuoi davvero uscire?")) { 
