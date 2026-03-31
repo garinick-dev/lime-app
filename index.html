@@ -998,7 +998,10 @@
 
 
 // MOP1
-const mopMode = detectedMode || 'Normale';
+        const mopMode = detectedMode || 'Normale';
+        const mopHasFile = !!currentFile;
+        const mopFileType = currentFile ? currentFile.type : 'Nessuno';
+        const mopHasMic = window.sentViaMic === true;
 
         
         let finalQuery = queryForDify || " ", hiddenFileTag = currentFile ? `[--- FILE: ${currentFile.name} ---]\n` : '';
@@ -1065,10 +1068,10 @@ const mopMode = detectedMode || 'Normale';
                         fullAnswer = data.answer; 
                         success = true;
 
-                        // --- MOP: ESTRAZIONE TOKEN E INVIO ---
-                        const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
-                        if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati);
-                        // -------------------------------------
+                        // --- MOP ---
+const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
+if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mopHasFile, mopFileType, mopHasMic);
+// -------------------------------------
                         
                         const bottomBar = botDiv.querySelector('.msg-bottom-bar'); 
                         let safeMathText = formatLaTeX(fullAnswer);
@@ -1138,10 +1141,10 @@ const mopMode = detectedMode || 'Normale';
                                             success = true;
 
 
-                                            // --- MOP: ESTRAZIONE TOKEN E INVIO ---
-                                            const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
-                                            if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati);
-                                            // -------------------------------------
+                                            // --- MOP ---
+const tokensUsati = data?.metadata?.usage?.total_tokens || data?.usage?.total_tokens || 0;
+if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mopHasFile, mopFileType, mopHasMic);
+// -------------------------------------
                                             
                                             
                                             const finalizeUI = () => { botDiv.querySelectorAll('pre').forEach(pre => pre.insertAdjacentHTML('beforeend', '<button class="copy-btn">Copia</button>')); };
@@ -3580,18 +3583,13 @@ const mopMode = detectedMode || 'Normale';
 // ==========================================
 // MOP
 // ==========================================
-window.inviaScontrinoMOP = function(modalita, tokens = 0) {
-    // Usiamo setTimeout per delegare l'operazione. LIME non subirà alcun rallentamento.
+window.inviaScontrinoMOP = function(modalita, tokens = 0, hasFile = false, fileType = 'Nessuno', hasMic = false) {
     setTimeout(async () => {
         try {
-            // Leggiamo la sessione dalla cache locale
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session || !session.user) return;
 
-            // Raccogliamo i metadati
             const isMobile = window.innerWidth < 768;
-            const fileType = window.currentFile ? window.currentFile.type : 'Nessuno';
-            const hasMic = window.sentViaMic === true;
             const isStarter = document.body.classList.contains('starter-chat-active');
             
             const payload = {
@@ -3601,15 +3599,14 @@ window.inviaScontrinoMOP = function(modalita, tokens = 0) {
                 istituto: localStorage.getItem('lime_inst_type') || 'Non definito',
                 tema_interfaccia: localStorage.getItem('lime_theme') || 'light',
                 dispositivo: isMobile ? 'Mobile' : 'Desktop',
-                ha_allegato: !!window.currentFile,
-                tipo_allegato: fileType,
-                uso_microfono: hasMic,
+                ha_allegato: hasFile,           // Ora prende il valore "fotografato"
+                tipo_allegato: fileType,        // Ora prende il valore "fotografato"
+                uso_microfono: hasMic,          // Ora prende il valore "fotografato"
                 conversation_id: window.currentConversationId || 'Nuova',
                 is_starter_chat: isStarter,
                 tokens_usati: tokens
             };
 
-            // Invio silenzioso a Supabase
             fetch(`${S_URL}/rest/v1/lime_usage_logs`, {
                 method: 'POST',
                 headers: {
