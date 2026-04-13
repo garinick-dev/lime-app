@@ -2421,8 +2421,8 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
 
     #tutorial-next-btn {
         position: fixed; 
-        top: 20px; 
-        right: 20px; 
+        bottom: calc(90px + env(safe-area-inset-bottom)); 
+        /* Rimosso right: 20px; perché ora lo calcola il codice */
         width: 70px; 
         height: 70px;
         z-index: 9005; 
@@ -2440,7 +2440,8 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
         text-align: center;
         line-height: 1.1;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
-        transition: transform 0.2s, opacity 0.3s;
+        /* Aggiunto 'right' alle transizioni per renderlo fluido */
+        transition: transform 0.2s, opacity 0.3s, right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         user-select: none;
     }
     #tutorial-next-btn:active { transform: scale(0.92); }
@@ -2701,6 +2702,7 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
             if (tutorialSteps[currentIndex].selector === '.input-wrapper') {
                 if (typeof window.syncAnchoring === 'function') window.syncAnchoring();
             }
+		alignButtonToInput();
         };
 
         function closeTutorial() {
@@ -2719,10 +2721,21 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
                 const container = document.getElementById('tutorial-speech-container');
                 container.style.transition = 'none'; 
                 repositionContainer(currentIndex);
+		alignButtonToInput();
                 setTimeout(() => container.style.transition = '', 50);
             }
         }
 
+	function alignButtonToInput() {
+            const btn = document.getElementById('tutorial-next-btn');
+            const wrapper = document.querySelector('.input-wrapper');
+            if (btn && wrapper && document.body.classList.contains('tutorial-active')) {
+                const wrapRect = wrapper.getBoundingClientRect();
+                // Calcola la distanza tra il bordo destro dello schermo e il bordo destro dell'input
+                btn.style.right = (window.innerWidth - wrapRect.right) + 'px';
+            }
+        }
+	
         window.startTutorial = function() {
             if (document.body.classList.contains('tutorial-active')) return;
 
@@ -2745,6 +2758,7 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
             window.addEventListener('resize', handleResize);
             
             setTimeout(() => {
+		alignButtonToInput();
                 btn.innerText = "Inizia";
                 btn.style.display = 'flex';
             }, 3000);
