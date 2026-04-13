@@ -2742,8 +2742,8 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
                 const mascotRect = mascot.getBoundingClientRect();
                 const btnWidth = btn.offsetWidth; // Misuriamo la larghezza del pulsante
                 
-                // Il distacco dinamico: 120% della larghezza del pulsante (ovvero larghezza moltiplicata per 1.2)
-                const gap = btnWidth * 1.2; 
+                // Il distacco dinamico negativo: -120% (moltiplicato per -1.2)
+                const gap = btnWidth * -1.2; 
                 
                 // Posizioniamo il pulsante
                 btn.style.right = (window.innerWidth - (mascotRect.right + gap + btnWidth)) + 'px'; 
