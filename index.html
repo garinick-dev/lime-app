@@ -40,7 +40,7 @@
         #sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); display: flex; flex-direction: column; border-right: 1px solid var(--border-color); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0; will-change: transform; z-index: 20000; }
         #sidebar.hidden { transform: translateX(-100%); margin-right: calc(-1 * var(--sidebar-width)); }
         
-        #sidebar-top { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; } 
+        #sidebar-top { flex: 1 1 70%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; } 
         #sidebar-top::before { content: "Chat"; display: block; color: var(--accent); font-size: 0.95rem; font-weight: 800; letter-spacing: 1px; padding: 20px 20px 5px 20px; padding-top: calc(20px + env(safe-area-inset-top)); flex-shrink: 0; }
         .sidebar-header { padding: 20px; padding-top: 5px !important; flex-shrink: 0;}
         
@@ -54,7 +54,7 @@
         
         .load-more-btn { background: var(--accent); color: #000; border: none; padding: 10px; width: 100%; border-radius: 8px; cursor: pointer; margin-top: 10px; font-size: 0.85rem; font-weight: 600; transition: filter 0.2s ease, transform 0.1s ease; } .load-more-btn:hover { filter: brightness(1.15); } .load-more-btn:active { transform: scale(0.98); }
         
-        #sidebar-bottom { flex: 1 1 50%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: 20px !important; }
+        #sidebar-bottom { flex: 1 1 30%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; border-top: 1px solid var(--border-color); padding: 20px; padding-bottom: 20px !important; }
         #sidebar-bottom::before { content: "Impostazioni"; position: -webkit-sticky; position: sticky; top: -20px; display: block; background: var(--sidebar-bg); color: var(--accent); font-size: 0.95rem; font-weight: 800; letter-spacing: 1px; padding: 20px 0 15px 0; margin: -20px 0 15px 0; z-index: 10; }
         
         
