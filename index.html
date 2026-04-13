@@ -2421,44 +2421,36 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
 
     #tutorial-next-btn {
         position: fixed; 
-        bottom: calc(90px + env(safe-area-inset-bottom)); 
-        right: 20px; 
+        /* Abbassato ulteriormente: cambia 70px se vuoi scendere o salire ancora */
+        bottom: calc(70px + env(safe-area-inset-bottom)); 
         
-        /* 1. NUOVA ALTEZZA "SCHIACCIARE" (standard 36px) */
         height: 36px; 
-        
-        /* 2. NUOVA LARGHEZZA AUTOMATICA + PADDING */
         width: auto; 
-        padding: 0 16px 0 24px; /* Aumentiamo il padding sinistro per bilanciare la punta */
+        /* Padding simmetrico per far respirare il testo nella pillola */
+        padding: 0 24px; 
         
         z-index: 9005; 
         background: #28a745; 
         color: white; 
         border: none;
         
-        /* 3. ARROTONDIAMO SOLO I BORDI PRINCIPALI (il cerchio non serve più) */
-        border-radius: 6px; 
+        /* Arrotondamento massimo per l'effetto pillola */
+        border-radius: 50px; 
         
         font-weight: 800;
         font-size: 0.75rem; 
         text-transform: uppercase; 
         cursor: pointer; 
-        display: none; /* Rimarrà gestito dal JS */
-        
-        /* Allineamento testo orizzontale/verticale flessibile */
+        display: none; 
         align-items: center;
         justify-content: center;
         text-align: center;
         line-height: 1.1;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
-        transition: transform 0.2s, opacity 0.3s;
+        transition: transform 0.2s, opacity 0.3s, right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
         user-select: none;
         
-        /* ---- 4. LA MAGIA: LA FORMA A FRECCIA ---- */
-        /* Questo poligono taglia il rettangolo a forma di freccia-flag verso destra.
-           La punta è una linea retta, mentre la 'coda' della freccia è arrotondata 
-           dal border-radius che abbiamo impostato sopra! */
-        clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%);
+        /* clip-path rimosso! */
     }
     #tutorial-next-btn:active { transform: scale(0.95); }
 
