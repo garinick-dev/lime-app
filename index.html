@@ -2736,16 +2736,16 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
 
 	function alignButtonToInput() {
             const btn = document.getElementById('tutorial-next-btn');
-            // Ora puntiamo alla mascotte invece che alla barra di input
             const mascot = document.getElementById('lime-app-mascot'); 
             
             if (btn && mascot && document.body.classList.contains('tutorial-active')) {
                 const mascotRect = mascot.getBoundingClientRect();
+                const btnWidth = btn.offsetWidth; // Misuriamo quanto è largo il pulsante
+                const gap = 15; // Il "piccolo distacco" in pixel. Puoi aumentarlo o diminuirlo!
                 
-                // Calcola la distanza dal bordo destro dello schermo al bordo destro della mascotte.
-                // Se vuoi spostarlo leggermente più a sinistra o a destra rispetto al bordo esatto, 
-                // puoi aggiungere o sottrarre un numero alla fine (es. ...mascotRect.right + 10)
-                btn.style.right = (window.innerWidth - mascotRect.right) + 'px'; 
+                // Matematica magica: posizioniamo la fine del pulsante in modo che 
+                // il suo inizio (lato sinistro) combaci esattamente con la fine della mascotte + il distacco
+                btn.style.right = (window.innerWidth - (mascotRect.right + gap + btnWidth)) + 'px'; 
             }
         }
 	
