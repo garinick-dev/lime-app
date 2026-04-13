@@ -2736,17 +2736,14 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
 
 	function alignButtonToInput() {
             const btn = document.getElementById('tutorial-next-btn');
-            const mascot = document.getElementById('lime-app-mascot'); 
-            
-            if (btn && mascot && document.body.classList.contains('tutorial-active')) {
-                const mascotRect = mascot.getBoundingClientRect();
-                const btnWidth = btn.offsetWidth; // Misuriamo la larghezza del pulsante
+            const wrapper = document.querySelector('.input-wrapper');
+            if (btn && wrapper && document.body.classList.contains('tutorial-active')) {
+                const wrapRect = wrapper.getBoundingClientRect();
+                const btnWidth = btn.offsetWidth; // <--- AGGIUNTO QUESTO
                 
-                // Il distacco dinamico negativo: -120% (moltiplicato per -1.2)
-                const gap = btnWidth * -1.2; 
-                
-                // Posizioniamo il pulsante
-                btn.style.right = (window.innerWidth - (mascotRect.right + gap + btnWidth)) + 'px'; 
+                // Calcola la distanza tra il bordo destro dello schermo e il bordo destro dell'input
+                // Aggiungiamo un piccolo offset (es. 20px) per centrarlo perfettamente sulla breathbar
+                btn.style.right = (window.innerWidth - wrapRect.right + 20) + 'px'; 
             }
         }
 	
