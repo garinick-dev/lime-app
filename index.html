@@ -2740,11 +2740,12 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
             
             if (btn && mascot && document.body.classList.contains('tutorial-active')) {
                 const mascotRect = mascot.getBoundingClientRect();
-                const btnWidth = btn.offsetWidth; // Misuriamo quanto è largo il pulsante
-                const gap = 15; // Il "piccolo distacco" in pixel. Puoi aumentarlo o diminuirlo!
+                const btnWidth = btn.offsetWidth; // Misuriamo la larghezza del pulsante
                 
-                // Matematica magica: posizioniamo la fine del pulsante in modo che 
-                // il suo inizio (lato sinistro) combaci esattamente con la fine della mascotte + il distacco
+                // Il distacco dinamico: 120% della larghezza del pulsante (ovvero larghezza moltiplicata per 1.2)
+                const gap = btnWidth * 1.2; 
+                
+                // Posizioniamo il pulsante
                 btn.style.right = (window.innerWidth - (mascotRect.right + gap + btnWidth)) + 'px'; 
             }
         }
