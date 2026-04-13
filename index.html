@@ -2422,29 +2422,45 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
     #tutorial-next-btn {
         position: fixed; 
         bottom: calc(90px + env(safe-area-inset-bottom)); 
-        /* Rimosso right: 20px; perché ora lo calcola il codice */
-        width: 70px; 
-        height: 70px;
+        right: 20px; 
+        
+        /* 1. NUOVA ALTEZZA "SCHIACCIARE" (standard 36px) */
+        height: 36px; 
+        
+        /* 2. NUOVA LARGHEZZA AUTOMATICA + PADDING */
+        width: auto; 
+        padding: 0 16px 0 24px; /* Aumentiamo il padding sinistro per bilanciare la punta */
+        
         z-index: 9005; 
         background: #28a745; 
         color: white; 
         border: none;
-        border-radius: 50%;
+        
+        /* 3. ARROTONDIAMO SOLO I BORDI PRINCIPALI (il cerchio non serve più) */
+        border-radius: 6px; 
+        
         font-weight: 800;
         font-size: 0.75rem; 
         text-transform: uppercase; 
         cursor: pointer; 
-        display: none; 
+        display: none; /* Rimarrà gestito dal JS */
+        
+        /* Allineamento testo orizzontale/verticale flessibile */
         align-items: center;
         justify-content: center;
         text-align: center;
         line-height: 1.1;
         box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
-        /* Aggiunto 'right' alle transizioni per renderlo fluido */
-        transition: transform 0.2s, opacity 0.3s, right 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transition: transform 0.2s, opacity 0.3s;
         user-select: none;
+        
+        /* ---- 4. LA MAGIA: LA FORMA A FRECCIA ---- */
+        /* Questo poligono taglia il rettangolo a forma di freccia-flag verso destra.
+           La punta è una linea retta, mentre la 'coda' della freccia è arrotondata 
+           dal border-radius che abbiamo impostato sopra! */
+        clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%);
     }
-    #tutorial-next-btn:active { transform: scale(0.92); }
+    #tutorial-next-btn:active { transform: scale(0.95); }
 
     
 
@@ -2731,8 +2747,11 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
             const wrapper = document.querySelector('.input-wrapper');
             if (btn && wrapper && document.body.classList.contains('tutorial-active')) {
                 const wrapRect = wrapper.getBoundingClientRect();
+                const btnWidth = btn.offsetWidth; // <--- AGGIUNTO QUESTO
+                
                 // Calcola la distanza tra il bordo destro dello schermo e il bordo destro dell'input
-                btn.style.right = (window.innerWidth - wrapRect.right) + 'px';
+                // Aggiungiamo un piccolo offset (es. 20px) per centrarlo perfettamente sulla breathbar
+                btn.style.right = (window.innerWidth - wrapRect.right + 20) + 'px'; 
             }
         }
 	
