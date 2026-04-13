@@ -2736,14 +2736,16 @@ if (window.inviaScontrinoMOP) window.inviaScontrinoMOP(mopMode, tokensUsati, mop
 
 	function alignButtonToInput() {
             const btn = document.getElementById('tutorial-next-btn');
-            const wrapper = document.querySelector('.input-wrapper');
-            if (btn && wrapper && document.body.classList.contains('tutorial-active')) {
-                const wrapRect = wrapper.getBoundingClientRect();
-                const btnWidth = btn.offsetWidth; // <--- AGGIUNTO QUESTO
+            // Ora puntiamo alla mascotte invece che alla barra di input
+            const mascot = document.getElementById('lime-app-mascot'); 
+            
+            if (btn && mascot && document.body.classList.contains('tutorial-active')) {
+                const mascotRect = mascot.getBoundingClientRect();
                 
-                // Calcola la distanza tra il bordo destro dello schermo e il bordo destro dell'input
-                // Aggiungiamo un piccolo offset (es. 20px) per centrarlo perfettamente sulla breathbar
-                btn.style.right = (window.innerWidth - wrapRect.right + 20) + 'px'; 
+                // Calcola la distanza dal bordo destro dello schermo al bordo destro della mascotte.
+                // Se vuoi spostarlo leggermente più a sinistra o a destra rispetto al bordo esatto, 
+                // puoi aggiungere o sottrarre un numero alla fine (es. ...mascotRect.right + 10)
+                btn.style.right = (window.innerWidth - mascotRect.right) + 'px'; 
             }
         }
 	
