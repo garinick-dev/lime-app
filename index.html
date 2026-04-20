@@ -4099,6 +4099,648 @@ window.inviaScontrinoMOP = function(modalita, tokens = 0, hasFile = false, fileT
 
 
 
+
+
+
+
+
+
+
+/*patchCartelleMenoWorkspace*/
+
+<style>
+    /* ---- COMPATTAZIONE HEADER NATIVO LIME ---- */
+    .sidebar-header {
+        padding-bottom: 4px !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* ---- WRAPPER PER PULSANTI HEADER SIDEBAR ---- */
+    .sidebar-action-buttons {
+        display: flex;
+        flex-direction: row !important; 
+        gap: 8px; 
+        width: 100%;
+        margin-bottom: 8px; 
+        margin-top: 5px;
+    }
+    
+    /* Il bottone intero diventa la pillola colorata */
+    .sidebar-action-buttons > button, 
+    .sidebar-action-buttons .new-chat-btn {
+        border: none !important;
+        padding: 4px 14px 4px 4px !important; 
+        margin: 0 !important;
+        display: flex;
+        flex-direction: row !important; 
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px !important; 
+        cursor: pointer;
+        width: 50% !important; 
+        border-radius: 50px !important; 
+        transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Colori specifici per le pillole */
+    .new-chat-btn, 
+    body.light-theme .sidebar-action-buttons .new-chat-btn {
+        background: var(--accent) !important;
+        color: #000 !important; 
+    }
+
+    .new-folder-btn {
+        background: rgba(255, 255, 255, 0.12) !important;
+        color: var(--text-main) !important;
+    }
+    body.light-theme .new-folder-btn { 
+        background: rgba(0, 0, 0, 0.06) !important; 
+    }
+
+    /* ---- IL CONTENITORE DELL'ICONA ---- */
+    .action-circle {
+        width: 40px;  
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        background: transparent !important; 
+    }
+
+    /* ---- IL TESTO NELLA PILLOLA ---- */
+    .sidebar-action-buttons > button span, 
+    .sidebar-action-buttons .new-chat-btn span {
+        font-size: 0.8rem; 
+        font-weight: 700 !important;
+        color: inherit !important; 
+        text-align: left;
+        line-height: 1.1; 
+        white-space: nowrap;
+    }
+
+    /* Effetti Hover e Click sull'intera pillola */
+    .sidebar-action-buttons > button:hover { 
+        filter: brightness(1.15); 
+        transform: scale(1.02); 
+    }
+    body.light-theme .new-folder-btn:hover { filter: brightness(0.9); }
+    
+    .sidebar-action-buttons > button:active { 
+        transform: scale(0.96); 
+    }
+
+    /* ---- COMPATTAZIONE LISTA CHAT NATIVE LIME ---- */
+    #history-list .history-item {
+        padding: 8px 12px !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* ---- CONTENITORE CARTELLA ---- */
+    .folder-wrapper { 
+        margin-bottom: 4px; 
+        border: 1.5px solid var(--accent); 
+        border-radius: 12px;
+        overflow: hidden; 
+        background: rgba(0, 0, 0, 0.15);
+        transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    body.light-theme .folder-wrapper { background: #f4f5f7; }
+    
+    .history-folder-item {
+        padding: 8px 12px; 
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-main);
+        background: transparent; 
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: background 0.2s;
+    }
+    .history-folder-item:hover { background: rgba(255, 255, 255, 0.05); }
+    body.light-theme .history-folder-item:hover { background: rgba(0, 0, 0, 0.05); }
+
+    /* ---- ICONA CARTELLA CON FRECCETTA INTRINSECA ---- */
+    .folder-icon-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+    }
+    .folder-icon { color: var(--accent); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    
+    .folder-chevron {
+        position: absolute;
+        color: var(--accent); 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        margin-top: 3px; 
+    }
+    .folder-chevron svg {
+        width: 11px !important; 
+        height: 11px !important;
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        stroke-width: 3;
+    }
+    .folder-wrapper.expanded .folder-chevron svg {
+        transform: rotate(180deg);
+    }
+
+    .folder-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+
+    /* ---- ACCORDION FLUIDO DELLA CARTELLA ---- */
+    .folder-content-wrapper {
+        display: grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .folder-wrapper.expanded .folder-content-wrapper { grid-template-rows: 1fr; }
+    .folder-content { overflow: hidden; }
+    
+    .folder-inner {
+        padding: 0 8px 8px 8px; 
+        display: flex;
+        flex-direction: column;
+        gap: 2px; 
+    }
+
+    /* ---- PULSANTI AGGIUNGI/TOGLI CHAT ---- */
+    .folder-action-row {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 4px; 
+    }
+
+    .folder-action-btn {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: var(--text-main) !important;
+        border: 1px solid transparent !important;
+        padding: 6px; 
+        border-radius: 8px;
+        cursor: pointer;
+        flex: 1;
+        font-size: 0.75rem; 
+        font-weight: 600;
+        transition: all 0.2s;
+        text-align: center;
+    }
+    body.light-theme .folder-action-btn { background: rgba(0,0,0,0.06) !important; }
+    .folder-action-btn:hover { filter: brightness(1.3); }
+    body.light-theme .folder-action-btn:hover { filter: brightness(0.85); }
+
+    /* Logica cromatica dei tasti Annulla */
+    .folder-action-btn.is-annulla-add {
+        color: #007aff !important;
+        border-color: #007aff !important;
+        background: rgba(0, 122, 255, 0.08) !important;
+    }
+    .folder-action-btn.is-annulla-rem {
+        color: #ff4444 !important;
+        border-color: #ff4444 !important;
+        background: rgba(255, 68, 68, 0.08) !important;
+    }
+
+    /* ---- STATI "AGGIUNGI CHAT" ---- */
+    body.folder-add-mode .unassigned-in-add-mode {
+        border: 1px dashed #007aff;
+        background: rgba(0, 122, 255, 0.05); 
+        transform: scale(0.98);
+        transition: transform 0.2s, background 0.2s;
+    }
+    body.folder-add-mode .unassigned-in-add-mode:hover {
+        background: rgba(0, 122, 255, 0.15);
+        transform: scale(1);
+    }
+
+    /* ---- STATI "TOGLI CHAT" ---- */
+    body.folder-remove-mode .assigned-in-remove-mode {
+        border: 1px dashed #ff4444;
+        background: rgba(255, 68, 68, 0.05); 
+        transform: scale(0.98);
+        transition: transform 0.2s, background 0.2s;
+    }
+    body.folder-remove-mode .assigned-in-remove-mode:hover {
+        background: rgba(255, 68, 68, 0.15);
+        transform: scale(1);
+    }
+
+    /* ---- DISABILITAZIONE TOTALE CHAT NON COINVOLTE E PULSANTI ---- */
+    
+    /* 1. Spengo i pulsantini di modifica (Rinomina/Cestino) su tutte le chat/cartelle */
+    body.folder-add-mode #history-list .chat-actions .action-btn,
+    body.folder-remove-mode #history-list .chat-actions .action-btn {
+        pointer-events: none !important;
+        opacity: 0.25 !important;
+        filter: grayscale(100%) !important;
+    }
+
+    /* 2. Spengo e oscuro TUTTE le chat della lista durante le operazioni */
+    body.folder-add-mode #history-list .history-item,
+    body.folder-remove-mode #history-list .history-item {
+        pointer-events: none !important;
+        opacity: 0.4 !important;
+        transition: opacity 0.2s;
+    }
+
+    /* 3. Riaccendo ESCLUSIVAMENTE le chat interessate dall'operazione */
+    body.folder-add-mode #history-list .history-item.unassigned-in-add-mode,
+    body.folder-remove-mode #history-list .history-item.assigned-in-remove-mode {
+        pointer-events: auto !important;
+        opacity: 1 !important;
+    }
+</style>
+
+<script>
+(function initFolderArchitecture() {
+    const FOLDER_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 100%; height: 100%;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
+    const CHEVRON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+    
+    const CHAT_BTN_SVG = `<svg viewBox="0 0 24 24" fill="none" style="width: 22px; height: 22px; flex-shrink: 0;">
+        <path fill="currentColor" fill-rule="evenodd" d="M8.35078106,18 L3.62469505,21.7808688 C2.9699317,22.3046795 2,21.8385062 2,21 L2,5 C2,3.34314575 3.34314575,2 5,2 L19,2 C20.6568542,2 22,3.34314575 22,5 L22,15 C22,16.6568542 20.6568542,18 19,18 L8.35078106,18 Z M4,18.9193752 L7.37530495,16.2191312 C7.552618,16.0772808 7.7729285,16 8,16 L19,16 C19.5522847,16 20,15.5522847 20,15 L20,5 C20,4.44771525 19.5522847,4 19,4 L5,4 C4.44771525,4 4,4.44771525 4,5 L4,18.9193752 Z"/>
+        <line x1="12" y1="6" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <line x1="9" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>`;
+
+    const NEW_FOLDER_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 22px; height: 22px; flex-shrink: 0;">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        <line x1="12" y1="9" x2="12" y2="15"></line>
+        <line x1="9" y1="12" x2="15" y2="12"></line>
+    </svg>`;
+
+    window.folderActionState = { mode: null, targetId: null };
+    window.activeFolderIds = window.activeFolderIds || [];
+
+    const getFolders = () => JSON.parse(localStorage.getItem('lime_folders_' + userId) || '[]');
+    
+    const saveFolders = (data) => {
+        localStorage.setItem('lime_folders_' + userId, JSON.stringify(data));
+        if (typeof window.syncFolderDataToCloud === 'function') window.syncFolderDataToCloud();
+    };
+    
+    const getMapping = () => JSON.parse(localStorage.getItem('lime_folder_mapping_' + userId) || '{}');
+    
+    const saveMapping = (data) => {
+        localStorage.setItem('lime_folder_mapping_' + userId, JSON.stringify(data));
+        if (typeof window.syncFolderDataToCloud === 'function') window.syncFolderDataToCloud();
+    };
+
+    // Motore asincrono: aggiorna Supabase senza bloccare o rallentare la grafica
+    window.syncFolderDataToCloud = async function() {
+        // Usa supabaseClient al posto di supabase generico
+        if (!userId || typeof supabaseClient === 'undefined') return; 
+        
+        try {
+            const payload = {
+                folders: getFolders(),
+                mapping: getMapping()
+            };
+            
+            // Invia al DB. L'upsert crea la riga se l'utente è nuovo, altrimenti la aggiorna.
+            await supabaseClient
+                .from('profiles')
+                .upsert({ 
+                    id: userId, 
+                    folders_data: payload 
+                }, { onConflict: 'id' });
+        } catch (error) {
+            console.error("Errore silente sync cartelle:", error);
+        }
+    };
+
+    if (typeof window.toggleSidebar === 'function' && !window.toggleSidebar.folderPatched) {
+        const originalToggleSidebar = window.toggleSidebar;
+        window.toggleSidebar = function() {
+            originalToggleSidebar.apply(this, arguments);
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && sidebar.classList.contains('hidden')) {
+                if (window.folderActionState && window.folderActionState.mode !== null) {
+                    window.folderActionState = { mode: null, targetId: null };
+                    document.body.classList.remove('folder-add-mode', 'folder-remove-mode');
+                    if (typeof window.renderHistoryList === 'function') window.renderHistoryList();
+                }
+            }
+        };
+        window.toggleSidebar.folderPatched = true;
+    }
+
+    const sidebarHeader = document.querySelector('.sidebar-header');
+    const newChatBtn = document.querySelector('.new-chat-btn');
+    
+    if (sidebarHeader && newChatBtn && !document.querySelector('.new-folder-btn')) {
+        newChatBtn.innerHTML = `<div class="action-circle">${CHAT_BTN_SVG}</div><span>Nuova<br>chat</span>`;
+
+        const btnWrapper = document.createElement('div');
+        btnWrapper.className = 'sidebar-action-buttons';
+
+        newChatBtn.parentNode.insertBefore(btnWrapper, newChatBtn);
+        btnWrapper.appendChild(newChatBtn); 
+
+        const newFolderBtn = document.createElement('button');
+        newFolderBtn.className = 'new-folder-btn';
+        newFolderBtn.innerHTML = `<div class="action-circle">${NEW_FOLDER_SVG}</div><span>Nuova<br>cartella</span>`;
+        btnWrapper.appendChild(newFolderBtn);
+
+        newFolderBtn.onclick = () => {
+            if(!userId) return;
+            const folderName = prompt("Nome della cartella:", "Nuova Cartella");
+            if (!folderName || folderName.trim() === "") return;
+
+            const folders = getFolders();
+            // Generatore di ID univoci a prova di collisione per il Cloud
+            const generateSafeId = () => (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'folder_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            
+            // Struttura predisposta per i futuri Spazi di Lavoro
+            folders.unshift({ 
+                id: generateSafeId(), 
+                name: folderName.trim(),
+                createdAt: new Date().toISOString(),
+                meta: {
+                    isWorkspace: false, // Il futuro interruttore ON/OFF per il contesto
+                    systemPrompt: ""    // Il futuro campo per le istruzioni dell'IA
+                }
+            });
+            saveFolders(folders);
+            window.renderHistoryList();
+        };
+    }
+
+    window.renameLimeFolder = function(id) {
+        const folders = getFolders();
+        const folder = folders.find(f => f.id === id);
+        if (!folder) return;
+        
+        const newName = prompt("Nuovo nome della cartella:", folder.name);
+        if (newName && newName.trim() !== "") {
+            folder.name = newName.trim();
+            saveFolders(folders);
+            window.renderHistoryList();
+        }
+    };
+
+    window.deleteLimeFolder = function(id) {
+        if(confirm('Vuoi eliminare questa cartella? Le chat al suo interno NON verranno eliminate, torneranno libere.')) {
+            let folders = getFolders();
+            folders = folders.filter(f => f.id !== id);
+            saveFolders(folders);
+
+            let mapping = getMapping();
+            for(let key in mapping) {
+                if(mapping[key] === id) delete mapping[key];
+            }
+            saveMapping(mapping);
+
+            if (window.folderActionState.targetId === id) {
+                window.folderActionState = { mode: null, targetId: null };
+                document.body.classList.remove('folder-add-mode', 'folder-remove-mode');
+            }
+            window.renderHistoryList();
+        }
+    };
+
+    window.createRawChatItem = function(chat) {
+        const div = document.createElement('div');
+        div.className = `history-item ${chat.dify_id === currentConversationId ? 'active-chat' : ''}`;
+        div.id = `chat-${chat.dify_id}`;
+        div.onclick = () => handleChatClick(chat.dify_id);
+
+        const safeTitle = (window.DOMPurify) ? DOMPurify.sanitize(chat.title || "Nuova conversazione", { ALLOWED_TAGS: [] }) : (chat.title || "Nuova conversazione").replace(/</g, "&lt;");
+
+        div.innerHTML = `
+            <div class="chat-title">${safeTitle}</div>
+            <div class="chat-actions">
+                <button class="action-btn" style="color: #007aff;" onclick="event.stopPropagation(); renameChat('${chat.dify_id}', '${chat.title}')">${SVG_ICONS.edit}</button>
+                <button class="action-btn" style="color:#ff4444" onclick="event.stopPropagation(); deleteChat('${chat.dify_id}')">${SVG_ICONS.delete}</button>
+            </div>
+        `;
+        return div;
+    };
+
+    window.renderHistoryList = function() {
+        if (!userId) return;
+        DOM.historyList.innerHTML = "";
+        const fragment = document.createDocumentFragment();
+
+        const folders = getFolders();
+        const mapping = getMapping();
+
+        folders.forEach(f => {
+            const fWrap = document.createElement('div');
+            fWrap.className = 'folder-wrapper';
+            if (window.activeFolderIds.includes(f.id)) fWrap.classList.add('expanded');
+
+            const fHead = document.createElement('div');
+            fHead.className = 'history-folder-item';
+            
+            fHead.innerHTML = `
+                <div class="folder-icon-wrapper">
+                    <div class="folder-icon">${FOLDER_SVG}</div>
+                    <div class="folder-chevron">${CHEVRON_SVG}</div>
+                </div>
+                <div class="folder-title">${f.name.replace(/</g, "&lt;")}</div>
+                <div class="chat-actions">
+                    <button class="action-btn" style="color: #007aff;" onclick="event.stopPropagation(); window.renameLimeFolder('${f.id}')">${SVG_ICONS.edit}</button>
+                    <button class="action-btn" style="color:#ff4444" onclick="event.stopPropagation(); window.deleteLimeFolder('${f.id}')">${SVG_ICONS.delete}</button>
+                </div>
+            `;
+            
+            fHead.onclick = () => {
+                const isExpanding = !fWrap.classList.contains('expanded');
+                fWrap.classList.toggle('expanded');
+                
+                if (isExpanding) {
+                    if (!window.activeFolderIds.includes(f.id)) window.activeFolderIds.push(f.id);
+                } else {
+                    window.activeFolderIds = window.activeFolderIds.filter(id => id !== f.id);
+                    if (window.folderActionState.targetId === f.id) {
+                        window.folderActionState = { mode: null, targetId: null };
+                        document.body.classList.remove('folder-add-mode', 'folder-remove-mode');
+                        window.renderHistoryList();
+                    }
+                }
+            };
+
+            const fContentWrap = document.createElement('div');
+            fContentWrap.className = 'folder-content-wrapper';
+            const fContent = document.createElement('div');
+            fContent.className = 'folder-content';
+            const fInner = document.createElement('div');
+            fInner.className = 'folder-inner';
+
+            const actionRow = document.createElement('div');
+            actionRow.className = 'folder-action-row';
+
+            const addBtn = document.createElement('button');
+            const isAdding = window.folderActionState.mode === 'add' && window.folderActionState.targetId === f.id;
+            addBtn.className = 'folder-action-btn' + (isAdding ? ' is-annulla-add' : '');
+            addBtn.innerText = isAdding ? 'Annulla' : 'Aggiungi chat';
+            
+            addBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (isAdding) {
+                    window.folderActionState = { mode: null, targetId: null };
+                    document.body.classList.remove('folder-add-mode', 'folder-remove-mode');
+                } else {
+                    window.folderActionState = { mode: 'add', targetId: f.id };
+                    document.body.classList.remove('folder-remove-mode');
+                    document.body.classList.add('folder-add-mode');
+                    if (!fWrap.classList.contains('expanded')) fHead.click(); 
+                }
+                window.renderHistoryList();
+            };
+
+            const remBtn = document.createElement('button');
+            const isRemoving = window.folderActionState.mode === 'remove' && window.folderActionState.targetId === f.id;
+            remBtn.className = 'folder-action-btn' + (isRemoving ? ' is-annulla-rem' : '');
+            remBtn.innerText = isRemoving ? 'Annulla' : 'Togli chat';
+            
+            remBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (isRemoving) {
+                    window.folderActionState = { mode: null, targetId: null };
+                    document.body.classList.remove('folder-add-mode', 'folder-remove-mode');
+                } else {
+                    window.folderActionState = { mode: 'remove', targetId: f.id };
+                    document.body.classList.remove('folder-add-mode');
+                    document.body.classList.add('folder-remove-mode');
+                    if (!fWrap.classList.contains('expanded')) fHead.click(); 
+                }
+                window.renderHistoryList();
+            };
+
+            actionRow.appendChild(addBtn);
+            actionRow.appendChild(remBtn);
+            fInner.appendChild(actionRow);
+
+            const folderChats = allChats.filter(c => mapping[c.dify_id] === f.id);
+            folderChats.forEach(chat => {
+                const cDiv = window.createRawChatItem(chat);
+                
+                if (isRemoving) {
+                    cDiv.classList.add('assigned-in-remove-mode');
+                    cDiv.onclick = (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        const currentMapping = getMapping();
+                        delete currentMapping[chat.dify_id];
+                        saveMapping(currentMapping);
+                        
+                        window.folderActionState = { mode: null, targetId: null };
+                        document.body.classList.remove('folder-remove-mode');
+                        window.renderHistoryList();
+                    };
+                }
+                fInner.appendChild(cDiv);
+            });
+
+            fContent.appendChild(fInner);
+            fContentWrap.appendChild(fContent);
+            fWrap.appendChild(fHead);
+            fWrap.appendChild(fContentWrap);
+            fragment.appendChild(fWrap);
+        });
+
+        const unassigned = allChats.filter(c => !mapping[c.dify_id]);
+        const toShow = unassigned.slice(0, chatPage * CHATS_PER_PAGE);
+
+        toShow.forEach(chat => {
+            const cDiv = window.createRawChatItem(chat);
+
+            if (window.folderActionState.mode === 'add') {
+                cDiv.classList.add('unassigned-in-add-mode');
+                cDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (window.folderActionState.targetId) {
+                        const currentMapping = getMapping();
+                        currentMapping[chat.dify_id] = window.folderActionState.targetId;
+                        saveMapping(currentMapping);
+
+                        window.folderActionState = { mode: null, targetId: null };
+                        document.body.classList.remove('folder-add-mode');
+                        window.renderHistoryList();
+                    }
+                };
+            }
+
+            fragment.appendChild(cDiv);
+        });
+
+        if (unassigned.length > chatPage * CHATS_PER_PAGE) {
+            const loadBtn = document.createElement('button');
+            loadBtn.className = "load-more-btn";
+            loadBtn.innerText = "Carica chat precedenti";
+            loadBtn.onclick = () => { chatPage++; window.renderHistoryList(); };
+            fragment.appendChild(loadBtn);
+        }
+
+        DOM.historyList.appendChild(fragment);
+    };
+})();
+</script>
+
+
+<script>
+(function initCloudRestore() {
+    // 1. La funzione che scarica i dati da Supabase
+    window.restoreFolderDataFromCloud = async function() {
+        if (!userId || typeof supabaseClient === 'undefined') return;
+        
+        try {
+            // Chiediamo a Supabase solo la colonna folders_data per l'utente corrente
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .select('folders_data')
+                .eq('id', userId)
+                .single();
+                
+            // Se troviamo dei dati nel cloud, li riversiamo nel browser
+            if (data && data.folders_data) {
+                const cloudData = data.folders_data;
+                
+                if (cloudData.folders) {
+                    localStorage.setItem('lime_folders_' + userId, JSON.stringify(cloudData.folders));
+                }
+                if (cloudData.mapping) {
+                    localStorage.setItem('lime_folder_mapping_' + userId, JSON.stringify(cloudData.mapping));
+                }
+                
+                // Diciamo a LIME di ridisegnare la barra laterale con i nuovi dati
+                if (typeof window.renderHistoryList === 'function') {
+                    window.renderHistoryList();
+                }
+            }
+        } catch (error) {
+            console.error("Errore silente nel download delle cartelle:", error);
+        }
+    };
+
+    // 2. Intercettiamo il momento esatto in cui LIME carica il profilo utente (Login/Refresh)
+    const originalUpdateProfileUI = window.updateProfileUI;
+    if (originalUpdateProfileUI) {
+        window.updateProfileUI = function(user) {
+            // Eseguiamo la normale logica di LIME
+            originalUpdateProfileUI.apply(this, arguments);
+            
+            // Se c'è un utente loggato, avviamo il download silente delle cartelle
+            if (user && typeof userId !== 'undefined' && userId) {
+                window.restoreFolderDataFromCloud();
+            }
+        };
+    }
+})();
+</script>
+
+
+
 	
 
   
